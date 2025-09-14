@@ -122,6 +122,45 @@ def preprocess_enso(ds):
     #dsanom = proc.xrdetrend_1d(ds,2) 
     return dsanom
 
+
+def match_time_month(var_in,ts_in):
+    
+    # Note works for datetime64[ns] format in xr.DataArray
+    
+    if len(var_in.time) != len(ts_in.time): # Check if they match
+        
+        # Warning: Only checking Year and Date
+        vstart = str(np.array((var_in.time.data[0])))[:7]
+        tstart = str(np.array((ts_in.time.data[0])))[:7]
+        
+        if vstart != tstart:
+            print("Start time (v1=%s,v2=%s) does not match..." % (vstart,tstart))
+            if vstart > tstart:
+                print("Cropping to start from %s" % vstart)
+                ts_in = ts_in.sel(time=slice(vstart+"-01",None))
+            elif vstart < tstart:
+                print("Cropping to start from %s" % tstart)
+                var_in = var_in.sel(time=slice(tstart+"-01",None))
+        
+        vend = str(np.array((var_in.time.data[-1])))[:7]
+        tend = str(np.array((ts_in.time.data[-1])))[:7]
+        
+        
+        if vend != tend:
+            
+            print("End times (v1=%s,v2=%s) does not match..." % (vend,tend))
+            
+            if vend > tend:
+                print("\nCropping to start from %s" % tend)
+                var_in = var_in.sel(time=slice())
+            elif vend < tend:
+                print("\nCropping to start from %s" % vend)
+                ts_in = ts_in.sel(time=slice(None,vend+"-31"))
+                
+        print(len(var_in.time) == len(ts_in.time))  
+    return var_in,ts_in
+        
+
 #%% Part (1) Load the ENSO Indices
 
 ds_enso = []
@@ -166,12 +205,17 @@ if vname in ["D20","Dmax"]:
 else:
     ds_anoms = [preprocess_enso(ds[vname]) for ds in ds_var]
 
+
+
 #%% Part (4) Compute the regression pattern, for all months and separately. then save file.
 
 # All Months
 for ex in range(4):
     ts_in   = ds_enso[ex].sst
     var_in  = ds_anoms[ex]
+    
+    var_in,ts_in = match_time_month(var_in,ts_in)
+    
     dsout   = proc.detrend_by_regression(var_in, ts_in, regress_monthly=False)
     
     edict   = proc.make_encoding_dict(dsout)
@@ -183,6 +227,9 @@ for ex in range(4):
 for ex in range(4):
     ts_in   = ds_enso[ex].sst
     var_in  = ds_anoms[ex]
+    
+    var_in,ts_in = match_time_month(var_in,ts_in)
+    
     dsout   = proc.detrend_by_regression(var_in, ts_in, regress_monthly=True)
     
     edict   = proc.make_encoding_dict(dsout)
