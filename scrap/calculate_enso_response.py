@@ -51,13 +51,25 @@ datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090"]
 expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090"]
 
-vname           = "sst"#"str"
+vname           = "D20" #"sst"#"str"
+"""
+Some issues to fix with vname
+
+tx_surf_1m  (file name) corresponds to tx_sur
+D20         (file name) corresponds to nz1
+Dmax        (file name) corresponds to nz1
+
+in one file
+SSR (variable name) --> ssr, and the coordinate names are somewhat messed up
+
+Also, it seems that I spelled separately wrong in the filename, RIP
+
+"""
 
 
-ninopath    = "/home/niu4/gliu8/projects/scrap/nino34/"
+ninopath        = "/home/niu4/gliu8/projects/scrap/nino34/"
 
-
-nexps = len(expnames)
+nexps           = len(expnames)
 
 #%% Helper Functions
 
@@ -68,7 +80,6 @@ def swap_rename(ds,chkvar,newvar):
         ds = ds.rename({chkvar:newvar})
     return ds
 
-    
 def standardize_names(ds):
     
     ds = swap_rename(ds,'time_counter','time')
@@ -79,16 +90,12 @@ def standardize_names(ds):
     return ds
     
 # def rename_time_dart(ds):
-    
 #     if 'time_counter' in list(ds.coords):
 #         print("Renaming [time_counter] to [time]")
 #         ds = ds.rename({'time_counter':'time'})
-        
-        
 #     if 'TIME_COUNTER' in list(ds.coords):
 #         print("Renaming [TIME_COUNTER] to [time]")
 #         ds = ds.rename({'TIME_COUNTER':'time'})
-        
 #     return ds
 
 def preprocess_enso(ds):
@@ -130,7 +137,13 @@ for ex in range(nexps):
 
 ds_var = []
 for ex in tqdm.tqdm(range(nexps)):
-    ncname = "%s%s_%s.nc" % (datpath,expnames[ex],vname)
+    
+    
+    if vname == "tx_sur":
+        vname_file = "tx_surf_1m"
+        ncname = "%s%s_%s.nc" % (datpath,expnames[ex],vname_file)
+    else:
+        ncname = "%s%s_%s.nc" % (datpath,expnames[ex],vname)
     ds = xr.open_dataset(ncname)
     
     if vname.upper() in list(ds.keys()):
@@ -148,9 +161,12 @@ ds_var = [standardize_names(ds) for ds in ds_var]
 # 13.06 sec (exp2)
 # 110.36s
 # 94.95s
-ds_anoms = [preprocess_enso(ds[vname]) for ds in ds_var]
+if vname in ["D20","Dmax"]:
+    ds_anoms = [preprocess_enso(ds['nz1']) for ds in ds_var]
+else:
+    ds_anoms = [preprocess_enso(ds[vname]) for ds in ds_var]
 
-#%% Part (4) Compute the regression pattern 
+#%% Part (4) Compute the regression pattern, for all months and separately. then save file.
 
 # All Months
 for ex in range(4):
@@ -163,7 +179,6 @@ for ex in range(4):
     
     dsout.to_netcdf(ncout,encoding=edict)
     
-
 # Monthly
 for ex in range(4):
     ts_in   = ds_enso[ex].sst
@@ -174,20 +189,4 @@ for ex in range(4):
     ncout   = "%s%s_%s_ENSO_regression_seperatemonths.nc" % (datpath,expnames[ex],vname)
     
     dsout.to_netcdf(ncout,encoding=edict)
-
-#%% Do some formatting
-
-proc.detrend_by_regression(invar, in_ts, regress_monthly=False)
-
-
-#%% Load the thermocline data
-
-dsall = []
-for ex in tqdm.tqdm(range(nexps)):
-    ncname = "%s%s_%s.nc" % (datpath,expnames[ex],vname)
-    ds  = xr.open_dataset(ncname).load()
-    dsall.append(ds)
-
-
-
 
