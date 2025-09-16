@@ -51,7 +51,7 @@ datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090"]
 expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090"]
 
-vname           = "D20" #"sst"#"str"
+vname           = "tx_sur"#"Dmaxgrad" #"sst"#"str"
 """
 Some issues to fix with vname
 
@@ -124,7 +124,7 @@ def preprocess_enso(ds):
 
 
 def match_time_month(var_in,ts_in):
-    
+    # Crops the start and end times for var_in and ts_in (xr.DataArrays/Datasets)
     # Note works for datetime64[ns] format in xr.DataArray
     
     if len(var_in.time) != len(ts_in.time): # Check if they match
@@ -200,7 +200,7 @@ ds_var = [standardize_names(ds) for ds in ds_var]
 # 13.06 sec (exp2)
 # 110.36s
 # 94.95s
-if vname in ["D20","Dmax"]:
+if vname in ["D20","Dmaxgrad"]:
     ds_anoms = [preprocess_enso(ds['nz1']) for ds in ds_var]
 else:
     ds_anoms = [preprocess_enso(ds[vname]) for ds in ds_var]
@@ -216,7 +216,7 @@ for ex in range(4):
     
     var_in,ts_in = match_time_month(var_in,ts_in)
     
-    dsout   = proc.detrend_by_regression(var_in, ts_in, regress_monthly=False)
+    dsout   = proc.detrend_by_regression(var_in, ts_in, regress_monthly=False,return_pattern_only=True)
     
     edict   = proc.make_encoding_dict(dsout)
     ncout   = "%s%s_%s_ENSO_regression_allmonths.nc" % (datpath,expnames[ex],vname)
@@ -230,7 +230,7 @@ for ex in range(4):
     
     var_in,ts_in = match_time_month(var_in,ts_in)
     
-    dsout   = proc.detrend_by_regression(var_in, ts_in, regress_monthly=True)
+    dsout   = proc.detrend_by_regression(var_in, ts_in, regress_monthly=True,return_pattern_only=True)
     
     edict   = proc.make_encoding_dict(dsout)
     ncout   = "%s%s_%s_ENSO_regression_seperatemonths.nc" % (datpath,expnames[ex],vname)
