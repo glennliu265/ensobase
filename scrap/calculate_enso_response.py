@@ -113,6 +113,8 @@ for vv in range(nvars):
         def detrend_quadratic(ds):
             x = np.arange(len(ds))
             y = ds.data
+            if np.any(np.isnan(y)):
+                return np.ones(y.shape)*np.nan
             ydetrended,model=proc.detrend_poly(x,y,2)
             return ydetrended
             
