@@ -442,49 +442,57 @@ ds_anoms    = [preprocess_enso(ds[vname]) for ds in ds_var]
 
 #%% Examine Lag Compsites of choice variable before and after an event
 
-ex      = 0
+# User Settings
+plot_single_events  = False # Set to True to make plots for individual events
+lags                = 18    # Number of lead + lags to composite over
+vmax_event          = 2.5   # Colorbar Limits for Single Events
+vmax_composite      = 1.0   # Colorbar limits for composites
+sel_mons            = [12,1,2] # Indicate which central months to include in the composite
+plot_composite      = True #  Set to True to make plots for composite
 
-for ex in [1,2,3]:
+#Make some necessary variables
+leadlags            = np.arange(-lags,lags+1)
+proj                = ccrs.PlateCarree()
+
+composites_byexp = []
+for ex in [0,1,2,3]:
     
+    # Open the Nino/Nina Indices and Variables
     ninoids   = ninodicts[ex]['center_ids']
     ninotimes = ninodicts[ex]['event_time']
-    ninomon   = [ds.time.dt.month.item() for ds in ninotimes]
+    #ninomon   = [ds.time.dt.month.item() for ds in ninotimes]
     
     ninaids   = ninadicts[ex]['center_ids']
     ninatimes = ninadicts[ex]['event_time']
-    ninamon   = [ds.time.dt.month.item() for ds in ninatimes]
+    #ninamon   = [ds.time.dt.month.item() for ds in ninatimes]
     
     invar    = ds_anoms[ex].transpose('time','lat','lon')
     times_da = invar.time.data.astype('datetime64[ns]')
     
+    # Select/align qualifying Events and prepare to composite
+    
+    composites_bytype = []
     for eventid_type in ['nino','nina']:
         
-        #eventid_type = "nina"
         if eventid_type == "nina":
             eventids_in = ninaids
         elif eventid_type == "nino":
             eventids_in = ninoids
             
         
-        #%% Subset Events
-        
+        #%% PREALLOCATE AND Subset Events
         ntime,nlat,nlon = invar.shape
-        
-        
-        lags    = 18
-        nevents = len(eventids_in)
-        
+        nevents     = len(eventids_in)
         temp_var    = np.zeros((nevents,lags*2+1,nlat,nlon)) * np.nan
         event_times = np.zeros((nevents,lags*2+1)) * np.nan
                                
         for ie in range(nevents):
             
             ievent    = eventids_in[ie]
-            
             istart    = ievent-lags
             iend      = ievent+lags
             
-            
+            # Corrections for end-case indices
             if istart < 0:
                 print("istart is at %s" % istart)
                 insert_start = np.abs(istart)#(lags - np.abs(istart)).item()
@@ -504,7 +512,7 @@ for ex in [1,2,3]:
             temp_var[ie,indices_in,:,:] = invar[istart:(iend+1),:,:]
             event_times[ie,indices_in]  = times_da[istart:(iend+1)]
         
-        leadlags           = np.arange(-lags,lags+1)
+        
         
         coords             = dict(eventid=eventids_in,lag=leadlags,lat=invar.lat,lon=invar.lon)
         invar_subset       = xr.DataArray(temp_var,coords=coords,dims=coords)
@@ -512,99 +520,116 @@ for ex in [1,2,3]:
         coords_time        = dict(eventid=eventids_in,lag=leadlags)
         event_times_subset = xr.DataArray(event_times.astype('datetime64[ns]'),coords=coords_time,dims=coords_time)
         
-        #%% Plot a sequence to test (generate all frames)
-        
-        plotlags = leadlags#[-18,-12,-6,0,6,12,18]
-        vmax     = 2.5
-        #il    = 0
-        ie       = 0
-        
-        
-        for ie in range(nevents):
+        #% Plot a sequence to test (generate all frames)----------------------
+        if plot_single_events:
+            plotlags        = leadlags #[-18,-12,-6,0,6,12,18]
+            vmax            = vmax_event
             
-            eventnum  = invar_subset.isel(eventid=ie).eventid.item()
-            eventtime = str(event_times_subset.sel(lag=0).isel(eventid=ie).data)[:7]
-            eventdir  = "%s/pre_composites/%s/%s/event_%04i_%s/" % (figpath,expnames[ex],eventid_type,eventnum,eventtime)
+            # Looping for each Event
+            for ie in range(nevents):
+                
+                # Select Event and make folder
+                eventnum    = invar_subset.isel(eventid=ie).eventid.item()
+                eventtime   = str(event_times_subset.sel(lag=0).isel(eventid=ie).data)[:7]
+                eventdir    = "%s/pre_composites/%s/%s/event_%04i_%s/" % (figpath,expnames[ex],eventid_type,eventnum,eventtime)
+                proc.makedir(eventdir)
+                
+                for il in tqdm.tqdm(range(len(plotlags))):
+                    lag     = plotlags[il]
+                    
+                    fig,ax  = init_tp_map()
+                    
+                    seltime = str(event_times_subset.sel(lag=lag).isel(eventid=ie).data)[:7]
+                    plotvar = invar_subset.isel(eventid=ie).sel(lag=lag)
+                    ax.set_title("AWI-CM3 %s Event %i, Lag %i (%s)" % (expnames_long[ex],plotvar.eventid.data.item(),lag,seltime))
+                    
+                    pcm     = ax.pcolormesh(plotvar.lon,plotvar.lat,plotvar,vmin=-vmax,vmax=vmax,cmap='cmo.balance',transform=proj)
+                    cb      = fig.colorbar(pcm,ax=ax,fraction=0.010,pad=0.01)
+                    
+                    # Save the figure
+                    figname = "%sframe%0i.png" % (eventdir,il)
+                    plt.savefig(figname,dpi=150,bbox_inches='tight')
+                    
+                    plt.close()
+                    #plt.show()
+                    
+        # Next Part: Actually make the composites =============================
+        if eventid_type == "nino":
+            eventmons        = ninomons[ex]
+        elif eventid_type == "nina":
+            eventmons        = ninamons[ex]
+        selected_events  = [m in sel_mons for m in eventmons]
+        
+        # Make the Composite
+        composite_events = temp_var[selected_events,:,:,:]
+        composite_out    = np.nanmean(composite_events,0)
+        
+        composites_bytype.append(composite_out)
+        # Optionally plot them as well =============================
+        #plotlags = leadlags #[-18,-12,-6,0,6,12,18]
+        if plot_composite:
+            
+            # Prepare and make composite directory
+            lon,lat  = ds_anoms[ex].lon,ds_anoms[ex].lat
+            eventdir  = "%s/pre_composites/%s/%s/composites/" % (figpath,expnames[ex],eventid_type,)
             proc.makedir(eventdir)
             
-            proj     = ccrs.PlateCarree()
-            
+            vmax = vmax_composite
+
             for il in tqdm.tqdm(range(len(plotlags))):
-                lag = plotlags[il]
+                lag     = plotlags[il]
+                ilag    = np.where(leadlags == lag)[0][0].item()
                 
                 
                 fig,ax  = init_tp_map()
                 
-                seltime = str(event_times_subset.sel(lag=lag).isel(eventid=ie).data)[:7]
-                plotvar = invar_subset.isel(eventid=ie).sel(lag=lag)
-                ax.set_title("AWI-CM3 %s Event %i, Lag %i (%s)" % (expnames_long[ex],plotvar.eventid.data.item(),lag,seltime))
+                plotvar = composite_out[il,:,:]
+                ax.set_title("AWI-CM3 %s %s Composite\nEvent Month = %s, # Events = %i, Lag %i" % (expnames_long[ex],eventid_type,sel_mons,composite_events.shape[0],lag))
                 
-                pcm     = ax.pcolormesh(plotvar.lon,plotvar.lat,plotvar,vmin=-vmax,vmax=vmax,cmap='cmo.balance',transform=proj)
+                pcm     = ax.pcolormesh(lon,lat,plotvar,vmin=-vmax,vmax=vmax,cmap='cmo.balance',transform=proj)
                 cb      = fig.colorbar(pcm,ax=ax,fraction=0.010,pad=0.01)
                 
+                #plt.show()
+                
+                
+                
                 # Save the figure
-                figname = "%sframe%0i.png" % (eventdir,il)
+                figname = "%sENSO_Composite_%s_%s_frame%0i.png" % (eventdir,expnames[ex],eventid_type,il)
                 plt.savefig(figname,dpi=150,bbox_inches='tight')
                 
                 plt.close()
                 #plt.show()
-                
-        
-# ============================================================================================================================================================
-#%%Scrap Below
+    composites_byexp.append(composites_bytype)
+            
+            
+
+# # ============================================================================================================================================================
+# #%%Scrap Below
 
 
-#%% First lets make a composite agnostic to month (i know... not ideal)
+# #%% First lets make a composite agnostic to month (i know... not ideal)
 
-# Run the above to extract the events
-sel_mons = [12,1,2]
-
-
-eventmons = ninomons[ex]
-print(len(eventmons) == len(ninoids))
+# # Run the above to extract the events
 
 
-selected_events = [m in sel_mons for m in eventmons]
 
-# Make the Composite
-composite_events = temp_var[selected_events,:,:,:]
-composite_out    = np.nanmean(composite_events,0)
 
-#%% Try PLotting the sequence of selected lags
+# print(len(eventmons) == len(ninoids))
 
-lon,lat  = ds_anoms[ex].lon,ds_anoms[ex].lat
-plotlags = leadlags #[-18,-12,-6,0,6,12,18]
 
-#for il in range(len(plotlags)):
 
-eventdir  = "%s/pre_composites/%s/%s/composites/" % (figpath,expnames[ex],eventid_type,)
-proc.makedir(eventdir)
 
-vmax = 1
 
-for il in tqdm.tqdm(range(len(plotlags))):
-    lag     = plotlags[il]
-    ilag    = np.where(leadlags == lag)[0][0].item()
-    
-    
-    fig,ax  = init_tp_map()
-    
-    plotvar = composite_out[il,:,:]
-    ax.set_title("AWI-CM3 %s %s Composite\nEvent Month = %s, # Events = %i, Lag %i" % (expnames_long[ex],eventid_type,sel_mons,composite_events.shape[0],lag))
-    
-    pcm     = ax.pcolormesh(lon,lat,plotvar,vmin=-vmax,vmax=vmax,cmap='cmo.balance',transform=proj)
-    cb      = fig.colorbar(pcm,ax=ax,fraction=0.010,pad=0.01)
-    
-    #plt.show()
-    
-    
-    
-    # Save the figure
-    figname = "%sENSO_Composite_%s_%s_frame%0i.png" % (eventdir,expnames[ex],eventid_type,il)
-    plt.savefig(figname,dpi=150,bbox_inches='tight')
-    
-    plt.close()
-    #plt.show()
+
+# #%% Try PLotting the sequence of selected lags
+
+
+
+# #for il in range(len(plotlags)):
+
+
+
+
 
 
 
