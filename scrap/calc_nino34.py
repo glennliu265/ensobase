@@ -40,11 +40,23 @@ proc.makedir(figpath)
 datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 outpath         = "/home/niu4/gliu8/projects/scrap/nino34/"
 
-expnames        = ["glorys"]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090"]
+expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090"] # ["glorys"]#
 expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090"]
 vname           = "sst"
 
 nexps           = len(expnames)
+
+ninoid_name        = 'nino3'#'nino34' # 
+
+bbox_nino34   = [-170+360,-120+360,-5,5]
+bbox_nino3    = [-150+360, -90+360 , -5, 5]  # Nino 3 Box: For SST, <tau_x>
+
+if ninoid_name == "nino34":
+    bbox = bbox_nino34
+elif ninoid_name == 'nino3':
+    bbox = bbox_nino3
+    
+
 
 #%%Functions
 
@@ -66,12 +78,12 @@ def remake_da(ds,dsref,name='sst'):
 
 dsall         = [xr.open_dataset("%s%s_%s.nc" % (datpath,ex,vname)).load() for ex in expnames]
 dsall         = [rename_time_dart(ds) for ds in dsall]
-#sst_anom      = [proc.xrdeseason(ds) for ds in dsall]
+#sst_anom     = [proc.xrdeseason(ds) for ds in dsall]
 
 #%% Calculate ENSO Index
 
 apply_movmean = False
-bbox_nino34   = [-170+360,-120+360,-5,5]
+
 
 # Take Area-weighted average
 dsall_reg     = [proc.sel_region_xr(ds,bbox_nino34) for ds in dsall]
@@ -100,7 +112,7 @@ nino34_ds   = [remake_da(nino34_norm[ii],dsall[ii]) for ii in range(len(expnames
 
 for ex in range(nexps):
     
-    outname = "%s%s_nino34.nc" % (outpath,expnames[ex])
+    outname = "%s%s_%s.nc" % (outpath,expnames[ex],ninoid_name)
     print(outname)
     
     outds = nino34_ds[ex]
