@@ -133,7 +133,7 @@ for ex in range(nexps):
 # =========
 #%% Identify Events (Scrap)
 
-ensoin = ensoids[-1]
+#ensoin = ensoids[-1]
 
 
 """
@@ -147,68 +147,68 @@ ensoin = ensoids[-1]
 """
 
 #%%
-ensoin  = ensoids[-1]
-sigma   = ensoin.std('time')
-id_nino = ensoin >= sigma
-id_nina = ensoin <= -sigma
+# ensoin  = ensoids[-1]
+# sigma   = ensoin.std('time')
+# id_nino = ensoin >= sigma
+# id_nina = ensoin <= -sigma
 
 
 
-print("Identified %i events..." % (nevents))
+# print("Identified %i events..." % (nevents))
 
 
 
 
-# num2next     = np.roll(eventid,-1) - eventid # Time to next event
-# num2next[-1] = (eventid[-1] - eventid[-2]).item()
-# consecutive     = (num2next == 1) # Identify Consecutive Events
-# separate_events = eventid[~consecutive]
+# # num2next     = np.roll(eventid,-1) - eventid # Time to next event
+# # num2next[-1] = (eventid[-1] - eventid[-2]).item()
+# # consecutive     = (num2next == 1) # Identify Consecutive Events
+# # separate_events = eventid[~consecutive]
 
 
-var_in          = ensoin#[-1]
-id_in           = id_nino
+# var_in          = ensoin#[-1]
+# id_in           = id_nino
 
-# Separate into discrete events
-nevents        = id_in.data.sum().item()
-eventids       = np.where(id_in)[0]
-event_combine = []
-for ii in range(nevents+1): #event_id:
-    if ii == (nevents):
-        print("Merging last event: %s" % event_merge)
-        event_combine.append(event_merge)
-        continue
-    ievent = eventids[ii].item()#.data
+# # Separate into discrete events
+# nevents        = id_in.data.sum().item()
+# eventids       = np.where(id_in)[0]
+# event_combine = []
+# for ii in range(nevents+1): #event_id:
+#     if ii == (nevents):
+#         print("Merging last event: %s" % event_merge)
+#         event_combine.append(event_merge)
+#         continue
+#     ievent = eventids[ii].item()#.data
     
-    if ii == 0:
-        prev_id = 0
-        event_merge = [ievent]
-        continue
+#     if ii == 0:
+#         prev_id = 0
+#         event_merge = [ievent]
+#         continue
     
-    if (ievent - prev_id) == 1: # Consecutive Event
-        event_merge.append(ievent)
-        print("%i is consecutive to previous events (%s)" % (ievent,event_merge))
-    else: # Otherwise, just add event and merge
-        event_combine.append(event_merge)
-        event_merge = [ievent,] # Make a new one
-        print("Making new event sequence at %i" % (ievent))
-    prev_id = ievent
-print("Identified %i events!" % len(event_combine))
+#     if (ievent - prev_id) == 1: # Consecutive Event
+#         event_merge.append(ievent)
+#         print("%i is consecutive to previous events (%s)" % (ievent,event_merge))
+#     else: # Otherwise, just add event and merge
+#         event_combine.append(event_merge)
+#         event_merge = [ievent,] # Make a new one
+#         print("Making new event sequence at %i" % (ievent))
+#     prev_id = ievent
+# print("Identified %i events!" % len(event_combine))
 
-# Identify Event Centers
+# # Identify Event Centers
 
-ncevent         = len(event_combine)
-event_time      = []
-center_ids      = []
-for ie in range(ncevent):
-    idsin = event_combine[ie]
-    if len(idsin) == 1: # Only 1 step
-        event_time.append(var_in.time.isel(time=idsin[0]))
-        center_ids.append(idsin[0])
-    else:
-        amplitudes = var_in.isel(time=idsin) #.argmax()
-        idmax      = np.argmax(np.abs(amplitudes.data)).item()
-        event_time.append(var_in.time.isel(time=idsin[idmax]))
-        center_ids.append(idsin[idmax])
+# ncevent         = len(event_combine)
+# event_time      = []
+# center_ids      = []
+# for ie in range(ncevent):
+#     idsin = event_combine[ie]
+#     if len(idsin) == 1: # Only 1 step
+#         event_time.append(var_in.time.isel(time=idsin[0]))
+#         center_ids.append(idsin[0])
+#     else:
+#         amplitudes = var_in.isel(time=idsin) #.argmax()
+#         idmax      = np.argmax(np.abs(amplitudes.data)).item()
+#         event_time.append(var_in.time.isel(time=idsin[idmax]))
+#         center_ids.append(idsin[idmax])
 
 #%% Make above into function
 
@@ -268,32 +268,32 @@ def combine_events(var_in,id_in,return_dict=False,verbose=True):
     return event_time,center_ids,event_combine
 
 
-ninotimes,center_ids_nino,nino_combine = combine_events(ensoin,id_nino)
-ninatimes,center_ids_nina,nina_combine = combine_events(ensoin,id_nina)
+# ninotimes,center_ids_nino,nino_combine = combine_events(ensoin,id_nino)
+# ninatimes,center_ids_nina,nina_combine = combine_events(ensoin,id_nina)
 
-#%% Plot Identified Events
+# #%% Plot Identified Events
 
 
     
 
-fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(12.5,4.5))
-ax.plot(ensoin.time,ensoin)
+# fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(12.5,4.5))
+# ax.plot(ensoin.time,ensoin)
 
-sigma  = ensoin.std('time')
+# sigma  = ensoin.std('time')
 
-ax.axhline([0],ls='solid',lw=0.55,c='k')
-ax.axhline([sigma],ls='dashed',lw=0.55,c='r')
-ax.axhline([-sigma],ls='dashed',lw=0.55,c='b')
-
-
-ninos = ensoin.isel(time=center_ids_nino)
-ax.plot(ninos.time,ninos,c='r',marker="o",markersize=20,linestyle='none')
-
-ninas = ensoin.isel(time=center_ids_nina)
-ax.plot(ninas.time,ninas,c='b',marker="d",markersize=20,linestyle='none')
+# ax.axhline([0],ls='solid',lw=0.55,c='k')
+# ax.axhline([sigma],ls='dashed',lw=0.55,c='r')
+# ax.axhline([-sigma],ls='dashed',lw=0.55,c='b')
 
 
-plt.show()
+# ninos = ensoin.isel(time=center_ids_nino)
+# ax.plot(ninos.time,ninos,c='r',marker="o",markersize=20,linestyle='none')
+
+# ninas = ensoin.isel(time=center_ids_nina)
+# ax.plot(ninas.time,ninas,c='b',marker="d",markersize=20,linestyle='none')
+
+
+# plt.show()
 
 # =========================================
 #%% Now repeat identification for each case
@@ -413,11 +413,8 @@ for ex in range(4):
     plt.savefig(figname,dpi=150,bbox_inches='tight')
     
     
-    
-    #plt.show()
-    
 #%% Lets Load a variable to analyze
-vname           = "sst" #"Dmaxgrad" #"sst"#"str"
+vname           = 'str'#"Dmaxgrad"
 
 ds_var          = []
 
@@ -429,7 +426,7 @@ for ex in tqdm.tqdm(range(nexps)):
         ncname = "%s%s_%s.nc" % (datpath,expnames[ex],vname_file)
     else:
         ncname = "%s%s_%s.nc" % (datpath,expnames[ex],vname)
-    ds = xr.open_dataset(ncname)
+    ds = xr.open_dataset(ncname).load()
     
     if vname.upper() in list(ds.keys()):
         print("Renaming %s to %s" % (vname.upper(),vname))
@@ -438,7 +435,10 @@ for ex in tqdm.tqdm(range(nexps)):
     ds_var.append(ds)
 
 ds_var      = [standardize_names(ds) for ds in ds_var]
-ds_anoms    = [preprocess_enso(ds[vname]) for ds in ds_var]   
+if vname in ["D20","Dmaxgrad"]:
+    ds_anoms = [preprocess_enso(ds['nz1']) for ds in ds_var]
+else:
+    ds_anoms = [preprocess_enso(ds[vname]) for ds in ds_var]
 
 #%% Examine Lag Compsites of choice variable before and after an event
 
@@ -449,6 +449,18 @@ vmax_event          = 2.5   # Colorbar Limits for Single Events
 vmax_composite      = 1.0   # Colorbar limits for composites
 sel_mons            = [12,1,2] # Indicate which central months to include in the composite
 plot_composite      = True #  Set to True to make plots for composite
+
+# Adjust vmax based on variable
+if vname == "ssr" or vname == "str":
+    vmax_event      = 50
+    vmax_composite  = 40
+elif vname == "tx_sur":
+    vmax_event      = 0.02
+    vmax_composite  = 0.01
+elif vname == "D20" or vname == "Dmaxgrad":
+    vmax_event = 30
+    vmax_composite=30
+
 
 #Make some necessary variables
 leadlags            = np.arange(-lags,lags+1)
@@ -531,7 +543,7 @@ for ex in [0,1,2,3]:
                 # Select Event and make folder
                 eventnum    = invar_subset.isel(eventid=ie).eventid.item()
                 eventtime   = str(event_times_subset.sel(lag=0).isel(eventid=ie).data)[:7]
-                eventdir    = "%s/pre_composites/%s/%s/event_%04i_%s/" % (figpath,expnames[ex],eventid_type,eventnum,eventtime)
+                eventdir    = "%s/pre_composites/%s/%s/%s/event_%04i_%s/" % (figpath,expnames[ex],eventid_type,vname,eventnum,eventtime)
                 proc.makedir(eventdir)
                 
                 for il in tqdm.tqdm(range(len(plotlags))):
@@ -571,7 +583,7 @@ for ex in [0,1,2,3]:
             
             # Prepare and make composite directory
             lon,lat  = ds_anoms[ex].lon,ds_anoms[ex].lat
-            eventdir  = "%s/pre_composites/%s/%s/composites/" % (figpath,expnames[ex],eventid_type,)
+            eventdir  = "%s/pre_composites/%s/%s/%s/composites/" % (figpath,expnames[ex],eventid_type,vname)
             proc.makedir(eventdir)
             
             vmax = vmax_composite
@@ -601,7 +613,22 @@ for ex in [0,1,2,3]:
                 #plt.show()
     composites_byexp.append(composites_bytype)
             
-            
+#%% Save the Output
+
+outpath = "/home/niu4/gliu8/projects/scrap/TP_crop/composites/"
+for ex in range(nexps):
+    
+    outname = "%sENSO_Composites_%s_%s.nc" % (outpath,vname,expnames[ex])
+    
+    coords  = dict(event=["nino","nina"],lags=leadlags,lat=ds_anoms[ex].lat,lon=ds_anoms[ex].lon)
+    arrout  = np.array(composites_byexp[ex])
+    da_out  = xr.DataArray(arrout,coords=coords,dims=coords,name=vname)
+    
+    encoding=proc.make_encoding_dict(da_out)
+    da_out.to_netcdf(outname,encoding=encoding)
+    
+
+
 
 # # ============================================================================================================================================================
 # #%%Scrap Below
