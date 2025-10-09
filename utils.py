@@ -137,5 +137,6 @@ def varcheck(ds,vname,expname):
             print("Correction for accumulation over 3 hours for %s" % expname )
             accumulation_hr = 3
         conversion = (24/accumulation_hr) * 1000
+        ds         = ds * conversion
     return ds
 
