@@ -41,13 +41,13 @@ from amv import proc,viz
 
 #%% Indicate paths
 
-figpath         = "/home/niu4/gliu8/figures/bydate/2025-10-03/"
+figpath         = "/home/niu4/gliu8/figures/bydate/2025-10-14/"
 proc.makedir(figpath)
 
 datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 
-expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090"]
-expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090"]
+expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C","glorys"]
+expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950","GLORYS"]
 
 vname           = "sst"#"Dmaxgrad" #"sst"#"str"
 
@@ -212,7 +212,7 @@ for ex in range(nexps):
 
 #%% Make above into function
 
-def combine_events(var_in,id_in,return_dict=False,verbose=True):
+def combine_events(var_in,id_in,tol=1,return_dict=False,verbose=True):
     
     # Separate into discrete events
     nevents        = id_in.data.sum().item()
@@ -232,7 +232,7 @@ def combine_events(var_in,id_in,return_dict=False,verbose=True):
             event_merge = [ievent,]
             continue
         
-        if (ievent - prev_id) == 1: # Consecutive Event
+        if (ievent - prev_id) <= tol: # Consecutive Event
             event_merge.append(ievent)
             if verbose:
                 print("%i is consecutive to previous events (%s)" % (ievent,event_merge))
@@ -298,6 +298,8 @@ def combine_events(var_in,id_in,return_dict=False,verbose=True):
 # =========================================
 #%% Now repeat identification for each case
 # =========================================
+
+tol       = 12
 ninodicts = []
 ninadicts = []
 for ex in tqdm.tqdm(range(nexps)):
@@ -307,8 +309,8 @@ for ex in tqdm.tqdm(range(nexps)):
     id_nino = ensoin >= sigma
     id_nina = ensoin <= -sigma
     
-    oout = combine_events(ensoin,id_nino,return_dict=True,verbose=False)
-    aout = combine_events(ensoin,id_nina,return_dict=True,verbose=False)
+    oout = combine_events(ensoin,id_nino,tol=tol,return_dict=True,verbose=False)
+    aout = combine_events(ensoin,id_nina,tol=tol,return_dict=True,verbose=False)
     ninodicts.append(oout)
     ninadicts.append(aout)
     print("For %s:" % expnames_long[ex])
@@ -341,7 +343,7 @@ for ex in range(nexps):
     
     ax.set_xlabel("Time (Years)")
     ax.set_ylabel(r"Ni$\tilde{n}$o3.4 Index [$\degree$C]")
-    title = "AWI-CM3 (%s)\n" % (expnames_long[ex]) + r"#$Ni\tilde{n}o$: %i, #$Ni\tilde{n}a$: %i" % (len(ninos),len(ninas))
+    title = "AWI-CM3 (%s)\n 1$\sigma$=%.4f, " % (expnames_long[ex],sigma) + r"#$Ni\tilde{n}o$: %i, #$Ni\tilde{n}a$: %i" % (len(ninos),len(ninas))
     ax.set_title(title)
     
     ax.set_ylim([-5,5])
@@ -350,7 +352,7 @@ for ex in range(nexps):
     ax.set_xlim([ensoin.time.isel(time=0),ensoin.time.isel(time=-1)])
     
     # Save the figure
-    figname = "%sNino_Events_Identified_%s.png" % (figpath,expnames[ex])
+    figname = "%sNino_Events_Identified_%s_tol%02imon.png" % (figpath,expnames[ex],tol)
     plt.savefig(figname,dpi=150,bbox_inches='tight')
     #plt.show()
     
@@ -409,10 +411,151 @@ for ex in range(4):
     
     
     # Save the figure
-    figname = "%sNino_Events_MonthDistribution_%s.png" % (figpath,expnames[ex])
+    figname = "%sNino_Events_MonthDistribution_%s_tol%02imon.png" % (figpath,expnames[ex],tol)
     plt.savefig(figname,dpi=150,bbox_inches='tight')
+
+#%% Make Spaghetti Plot Centered around ENSO events
+
+ninotype = "nina"
+
+for ninotype in ["nino","nina"]:
+    
+    if ninotype == "nino":
+        indict = ninodicts
+    elif ninotype == "nina":
+        indict = ninadicts
+        
+    for ex in range(nexps):
+        expdict     = indict[ex]
+            
+        
+        
+        ibefore = 12
+        iafter  = 36
+        
+        plotlags    = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
+        
+        
+        target_var  = ensoids[ex].data
+        
+        
+        
+        eventids    = expdict['center_ids']
+        nevents     = len(eventids)
+        
+        
+        plotlags       = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
+        stacked_events = np.zeros((nevents,len(plotlags))) * np.nan
+        ntime          = len(target_var)
+        for ie in range(nevents):
+            
+            ievent    = eventids[ie]
+            istart    = ievent-ibefore
+            iend      = ievent+iafter
+    
+            
+            if (istart >=0) and (iend < ntime):
+                stacked_events[ie,:] = target_var[istart:(iend+1)]
+                
+            elif iend >= ntime:
+                filler = np.zeros( (iend-ntime+1)) * np.nan
+                subset = np.hstack([target_var[istart:],filler])
+                stacked_events[ie,:] = subset
+            elif istart < 0: # Note havent tested this
+                filler  = np.zeros(np.abs(istart)) * np.nan
+                subset  = np.hstack([filler,target_var[:(iend+1)],])
+                stacked_events[ie,:] = subset
+        #%% Now Plot Each one
+        
+        xtkslag     = np.arange(-12,39,3)
+        
+        fig,ax      = plt.subplots(1,1,constrained_layout=True,figsize=(8,4.5))
+        
+        #ax.set_prop_cycle(color=list(mpl.colormaps['Accent'].colors))
+        
+        sigma       = ensoids[ex]['std'].item()
+        
+        for ie in range(nevents):
+            
+            if ie == 0:
+                lab = "Individual Event"
+            else:
+                lab = ""
+                
+            plotvar = stacked_events[ie,:]
+            ax.plot(plotlags,plotvar,lw=.80,alpha=0.55,label=lab)
+            
+        ax.plot(plotlags,stacked_events.mean(0),color="k",lw=1,alpha=1,label='Mean')
+        ax.legend()
+        
+        ax.axvline([0],ls='solid',color="k",lw=0.50)
+        ax.axhline([0],ls='solid',color="k",lw=0.50)
+        ax.axhline([sigma],ls='dotted',color="red",lw=0.75)
+        ax.axhline([-sigma],ls='dotted',color="blue",lw=0.75)
+        
+        ax.set_xlabel("Lags (Months)")
+        ax.set_ylabel("SST Anomaly $\degree C$")
+        ax.set_ylim([-4.25,4.25])
+        ax.set_xticks(xtkslag)
+        ax.set_xlim([plotlags[0],plotlags[-1]])
+        
+        ax.set_title("%s Composites (%s)\n$\sigma=$%.2f" %(ninotype,expnames_long[ex],sigma))
+        
+        
+        # Save the figure
+        figname = "%s%s_Events_Spaghetti_%s_tol%02imon.png" % (figpath,ninotype,expnames[ex],tol)
+        plt.savefig(figname,dpi=150,bbox_inches='tight')
+        
+        #plt.show()
+
+#%%
+    
+            
     
     
+
+
+# def get_ids_stacker():
+    
+
+# def stack_events(eventids,targetarr,ibefore,iafter,axis=0,):
+    
+#     nevents        = len(eventids)
+#     plotlags       = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
+#     stacked_events = np.zeros((nevents,len(plotlags))) * np.nan
+#     ntime          = targetarr.shape[axis]
+    
+#     for ie in range(nevents):
+        
+#         ievent    = eventids[ie]
+#         istart    = ievent-ibefore
+#         iend      = ievent+iafter
+        
+#         # Corrections for end-case indices
+#         if istart < 0:
+#             print("istart is at %s" % istart)
+#             insert_start = np.abs(istart)#(lags - np.abs(istart)).item()
+#             istart       = 0
+#         else:
+#             insert_start = 0
+        
+#         if iend > ntime:
+#             print("iend is at %s" % (iend))
+#             insert_end = lags + (ntime-ievent) #(lags*2+1) - (iend - ntime)
+#             iend = ntime
+#         else:
+#             insert_end = lags*2+1
+            
+        
+#         indices_in = np.arange(insert_start,insert_end)
+#         temp_var[ie,indices_in,:,:] = invar[istart:(iend+1),:,:]
+#         event_times[ie,indices_in]  = times_da[istart:(iend+1)]
+        
+    
+    
+
+    
+# Part 2 ====================================================================== 
 #%% Lets Load a variable to analyze
 vname           = 'str'#"Dmaxgrad"
 
