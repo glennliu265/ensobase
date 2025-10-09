@@ -53,8 +53,11 @@ expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090"]
 
 vname           = "sst"#"Dmaxgrad" #"sst"#"str"
 
-vnames = ['sst','ssr','str','Dmaxgrad',"D20"]
-nvars = len(vnames)
+vnames          = ['sst']#['sst','ssr','str','Dmaxgrad',"D20"]
+nvars           = len(vnames)
+
+
+standardize_enso = False
 
 for vv in range(nvars):
 
@@ -178,6 +181,9 @@ for vv in range(nvars):
         ninonc      = "%s%s_nino34.nc" % (ninopath,expnames[ex])
         ds          = xr.open_dataset(ninonc).load()
         
+        if standardize_enso is False: # Unstandardize enso (it was standardized by default)
+            ds = ds.sst * ds['std'].data.item()
+        
         
         ds_enso.append(ds)
     
@@ -214,13 +220,11 @@ for vv in range(nvars):
     else:
         ds_anoms = [preprocess_enso(ds[vname]) for ds in ds_var]
     
-    
-    
     #%% Part (4) Compute the regression pattern, for all months and separately. then save file.
     
     # All Months
     for ex in range(4):
-        ts_in   = ds_enso[ex].sst
+        ts_in   = ds_enso[ex]
         var_in  = ds_anoms[ex]
         
         var_in,ts_in = match_time_month(var_in,ts_in)
@@ -228,13 +232,13 @@ for vv in range(nvars):
         dsout   = proc.detrend_by_regression(var_in, ts_in, regress_monthly=False,return_pattern_only=True)
         
         edict   = proc.make_encoding_dict(dsout)
-        ncout   = "%s%s_%s_ENSO_regression_allmonths.nc" % (datpath,expnames[ex],vname)
+        ncout   = "%s%s_%s_ENSO_regression_allmonths_standardize%i.nc" % (datpath,expnames[ex],vname,standardize_enso)
         
         dsout.to_netcdf(ncout,encoding=edict)
         
     # Monthly
     for ex in range(4):
-        ts_in   = ds_enso[ex].sst
+        ts_in   = ds_enso[ex]
         var_in  = ds_anoms[ex]
         
         var_in,ts_in = match_time_month(var_in,ts_in)
@@ -242,7 +246,10 @@ for vv in range(nvars):
         dsout   = proc.detrend_by_regression(var_in, ts_in, regress_monthly=True,return_pattern_only=True)
         
         edict   = proc.make_encoding_dict(dsout)
-        ncout   = "%s%s_%s_ENSO_regression_seperatemonths.nc" % (datpath,expnames[ex],vname)
+        ncout   = "%s%s_%s_ENSO_regression_standardize%i_seperatemonths.nc" % (datpath,expnames[ex],vname,standardize_enso)
         
         dsout.to_netcdf(ncout,encoding=edict)
+
+
+
 
