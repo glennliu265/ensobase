@@ -40,7 +40,9 @@ amvpath = "/home/niu4/gliu8/scripts/commons"
 sys.path.append(amvpath)
 from amv import proc,viz
 
-
+ensopath = "/home/niu4/gliu8/scripts/ensobase"
+sys.path.append(ensopath)
+import utils as ut
 
 
 #%% 
@@ -55,34 +57,10 @@ timecrops       = [[1950,2100],None,None,None,None]
 expnames_all    = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
 nexps_all       = len(expnames_all)
 
-#%% Some Useful Functions 
-
-def swap_rename(ds,chkvar,newvar):
-    if chkvar in list(ds.coords):
-        print("Renaming [%s] to [%s]" % (chkvar,newvar))
-        ds = ds.rename({chkvar:newvar})
-    return ds
-
-def standardize_names(ds):
-    
-    ds = swap_rename(ds,'time_counter','time')
-    ds = swap_rename(ds,"TIME_COUNTER",'time')
-    ds = swap_rename(ds,"LON","lon")
-    ds = swap_rename(ds,"LAT","lat")
-    ds = swap_rename (ds,"LAT232_409","lat")
-    
-    # Other preprocessing
-    # drop LON_bnds, TIME_COUNTER_bnds
-    dropvars = ["LON_bnds","TIME_COUNTER_bnds"]
-    for dropvar in dropvars:
-        if dropvar in ds:
-            ds = ds.drop_vars(dropvar)
-    return ds
-
 #%% Load Variables (processed in cdo by crop_TP_AWI_variableloop.sh)
 
 datpath = "/home/niu4/gliu8/projects/scrap/TP_crop/"
-vnames  = ["tcc"]#"ttr","ttrc","tsr","tsrc"]
+vnames  = ["ty_sur"]#"ttr","ttrc","tsr","tsrc"]
 #vname   = "tx_sur" #"lcc"
 
 for vname in vnames:
@@ -102,13 +80,17 @@ for vname in vnames:
         except:
             print("Could not find %s in %s" % (vname,expnames_long[ex]))
             skipexps.append(expnames[ex])
+            ds_all.append(None)
+
+            
+            continue
         # Correct Upper Case Variable Names
         if vname.upper() in list(ds.keys()):
             print("Renaming %s to %s for %s" % (vname.upper(),vname,expnames_long[ex]))
             ds = ds.rename({vname.upper():vname})
             
         # Standardize the names
-        ds = standardize_names(ds)
+        ds = ut.standardize_names(ds)
         
         
         # Crop time (mostly for control run, pre 1950)
@@ -119,11 +101,6 @@ for vname in vnames:
             
             
         ds_all.append(ds)
-        
-    
-        
-    
-    #ds_all = [standardize_names(ds) for ds in ds_all]
     
     # Check the Shapes
     [print("%s shape=%s" % (expnames_long[ex],ds_all[ex][vname].shape)) for ex in range(nexps) if expnames[ex] not in skipexps]
@@ -131,15 +108,17 @@ for vname in vnames:
     #%% Compute Means (both time and monthly)
     
     # Calculate Time Mean, Seasonal Cycle, and Monthly Variance
-    ds_scycles  = [ds.groupby('time.month').mean('time') for ds in ds_all]
-    ds_timemean = [ds.mean('time') for ds in ds_all]
-    ds_monvar   = [ds.groupby('time.month').var('time') for ds in ds_all]
-    ds_timevar  = [ds.var('time') for ds in ds_all]
+    ds_scycles  = [ds.groupby('time.month').mean('time') for ds in ds_all if ds is not None]
+    ds_timemean = [ds.mean('time') for ds in ds_all if ds is not None]
+    ds_monvar   = [ds.groupby('time.month').var('time') for ds in ds_all if ds is not None]
+    ds_timevar  = [ds.var('time') for ds in ds_all if ds is not None]
     
     outpath     = "/home/niu4/gliu8/projects/scrap/TP_crop/summary/"
     
     outcalcs    = ["mean","scycle","var","monvar"]
     outall      = [ds_timemean,ds_scycles,ds_timevar,ds_monvar]
+    if expnames[0] in skipexps: # Add Dummy variable for None
+        outall = [[None,] + ou for ou in outall] # This way the indexing is preserved
     ncalcs      = len(outcalcs)
     for nn in range(ncalcs):
         for ex in tqdm.tqdm(range(nexps)):
@@ -159,36 +138,6 @@ for vname in vnames:
 # for ex in range(nexps):
 #     ds = ds_all[ex]
 #     out = ds.groupby('time.month').var('time')
-
-#%%
-
-
-
-
-
-
-    
-    
-#%% Do some formatting
-
-    # if vname == "tx_sur":
-    #     vname_file = "tx_surf_1m"
-    #     ncname = "%s%s_%s.nc" % (datpath,expnames[ex],vname_file)
-    # else:
-    #     ncname = "%s%s_%s.nc" % (datpath,expnames[ex],vname)
-    # ds = xr.open_dataset(ncname)
-    
-    # if vname.upper() in list(ds.keys()):
-    #     print("Renaming %s to %s" % (vname.upper(),vname))
-    #     ds = ds.rename({vname.upper():vname})
-        
-
-
-
-
-
-    
-#%%
 
 
 
