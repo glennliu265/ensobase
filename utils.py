@@ -117,17 +117,25 @@ def varcheck(ds,vname,expname):
         print("Converting from Kelvin to Celsius for %s" % expname)
         ds = ds - 273.15
         
-    if vname in ['str','ssr','strc','ssrc','ttr','tsr','ttrc','tsrc']: # Accumulation over 3h
+    if vname in ['str','ssr','strc','ssrc','ttr','tsr','ttrc','tsrc','sshf','slhf']: # Accumulation over 3h
         # Conversion for STR and SSR considering 3h Accumulation
         if "TCo319" in expname:
-            print("Correction for accumulation over 6 days for %s" % expname)
-            accumulation_days = 6
+            print("Correction for accumulation over 6 hours for %s" % expname)
+            accumulation_hr = 6
         else:
-            print("Correction for accumulation over 3 days for %s" % expname )
-            accumulation_days = 3
-        conversion  = 1/(3600 * accumulation_days)  # 3 h accumulation time...? #1/(24*30*3600)
+            print("Correction for accumulation over 3 hours for %s" % expname )
+            accumulation_hr = 3
+        conversion  = 1/(3600 * accumulation_hr)  # 3 h accumulation time...? #1/(24*30*3600)
         # https://forum.ecmwf.int/t/surface-radiation-parameters-joule-m-2-to-watt-m-2/1588
         ds          = ds * conversion
         
+    if vname in ["cp","lsp"]: # Convert from [meters/accumulation period] to [mm/day]
+        if "TCo319" in expname:
+            print("Correction for accumulation over 6 hours for %s" % expname)
+            accumulation_hr = 6
+        else:
+            print("Correction for accumulation over 3 hours for %s" % expname )
+            accumulation_hr = 3
+        conversion = (24/accumulation_hr) * 1000
     return ds
 
