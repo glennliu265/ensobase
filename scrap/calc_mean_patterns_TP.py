@@ -60,7 +60,7 @@ nexps_all       = len(expnames_all)
 #%% Load Variables (processed in cdo by crop_TP_AWI_variableloop.sh)
 
 datpath = "/home/niu4/gliu8/projects/scrap/TP_crop/"
-vnames  = ["ty_sur"]#"ttr","ttrc","tsr","tsrc"]
+vnames  = ["lsp"]#["cp","sshf","slhf"]#"ttr","ttrc","tsr","tsrc"]
 #vname   = "tx_sur" #"lcc"
 
 for vname in vnames:
@@ -108,17 +108,18 @@ for vname in vnames:
     #%% Compute Means (both time and monthly)
     
     # Calculate Time Mean, Seasonal Cycle, and Monthly Variance
-    ds_scycles  = [ds.groupby('time.month').mean('time') for ds in ds_all if ds is not None]
-    ds_timemean = [ds.mean('time') for ds in ds_all if ds is not None]
-    ds_monvar   = [ds.groupby('time.month').var('time') for ds in ds_all if ds is not None]
-    ds_timevar  = [ds.var('time') for ds in ds_all if ds is not None]
+    ds_scycles  = [ds.groupby('time.month').mean('time') if ds is not None else None for ds in ds_all]
+    ds_timemean = [ds.mean('time') if ds is not None else None for ds in ds_all]
+    ds_monvar   = [ds.groupby('time.month').var('time') if ds is not None else None for ds in ds_all]
+    ds_timevar  = [ds.var('time') if ds is not None else None for ds in ds_all]
     
     outpath     = "/home/niu4/gliu8/projects/scrap/TP_crop/summary/"
     
     outcalcs    = ["mean","scycle","var","monvar"]
     outall      = [ds_timemean,ds_scycles,ds_timevar,ds_monvar]
-    if expnames[0] in skipexps: # Add Dummy variable for None
-        outall = [[None,] + ou for ou in outall] # This way the indexing is preserved
+    # if expnames[0] in skipexps: # Add Dummy variable for None
+    #     outall = [[None,] + ou for ou in outall] # This way the indexing is preserved
+    
     ncalcs      = len(outcalcs)
     for nn in range(ncalcs):
         for ex in tqdm.tqdm(range(nexps)):
