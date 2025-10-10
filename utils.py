@@ -22,13 +22,14 @@ Function Types (will reorganize later):
 
 Function                Description
 --------                -----------
-awi_mean_loader     : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
-init_tp_map         : (v) initialize tropical Pacific plot 
-load_ensoid         : (l) load enso indices calculated by calc_nino34.py
-preprocess_enso     : (c) detrend (quadratic) and deseasonalize for ENSO calculations
-swap_rename         : (g) check if variable exists and rename if so
-standardize_names   : (A) uses swap_rename to replace variable and dimension names in AWI_CM3 output 
-varcheck            : (A) checks and converts variables for AWI-CM3
+awi_mean_loader         : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
+calc_lag_regression_1d  : (g) Compute lead lag regression for 1d timeseries
+init_tp_map             : (v) initialize tropical Pacific plot 
+load_ensoid             : (l) load enso indices calculated by calc_nino34.py
+preprocess_enso         : (c) detrend (quadratic) and deseasonalize for ENSO calculations
+swap_rename             : (g) check if variable exists and rename if so
+standardize_names       : (A) uses swap_rename to replace variable and dimension names in AWI_CM3 output 
+varcheck                : (A) checks and converts variables for AWI-CM3
 
 Created on Wed Oct  8 15:26:57 2025
 
@@ -68,7 +69,6 @@ def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
     proj   = ccrs.PlateCarree(central_longitude=180)
     projd  = ccrs.PlateCarree()
     
-    
     if ax is None:
         fig,axs = plt.subplots(nrow,ncol,figsize=figsize,subplot_kw={'projection':proj})
         newfig = True
@@ -89,6 +89,36 @@ def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
     if newfig:
         return fig,ax
     return ax
+    
+def calc_lag_regression_1d(var1,var2,lags): # CAn make 2d by mirroring calc_lag_covar_annn
+    # Calculate the regression where
+    # (+) lags indicate var1 lags  var2 (var 2 leads)
+    # (-) lags indicate var1 leads var2 (var 1 leads)
+    
+    ntime = len(var1)
+    betalag = []
+    poslags = lags[lags >= 0]
+    for l,lag in enumerate(poslags):
+        varlag   = var1[lag:]
+        varbase  = var2[:(ntime-lag)]
+        
+        # Calculate correlation
+        beta = np.polyfit(varbase,varlag,1)[0]   
+        betalag.append(beta.item())
+    
+    neglags = lags[lags < 0]
+    neglags_sort = np.sort(np.abs(neglags)) # Sort from least to greatest #.sort
+    betalead = []
+    
+    for l,lag in enumerate(neglags_sort):
+        varlag   = var2[lag:] # Now Varlag is the base...
+        varbase  = var1[:(ntime-lag)]
+        # Calculate correlation
+        beta = np.polyfit(varlag,varbase,1)[0]   
+        betalead.append(beta.item())
+    
+    # Append Together
+    return np.concat([np.flip(np.array(betalead)),np.array(betalag)])
 
 def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
     # Load Enso indices calculated with calc_nino34.py
