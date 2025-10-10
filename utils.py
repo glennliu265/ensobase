@@ -25,16 +25,15 @@ Function                Description
 awi_mean_loader     : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
 init_tp_map         : (v) initialize tropical Pacific plot 
 load_ensoid         : (l) load enso indices calculated by calc_nino34.py
+preprocess_enso     : (c) detrend (quadratic) and deseasonalize for ENSO calculations
 swap_rename         : (g) check if variable exists and rename if so
 standardize_names   : (A) uses swap_rename to replace variable and dimension names in AWI_CM3 output 
 varcheck            : (A) checks and converts variables for AWI-CM3
 
-
-
-
 Created on Wed Oct  8 15:26:57 2025
 
 @author: gliu
+
 """
 
 import numpy as np
@@ -44,7 +43,7 @@ import cartopy.crs as ccrs
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import sys
-
+import time
 
 #%%
 
@@ -101,6 +100,31 @@ def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
         return ds.sst
     return ds.sst * ds['std'].data.item()
 
+def preprocess_enso(ds):
+    # Remove Mean Seasonal Cycle and the Quadratic Trend
+    dsds   = proc.xrdeseason(ds)
+    
+    # Make Function
+    def detrend_quadratic(ds):
+        x = np.arange(len(ds))
+        y = ds.data
+        if np.any(np.isnan(y)):
+            return np.ones(y.shape)*np.nan
+        ydetrended,model=proc.detrend_poly(x,y,2)
+        return ydetrended
+        
+    st = time.time()
+    dsanom = xr.apply_ufunc(
+        detrend_quadratic,  # Pass the function
+        dsds,  # The inputs in order that is expected
+        # Which dimensions to operate over for each argument...
+        input_core_dims=[['time'],],
+        output_core_dims=[['time'],],  # Output Dimension
+        vectorize=True,  # True to loop over non-core dims
+        )
+    print("Detrended in %.2fs" % (time.time()-st))
+    return dsanom
+ 
 def standardize_names(ds):
     
     ds = swap_rename(ds,'time_counter','time')
