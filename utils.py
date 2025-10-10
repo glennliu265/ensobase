@@ -26,6 +26,7 @@ awi_mean_loader         : (l) load mean/monvar/scycle calculations from calc_mea
 calc_lag_regression_1d  : (g) Compute lead lag regression for 1d timeseries
 init_tp_map             : (v) initialize tropical Pacific plot 
 load_ensoid             : (l) load enso indices calculated by calc_nino34.py
+mcsample                : (g) Monte Carlo Sampler to repeat function
 preprocess_enso         : (c) detrend (quadratic) and deseasonalize for ENSO calculations
 swap_rename             : (g) check if variable exists and rename if so
 standardize_names       : (A) uses swap_rename to replace variable and dimension names in AWI_CM3 output 
@@ -129,6 +130,29 @@ def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
     if standardize:
         return ds.sst
     return ds.sst * ds['std'].data.item()
+
+def mcsampler(ts_full,sample_len,mciter,preserve_month=True,scramble_year=False,target_timeseries=None):
+    # Given a monthly timeseries [time] and sample length (int), take [mciter] # of random samples.
+    # if preserve_month = True, preserve the 12-month sequence as a chunk
+    # if scramble_year = True, randomize years that you are selecting from (do not preserve year order)
+    # if target_timeseries is not None: also select random samples from list of timeseries (must be same length as ts_full)
+    
+    # Function Start
+    ntime_full        = len(ts_full)
+    
+    # 1 -- month agnostic (subsample sample length, who cares when)
+    if not preserve_month:
+        
+        print("Month with not be preserved.")
+        istarts    = np.arange(ntime_full-sample_len)
+        
+        sample_ids = []
+        samples    = []
+        for mc in range(mciter):
+            # ts_full[istarts[-1]:(istarts[-1]+sample_len)] Test last possible 
+            iistart = np.random.choice(istarts)
+            idsel   = np.arange(iistart,iistart+sample_len) 
+            msample = ts_full[idsel]
 
 def preprocess_enso(ds):
     # Remove Mean Seasonal Cycle and the Quadratic Trend
