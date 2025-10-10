@@ -146,7 +146,7 @@ for vname in vnames:
                 for ll in range(nleads):
                     lag                = leads[ll]
                     if (lag >= nyr):
-                        print("Cannot perform calculation since the lag (%i) exceeds the # of years. Skipping" % (lag,nyr))
+                        print("Cannot perform calculation since the lag (%i) exceeds the # of years %02i. Skipping" % (lag,nyr))
                         continue
                     for im in range(12):
                         ints                    = ints_yrmon[lag:,im]
@@ -163,7 +163,7 @@ for vname in vnames:
                 for ll in range(nlags):
                     lag   = lags[ll] 
                     if (lag >= nyr):
-                        print("Cannot perform calculation since the lag (%i) exceeds the # of years. Skipping" % (lag,nyr))
+                        print("Cannot perform calculation since the lag (%i) exceeds the # of years %02i. Skipping" % (lag,nyr))
                         continue
                     for im in range(12):
                         ints  = ints_yrmon[:(nyr-lag),im]
