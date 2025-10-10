@@ -54,6 +54,7 @@ timecrops       = [[1950,2100],None,None,None,None]
 
 vnames          = ['sst','str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc']
 
+nexps           = len(expnames)
 #%% Set data and outpath
 
 datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
