@@ -54,7 +54,7 @@ outpath = "/home/niu4/gliu8/projects/scrap/TP_crop/lag_regressions/"
 figpath = "/home/niu4/gliu8/figures/bydate/2025-10-14/"
 proc.makedir(figpath)
 
-vnames          = ['sst','str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc']
+vnames          = ['str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 #%% Load ENSO ID
 
