@@ -31,13 +31,16 @@ import matplotlib.gridspec as gridspec
 from scipy.io import loadmat
 import matplotlib as mpl
 
-
 #%% Import Custom Modules
 
 amvpath = "/home/niu4/gliu8/scripts/commons"
 
 sys.path.append(amvpath)
 from amv import proc,viz
+
+ensopath = "/home/niu4/gliu8/scripts/ensobase"
+sys.path.append(ensopath)
+import utils as ut
 
 #%% Indicate paths
 
@@ -46,13 +49,15 @@ proc.makedir(figpath)
 
 datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 
-expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C","glorys"]
-expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950","GLORYS"]
+expnames        = ["TCo2559-DART-1950C",]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C","glorys"]
+expnames_long   = ["5km 1950",] #["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950","GLORYS"]
 
 vname           = "sst"#"Dmaxgrad" #"sst"#"str"
 
-vnames   = ['sst','ssr','str','Dmaxgrad',"D20"]
-nvars    = len(vnames)
+vnames          = ['sst','ssr','str','Dmaxgrad',"D20"]
+nvars           = len(vnames)
+
+ninoid_name     = "nino34"
 
 
 ninopath = "/home/niu4/gliu8/projects/scrap/nino34/"
@@ -101,7 +106,6 @@ def standardize_names(ds):
     ds = swap_rename(ds,"LAT","lat")
     ds = swap_rename (ds,"LAT232_409","lat")
     return ds
-    
 
 def init_tp_map():
     bbplot = [120, 290, -20, 20]
@@ -123,12 +127,18 @@ ds_enso = []
 
 ensoids = []
 for ex in range(nexps):
-    
-    ninonc      = "%s%s_nino34.nc" % (ninopath,expnames[ex])
-    ds          = xr.open_dataset(ninonc).load()
-    
+    ds = ut.load_ensoid(expnames[ex],ninoid_name,standardize=False)
     ds_enso.append(ds)
-    ensoids.append(ds.sst * ds['std'].data.item())
+    ds = ds * ds['std'].data.item()
+    ensoids.append(ds)
+    
+    # Old version (load without function) ---------
+    # ninonc      = "%s%s_nino34.nc" % (ninopath,expnames[ex])
+    # ds          = xr.open_dataset(ninonc).load()
+    
+    # ds_enso.append(ds)
+    # ensoids.append(ds.sst * ds['std'].data.item())
+    # ------------------
     
 # =========
 #%% Identify Events (Scrap)
@@ -320,7 +330,6 @@ for ex in tqdm.tqdm(range(nexps)):
 
 #%% Plot Identified ENSO Events
 
-ex = -1
 for ex in range(nexps):
 
     ensoin = ensoids[ex]
@@ -557,8 +566,8 @@ for ninotype in ["nino","nina"]:
     
 # Part 2 ====================================================================== 
 #%% Lets Load a variable to analyze
-vname           = 'str'#"Dmaxgrad"
 
+vname           = 'eis'#"Dmaxgrad"
 ds_var          = []
 
 for ex in tqdm.tqdm(range(nexps)):
@@ -577,7 +586,7 @@ for ex in tqdm.tqdm(range(nexps)):
     
     ds_var.append(ds)
 
-ds_var      = [standardize_names(ds) for ds in ds_var]
+ds_var      = [ut.standardize_names(ds) for ds in ds_var]
 if vname in ["D20","Dmaxgrad"]:
     ds_anoms = [preprocess_enso(ds['nz1']) for ds in ds_var]
 else:
@@ -586,12 +595,12 @@ else:
 #%% Examine Lag Compsites of choice variable before and after an event
 
 # User Settings
-plot_single_events  = False # Set to True to make plots for individual events
+plot_single_events  = True  # Set to True to make plots for individual events
 lags                = 18    # Number of lead + lags to composite over
-vmax_event          = 2.5   # Colorbar Limits for Single Events
-vmax_composite      = 1.0   # Colorbar limits for composites
-sel_mons            = [12,1,2] # Indicate which central months to include in the composite
-plot_composite      = True #  Set to True to make plots for composite
+vmax_event          = 10    # Colorbar Limits for Single Events
+vmax_composite      = 8     # Colorbar limits for composites
+sel_mons            = None  # [12,1,2] # Indicate which central months to include in the composite
+plot_composite      = True  # Set to True to make plots for composite
 
 # Adjust vmax based on variable
 if vname == "ssr" or vname == "str":
@@ -603,13 +612,16 @@ elif vname == "tx_sur":
 elif vname == "D20" or vname == "Dmaxgrad":
     vmax_event = 30
     vmax_composite=30
+elif vname == "eis":
+    vmax_event     = 7.5
+    vmax_composite = 5
 
 
 #Make some necessary variables
 leadlags            = np.arange(-lags,lags+1)
 proj                = ccrs.PlateCarree()
 
-composites_byexp = []
+composites_byexp    = []
 for ex in [0,1,2,3]:
     
     # Open the Nino/Nina Indices and Variables
@@ -713,7 +725,13 @@ for ex in [0,1,2,3]:
             eventmons        = ninomons[ex]
         elif eventid_type == "nina":
             eventmons        = ninamons[ex]
-        selected_events  = [m in sel_mons for m in eventmons]
+        if sel_mons is None:
+            
+            selected_events  = np.arange(nevents)#eventmons # Just Take All Months
+
+        else:
+            # Note this might be wrong
+            selected_events  = [m in sel_mons for m in eventmons]
         
         # Make the Composite
         composite_events = temp_var[selected_events,:,:,:]
@@ -769,9 +787,6 @@ for ex in range(nexps):
     
     encoding=proc.make_encoding_dict(da_out)
     da_out.to_netcdf(outname,encoding=encoding)
-    
-
-
 
 # # ============================================================================================================================================================
 # #%%Scrap Below
