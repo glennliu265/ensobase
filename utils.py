@@ -24,6 +24,7 @@ Function                Description
 --------                -----------
 awi_mean_loader     : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
 init_tp_map         : (v) initialize tropical Pacific plot 
+load_ensoid         : (l) load enso indices calculated by calc_nino34.py
 swap_rename         : (g) check if variable exists and rename if so
 standardize_names   : (A) uses swap_rename to replace variable and dimension names in AWI_CM3 output 
 varcheck            : (A) checks and converts variables for AWI-CM3
@@ -89,6 +90,16 @@ def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
     if newfig:
         return fig,ax
     return ax
+
+def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
+    # Load Enso indices calculated with calc_nino34.py
+    if datpath is None:
+        datpath = "/home/niu4/gliu8/projects/scrap/nino34/"
+    ncname = "%s%s_%s.nc" % (datpath,expname,ninoid_name)
+    ds = xr.open_dataset(ncname).load()
+    if standardize:
+        return ds.sst
+    return ds.sst * ds['std'].data.item()
 
 def standardize_names(ds):
     
