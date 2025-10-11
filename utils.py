@@ -153,6 +153,73 @@ def mcsampler(ts_full,sample_len,mciter,preserve_month=True,scramble_year=False,
             iistart = np.random.choice(istarts)
             idsel   = np.arange(iistart,iistart+sample_len) 
             msample = ts_full[idsel]
+            
+            
+            sample_ids.append(idsel)
+            samples.append(msample) # [iter][sample]
+            
+        samples = np.array(samples) # [iter x sample]
+        # Returns 
+            
+    elif preserve_month:
+        # 2 -- month aware (must select starting points of January + maintain the chunk, preserving the month + year to year autocorrelation)
+        if not scramble_year:
+            
+            # Only start on the year  (to preserve month sequence)
+            istarts    = np.arange(0,ntime_full-sample_len,12)
+            
+            # -------------------- Same as Above
+            sample_ids = []
+            samples    = []
+            for mc in range(mciter):
+                # ts_full[istarts[-1]:(istarts[-1]+sample_len)] Test last possible 
+                iistart = np.random.choice(istarts)
+                idsel   = np.arange(iistart,iistart+sample_len) 
+                msample = ts_full[idsel]
+                
+                sample_ids.append(idsel)
+                samples.append(msample) # [var][iter][sample]
+            samples = np.array(samples) # [var x iter x sample]
+            # -------------------- 
+            
+        # 3 -- month aware, year scramble (randomly select the year of each month, but preserve each month)
+        elif scramble_year: # Scrample Year and Month
+            
+            # Reshape to the year and month
+            nyr_full        = int(ntime_full/12)
+            ts_yrmon        = ts_full.reshape(nyr_full,12)
+            ids_ori         = np.arange(ntime_full)
+            ids_ori_yrmon   = ids_ori.reshape(ts_yrmon.shape)
+            
+            nyr_sample      = int(sample_len/12)
+            sample_ids      = []
+            samples         = []
+            for mc in range(mciter): # For each loop
+                
+                # Get start years
+                startyears = np.random.choice(np.arange(nyr_full),nyr_sample)
+                # Select random years equal to the sample length and combine
+                idsel      = ids_ori_yrmon[startyears,:].flatten() 
+                # ------
+                msample    = ts_full[idsel]
+                sample_ids.append(idsel)
+                samples.append(msample) # [var][iter][sample]
+            samples = np.array(samples) # [var x iter x sample]
+            # -----
+    
+    outdict = dict(sample_ids = sample_ids, samples=samples)    
+    if target_timeseries is not None:
+        
+        sampled_timeseries = []
+        for ts in target_timeseries:
+            if len(ts) != len(ts_full):
+                print("Warning... timeseries do not have the same length")
+            randsamp = [ts[sample_ids[mc]] for mc in range(mciter)]
+            randsamp = np.array(randsamp)
+            sampled_timeseries.append(randsamp) # [var][iter x time]
+    outdict['other_sampled_timeseries'] = sampled_timeseries
+    
+    return outdict
 
 def preprocess_enso(ds):
     # Remove Mean Seasonal Cycle and the Quadratic Trend
