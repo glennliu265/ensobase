@@ -190,8 +190,7 @@ for vname in vnames:
         ds_byreg.append(ds_var)
         aavgs_byreg.append(aavgs)
     
-    "#%% Compute Regressions for each case (nino index to variable over each region)
-    
+
     lags       = np.arange(-25,26,1)
     
     beta_byreg = []
