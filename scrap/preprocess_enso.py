@@ -52,7 +52,7 @@ expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"
 
 timecrops       = [[1950,2100],None,None,None,None]
 
-vnames          = ['sst','str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc']
+vnames          = ["ttcre","tscre"]#['sst','str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc']
 
 nexps           = len(expnames)
 #%% Set data and outpath
@@ -68,7 +68,7 @@ for vname in vnames:
     for ex in tqdm.tqdm(range(nexps)):
         
         print("Preprocessing %s (%s)" % (vname,expnames_long[ex]))
-    
+        
         ncname  = "%s%s_%s.nc" % (datpath,expnames[ex],vname)
         try:
             ds      = xr.open_dataset(ncname).load()
@@ -97,3 +97,5 @@ for vname in vnames:
         edict   = proc.make_encoding_dict(dsa)
         dsa.to_netcdf(outname,encoding=edict)
         proc.printtime(st,print_str="\tsaved")
+
+#%%
