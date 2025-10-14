@@ -133,7 +133,7 @@ for calcname in ['ttcre','tscre']:
             outname = "%s%s_%s.nc" % (datpath,expnames[ex],calcname)
             print("Saving output to %s" % outname)
             edict   = proc.make_encoding_dict(ds_cre)
-            ds_cre.to_netcdf
+            ds_cre.to_netcdf(outname,encoding=edict)
     
 
 
