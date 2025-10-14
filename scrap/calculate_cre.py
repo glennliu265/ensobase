@@ -70,7 +70,8 @@ def remove_duplicate_times(ds,verbose=True):
 
 calcname = "ttcre"
 
-    
+nexps = len(expnames_long)
+nexps = len(expnames)
 skipexps = []
 for calcname in ['ttcre','tscre']:
     
