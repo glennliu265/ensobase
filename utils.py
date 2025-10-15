@@ -28,6 +28,7 @@ init_tp_map             : (v) initialize tropical Pacific plot
 load_ensoid             : (l) load enso indices calculated by calc_nino34.py
 mcsample                : (g) Monte Carlo Sampler to repeat function
 preprocess_enso         : (c) detrend (quadratic) and deseasonalize for ENSO calculations
+remove_duplicate_times  : (g) Remove duplicate times from a DataArray
 swap_rename             : (g) check if variable exists and rename if so
 standardize_names       : (A) uses swap_rename to replace variable and dimension names in AWI_CM3 output 
 varcheck                : (A) checks and converts variables for AWI-CM3
@@ -245,6 +246,12 @@ def preprocess_enso(ds):
         )
     print("Detrended in %.2fs" % (time.time()-st))
     return dsanom
+
+def remove_duplicate_times(ds,verbose=True):
+    # From : https://stackoverflow.com/questions/51058379/drop-duplicate-times-in-xarray
+    _, index = np.unique(ds['time'], return_index=True)
+    print("Found %i duplicate times. Taking first entry." % (len(ds.time) - len(index)))
+    return ds.isel(time=index)
  
 def standardize_names(ds):
     
