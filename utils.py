@@ -24,19 +24,20 @@ Function                Description
 --------                -----------
 awi_mean_loader         : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
 calc_lag_regression_1d  : (g) Compute lead lag regression for 1d timeseries
+combine_events          : (g) Given identified events, combine similar events and get other traits (duration, etc)
 init_tp_map             : (v) initialize tropical Pacific plot 
 load_ensoid             : (l) load enso indices calculated by calc_nino34.py
 mcsample                : (g) Monte Carlo Sampler to repeat function
 preprocess_enso         : (c) detrend (quadratic) and deseasonalize for ENSO calculations
 remove_duplicate_times  : (g) Remove duplicate times from a DataArray
 swap_rename             : (g) check if variable exists and rename if so
+stack_events            : (g) For 1-d timeseries, stack events along specified leads/lags
 standardize_names       : (A) uses swap_rename to replace variable and dimension names in AWI_CM3 output 
 varcheck                : (A) checks and converts variables for AWI-CM3
 
 Created on Wed Oct  8 15:26:57 2025
 
 @author: gliu
-
 """
 
 import numpy as np
@@ -122,6 +123,74 @@ def calc_lag_regression_1d(var1,var2,lags): # CAn make 2d by mirroring calc_lag_
     # Append Together
     return np.concat([np.flip(np.array(betalead)),np.array(betalag)])
 
+
+def combine_events(var_in,id_in,tol=1,verbose=True):
+    
+    # Separate into discrete events
+    nevents        = id_in.data.sum().item()
+    eventids       = np.where(id_in)[0]
+    event_combine = []
+    for ii in range(nevents+1): #event_id:
+        if ii == (nevents):
+            if verbose:
+                print("Merging last event: %s" % event_merge)
+            event_combine.append(event_merge)
+            continue
+        
+        ievent = eventids[ii].item()#.data
+        
+        if ii == 0:
+            prev_id     = ievent
+            event_merge = [ievent,]
+            continue
+        
+        if (ievent - prev_id) <= tol: # Consecutive Event
+            event_merge.append(ievent)
+            if verbose:
+                print("%i is consecutive to previous events (%s)" % (ievent,event_merge))
+        else: # Otherwise, just add event and merge
+            event_combine.append(event_merge)
+            event_merge = [ievent,] # Make a new one
+            if verbose:
+                print("Making new event sequence at %i" % (ievent))
+        prev_id = ievent
+    if verbose:
+        print("Identified %i events!" % len(event_combine))
+
+    # Identify Event Centers
+    ncevent         = len(event_combine)
+    event_time      = []
+    center_ids      = []
+    event_max       = []
+    for ie in range(ncevent):
+        idsin = event_combine[ie]
+        if len(idsin) == 1: # Only 1 step
+            event_time.append(var_in.time.isel(time=idsin[0]))
+            center_ids.append(idsin[0])
+        else:
+            amplitudes = var_in.isel(time=idsin) #.argmax()
+            idmax      = np.argmax(np.abs(amplitudes.data)).item()
+            event_max.append(np.nanmax(np.abs(amplitudes.data)).item())
+            event_time.append(var_in.time.isel(time=idsin[idmax]))
+            center_ids.append(idsin[idmax])
+
+    def get_mon(ds):
+        return [da.time.dt.month.data.item() for da in ds]
+    
+    def get_duration(ds):
+        return [len(ts) for ts in ds]
+    
+    durations = get_duration(event_combine)
+    months    = get_mon(event_time)
+    
+    outdict = dict(event_time=event_time,
+                   center_ids=center_ids,
+                   event_combine=event_combine,
+                   event_max=event_max,
+                   durations=durations,
+                   eventmonths=months)
+    return outdict
+    
 def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
     # Load Enso indices calculated with calc_nino34.py
     if datpath is None:
@@ -269,6 +338,33 @@ def standardize_names(ds):
             ds = ds.drop_vars(dropvar)
     return ds
 
+
+def stack_events(target_var,eventids,ibefore,iafter):
+    # Stack events between -ibefore and +iafter months
+    
+    nevents        = len(eventids)
+    plotlags       = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
+    stacked_events = np.zeros((nevents,len(plotlags))) * np.nan
+    ntime          = len(target_var)
+    for ie in range(nevents):
+        
+        ievent    = eventids[ie]
+        istart    = ievent-ibefore
+        iend      = ievent+iafter
+        
+        if (istart >=0) and (iend < ntime):
+            stacked_events[ie,:] = target_var[istart:(iend+1)]
+            
+        elif iend >= ntime:
+            filler = np.zeros( (iend-ntime+1)) * np.nan
+            subset = np.hstack([target_var[istart:],filler])
+            stacked_events[ie,:] = subset
+        elif istart < 0: # Note havent tested this
+            filler  = np.zeros(np.abs(istart)) * np.nan
+            subset  = np.hstack([filler,target_var[:(iend+1)],])
+            stacked_events[ie,:] = subset
+    return stacked_events
+
 def swap_rename(ds,chkvar,newvar):
     if chkvar in list(ds.coords):
         print("Renaming [%s] to [%s]" % (chkvar,newvar))
@@ -302,4 +398,6 @@ def varcheck(ds,vname,expname):
         conversion = (24/accumulation_hr) * 1000
         ds         = ds * conversion
     return ds
+
+
 
