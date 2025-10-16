@@ -166,7 +166,7 @@ def combine_events(var_in,id_in,tol=1,verbose=True):
         idsin = event_combine[ie]
         if len(idsin) == 1: # Only 1 step
             event_time.append(var_in.time.isel(time=idsin[0]))
-            event_max.append(var_in.isel(time=idsin[0]))
+            event_max.append(var_in.isel(time=idsin[0]).data.item())
             center_ids.append(idsin[0])
         else:
             amplitudes = var_in.isel(time=idsin) #.argmax()
