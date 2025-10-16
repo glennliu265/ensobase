@@ -32,6 +32,7 @@ preprocess_enso         : (c) detrend (quadratic) and deseasonalize for ENSO cal
 remove_duplicate_times  : (g) Remove duplicate times from a DataArray
 swap_rename             : (g) check if variable exists and rename if so
 stack_events            : (g) For 1-d timeseries, stack events along specified leads/lags
+stack_events_2d         : (g) Stack Events, but applied to 2D case with time x lat x lon....
 standardize_names       : (A) uses swap_rename to replace variable and dimension names in AWI_CM3 output 
 varcheck                : (A) checks and converts variables for AWI-CM3
 
@@ -56,8 +57,6 @@ sys.path.append(amvpath)
 from amv import proc,viz
 
 #%%
-
-
 
 def awi_mean_loader(expname,vname,calcname,outpath=None):
     if outpath is None:
@@ -365,6 +364,55 @@ def stack_events(target_var,eventids,ibefore,iafter):
             subset  = np.hstack([filler,target_var[:(iend+1)],])
             stacked_events[ie,:] = subset
     return stacked_events
+
+def stack_events_2d(invar,eventids,ibefore,iafter,times_da=None):
+    
+    invar = invar.transpose('time','lat','lon')
+    ntime,nlat,nlon = invar.shape
+    nevents         = len(eventids)
+    leadlags        = np.arange(-ibefore,iafter+1)
+    nlags           = len(leadlags)
+    temp_var        = np.zeros((nevents,nlags,nlat,nlon)) * np.nan
+    
+    if times_da is not None:
+        event_times = np.zeros((nevents,nlags)) * np.nan
+    
+    for ie in range(nevents):
+        
+        ievent    = eventids[ie]
+        istart    = ievent-ibefore
+        iend      = ievent+iafter
+        
+        # Corrections for end-case indices
+        if istart < 0:
+            print("istart is at %s" % istart)
+            insert_start = np.abs(istart)#(lags - np.abs(istart)).item()
+            istart       = 0
+        else:
+            insert_start = 0
+        
+        if iend > ntime:
+            print("iend is at %s" % (iend))
+            insert_end = nlags + (ntime-ievent) #(lags*2+1) - (iend - ntime)
+            iend       = ntime
+        else:
+            insert_end = nlags#lags*2+1
+            
+        
+        indices_in = np.arange(insert_start,insert_end)
+        temp_var[ie,indices_in,:,:] = invar[istart:(iend+1),:,:]
+        if times_da is not None:
+            event_times[ie,indices_in]  = times_da[istart:(iend+1)]
+
+    
+    coords             = dict(eventid=eventids,lag=leadlags,lat=invar.lat,lon=invar.lon)
+    invar_subset       = xr.DataArray(temp_var,coords=coords,dims=coords)
+    if times_da is not None:
+        coords_time        = dict(eventid=eventids,lag=leadlags)
+        event_times_subset = xr.DataArray(event_times.astype('datetime64[ns]'),coords=coords_time,dims=coords_time)
+        return invar_subset,event_times_subset   
+    return invar_subset
+
 
 def swap_rename(ds,chkvar,newvar):
     if chkvar in list(ds.coords):
