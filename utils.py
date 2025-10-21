@@ -546,9 +546,9 @@ def swap_rename(ds,chkvar,newvar):
     return ds
 
 def varcheck(ds,vname,expname):
-    if np.any(ds > 273) and vname == "sst": # Convert to Celsius
+    if np.any(ds[vname] > 273) and vname == "sst": # Convert to Celsius
         print("Converting from Kelvin to Celsius for %s" % expname)
-        ds = ds - 273.15
+        ds[vname] = ds[vname] - 273.15
         
     if vname in ['str','ssr','strc','ssrc','ttr','tsr','ttrc','tsrc','sshf','slhf']: # Accumulation over 3h
         # Conversion for STR and SSR considering 3h Accumulation
