@@ -314,7 +314,7 @@ def get_rawpath_awi(expname,vname,ensnum=None):
         print("%s Not found for %s" % (vname,expname))
         return None
     print(nclist)
-    return None    
+    return nclist 
 
 def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
     # Load Enso indices calculated with calc_nino34.py
