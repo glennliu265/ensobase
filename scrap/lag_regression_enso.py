@@ -40,37 +40,34 @@ import utils as ut
 
 #%% User Edits
 
-expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
-expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
+expnames        = ["glorys",]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
+expnames_long   = ["GLORYS Reanalysis"]#["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 
 ensoid_name     = "nino34"
 standardize     = False
 
-vname           = "sst"
+timecrops        = [[1993,2024]]
 
-
-datpath = "/home/niu4/gliu8/projects/scrap/TP_crop/anom_detrend2/"
-outpath = "/home/niu4/gliu8/projects/scrap/TP_crop/lag_regressions/"
-figpath = "/home/niu4/gliu8/figures/bydate/2025-10-14/"
+datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/anom_detrend2/"
+outpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/lag_regressions/"
+figpath         = "/home/niu4/gliu8/figures/bydate/2025-10-14/"
 proc.makedir(figpath)
 
-vnames          = ['str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+vnames          = ['sst',]#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 #%% Load ENSO ID
 
-ensoids = [ut.load_ensoid(expname,ensoid_name,standardize=standardize) for expname in expnames]
+ensoids         = [ut.load_ensoid(expname,ensoid_name,standardize=standardize) for expname in expnames]
 
 #%% Looping for each experiment
 
-# Indicate Lead LAgs
+# Indicate Lead Lags
 leadlags    = np.arange(-12,13,1)
 sep_mon     = True
 
 ex          = 0
+nexps       = len(expnames)
 
-
-nexps   = len(expnames)
-    
 for vname in vnames:
     for sep_mon in [False,True]:
         for ex in tqdm.tqdm(range(nexps)):
@@ -84,6 +81,14 @@ for vname in vnames:
                 print("Could not find %s for %s... skipping." % (vname,expnames_long[ex]))
                 continue
             proc.printtime(st,print_str="Loaded")
+            
+            # Crop time (mostly for control run, pre 1950)
+            timecrop = timecrops[ex]
+            if timecrop is not None:
+                print("Cropping time for %s: %s to %s" % (expnames_long[ex],str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
+                dsvar = dsvar.sel(time=slice(str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
+            
+            
             
             # Check to make sure the time matches
             ensoid          = ensoids[ex]
@@ -193,7 +198,6 @@ for vname in vnames:
             
             edict   = proc.make_encoding_dict(ds_out)
             ds_out.to_netcdf(outname,encoding=edict)
-
 
 #%%
 
