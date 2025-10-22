@@ -22,20 +22,21 @@ Function Types (will reorganize later):
 
 Function                Description
 --------                -----------
-awi_mean_loader         : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
-calc_lag_regression_1d  : (g) Compute lead lag regression for 1d timeseries
-combine_events          : (g) Given identified events, combine similar events and get other traits (duration, etc)
-get_rawpath_awi         : (A) Get rawpath for AWI output on niu
-init_tp_map             : (v) initialize tropical Pacific plot 
-load_ensoid             : (l) load enso indices calculated by calc_nino34.py
-mcsample                : (g) Monte Carlo Sampler to repeat function
-preprocess_enso         : (c) detrend (quadratic) and deseasonalize for ENSO calculations
-remove_duplicate_times  : (g) Remove duplicate times from a DataArray
-swap_rename             : (g) check if variable exists and rename if so
-stack_events            : (g) For 1-d timeseries, stack events along specified leads/lags
-stack_events_2d         : (g) Stack Events, but applied to 2D case with time x lat x lon....
-standardize_names       : (A) uses swap_rename to replace variable and dimension names in AWI_CM3 output 
-varcheck                : (A) checks and converts variables for AWI-CM3
+awi_mean_loader             : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
+calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
+calc_leadlag_regression_2d  : (g) Compute lead lag regression for 2D timseries (modeled after enso_lag_regression)
+combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
+get_rawpath_awi             : (A) Get rawpath for AWI output on niu
+init_tp_map                 : (v) initialize tropical Pacific plot 
+load_ensoid                 : (l) load enso indices calculated by calc_nino34.py
+mcsample                    : (g) Monte Carlo Sampler to repeat function
+preprocess_enso             : (c) detrend (quadratic) and deseasonalize for ENSO calculations
+remove_duplicate_times      : (g) Remove duplicate times from a DataArray
+swap_rename                 : (g) check if variable exists and rename if so
+stack_events                : (g) For 1-d timeseries, stack events along specified leads/lags
+stack_events_2d             : (g) Stack Events, but applied to 2D case with time x lat x lon....
+standardize_names           : (A) uses swap_rename to replace variable and dimension names in AWI_CM3 output 
+varcheck                    : (A) checks and converts variables for AWI-CM3
 
 Created on Wed Oct  8 15:26:57 2025
 
@@ -192,6 +193,121 @@ def combine_events(var_in,id_in,tol=1,verbose=True):
                    durations=durations,
                    eventmonths=months)
     return outdict
+
+def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
+    # Based on routine in enso_lag_regression and global_mean_nino_regressions
+    # Compute lead/lag regression on timeseries [ensoid] and 3D lagged variable [dsvar]
+    
+    adddim=False
+    if len(dsvar.shape) == 1:
+        dummylatlon = dict(lat=[1,],lon=[1,])
+        dsvar = dsvar.expand_dims(dim=dummylatlon,axis=(0,1))
+        adddim=True
+    
+    if dsvar.name is None:
+        dsvar = dsvar.rename("regression_coefficient")
+    
+    # Check to make sure the time matches
+    dsvar,ensoid    = proc.match_time_month(dsvar,ensoid)
+    
+    # Get Dimension Lengths
+    dsvar           = dsvar.transpose('lon','lat','time')
+    nlon,nlat,ntime = dsvar.shape
+
+    if sep_mon is False: # Do for all months
+        # Do the Leads (variable leads)
+        leads       = np.abs(leadlags[leadlags <=0])
+        nleads      = len(leads)
+        beta_leads  = np.zeros((nlon,nlat,nleads)) * np.nan
+        sig_leads   = beta_leads.copy()
+        for ll in range(nleads):
+            lag                = leads[ll] 
+            ints               = ensoid.data[lag:]
+            invar              = dsvar.data[:,:,:(ntime-lag)]
+            rout               = proc.regress_ttest(invar,ints,verbose=False)
+            beta_leads[:,:,ll] = rout['regression_coeff']
+            sig_leads[:,:,ll]  = rout['sigmask']
+            
+        # Do the lags
+        lags        = leadlags[leadlags > 0]
+        nlags       = len(lags)
+        beta_lags   = np.zeros((nlon,nlat,nlags)) * np.nan
+        sig_lags    = beta_lags.copy()
+        for ll in range(nlags):
+            lag   = lags[ll] 
+            ints  = ensoid.data[:(ntime-lag)]
+            invar = dsvar.data[:,:,lag:]
+            rout  = proc.regress_ttest(invar,ints,verbose=False)
+            beta_lags[:,:,ll] = rout['regression_coeff']
+            sig_lags[:,:,ll]  = rout['sigmask']
+        
+        # Concatenate
+        betas = np.concatenate([beta_leads,beta_lags],axis=2)
+        sigs  = np.concatenate([sig_leads,sig_lags],axis=2)
+        
+        # Replace into DataArray
+        coords   = dict(lon=dsvar.lon,lat=dsvar.lat,lag=leadlags)
+        da_betas = xr.DataArray(betas,coords=coords,dims=coords,name=dsvar.name)
+        da_sigs  = xr.DataArray(sigs,coords=coords,dims=coords,name="sig")
+        da_out   = [ds.transpose('lag','lat','lon') for ds in [da_betas,da_sigs]]
+        
+    else: # Calculate Separately by Month
+        
+        # Reshape the variables
+        nyr          = int(ntime/12)
+        ints_yrmon   = ensoid.data.reshape(nyr,12)
+        invar_yrmon  = dsvar.data.reshape(nlon,nlat,nyr,12)
+        
+        # Calculate Leads (a bit silly to write it this way I know... should prob make a fuction)
+        leads       = np.abs(leadlags[leadlags <=0])
+        nleads      = len(leads)
+        beta_leads  = np.zeros((12,nlon,nlat,nleads)) * np.nan
+        sig_leads   = beta_leads.copy()
+        for ll in range(nleads):
+            lag                = leads[ll]
+            if (lag >= nyr):
+                print("Cannot perform calculation since the lag (%i) exceeds the # of years %02i. Skipping" % (lag,nyr))
+                continue
+            for im in range(12):
+                ints                    = ints_yrmon[lag:,im]
+                invar                   = invar_yrmon[:,:,:(nyr-lag),im] #dsvar.data[:,:,:(ntime-lag)]
+                rout                    = proc.regress_ttest(invar,ints,verbose=False)
+                beta_leads[im,:,:,ll]   = rout['regression_coeff']
+                sig_leads[im,:,:,ll]    = rout['sigmask']
+                
+        # Calculate Lags
+        lags        = leadlags[leadlags > 0]
+        nlags       = len(lags)
+        beta_lags   = np.zeros((12,nlon,nlat,nlags)) * np.nan
+        sig_lags    = beta_lags.copy()
+        for ll in range(nlags):
+            lag   = lags[ll] 
+            if (lag >= nyr):
+                print("Cannot perform calculation since the lag (%i) exceeds the # of years %02i. Skipping" % (lag,nyr))
+                continue
+            for im in range(12):
+                ints  = ints_yrmon[:(nyr-lag),im]
+                invar = invar_yrmon[:,:,lag:,im]
+                rout  = proc.regress_ttest(invar,ints,verbose=False)
+                beta_lags[im,:,:,ll] = rout['regression_coeff']
+                sig_lags[im,:,:,ll]  = rout['sigmask']
+              
+        # Concatenate
+        betas = np.concatenate([beta_leads,beta_lags],axis=3)
+        sigs  = np.concatenate([sig_leads,sig_lags],axis=3)
+        
+        # Replace into DataArray
+        coords   = dict(mon=np.arange(1,13,1),lon=dsvar.lon,lat=dsvar.lat,lag=leadlags)
+        da_betas = xr.DataArray(betas,coords=coords,dims=coords,name=dsvar.name)
+        da_sigs  = xr.DataArray(sigs,coords=coords,dims=coords,name="sig")
+        da_out   = [ds.transpose('lag','mon','lat','lon') for ds in [da_betas,da_sigs]]
+    
+    # Merge Variables
+    if adddim:
+        da_out = [ds.squeeze() for ds in da_out]
+    ds_out   = xr.merge(da_out)
+    
+    return ds_out
 
 def get_rawpath_awi(expname,vname,ensnum=None):
     # TCo319_ctl1950d
