@@ -64,9 +64,7 @@ def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
         ax.set_extent(bbplot)
         ax     = viz.add_coast_grid(ax,bbox=bbplot,fill_color='k',
                                     proj=ccrs.PlateCarree(),fix_lon=fix_lon,ignore_error=True)
-    
-    
-    
+
     if newfig:
         return fig,ax
     return ax
@@ -127,6 +125,8 @@ for ex in range(nexps):
     for v in tqdm.tqdm(range(nvars)):
         ncname = "%sENSO_Composites_%s_%s.nc" % (datpath,vnames[v],expnames[ex])
         ds = xr.open_dataset(ncname)[vnames[v]].load()
+        
+        
         
         # For SSR and STR, do a conversion
         if vnames[v] in ['str','ssr']:

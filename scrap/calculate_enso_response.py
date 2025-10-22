@@ -17,7 +17,6 @@ Created on Fri Sep 12 15:06:47 2025
 
 
 import sys
-
 import time
 import numpy as np
 import numpy.ma as ma
@@ -29,33 +28,30 @@ import glob
 import scipy as sp
 import cartopy.crs as ccrs
 import matplotlib.gridspec as gridspec
-
 from scipy.io import loadmat
 import matplotlib as mpl
 
-
 #%% Import Custom Modules
 
-amvpath = "/home/niu4/gliu8/scripts/commons"
+amvpath          = "/home/niu4/gliu8/scripts/commons"
 
 sys.path.append(amvpath)
 from amv import proc,viz
 
 #%% Indicate paths
 
-figpath         = "/home/niu4/gliu8/figures/bydate/2025-09-16/"
+figpath          = "/home/niu4/gliu8/figures/bydate/2025-09-16/"
 proc.makedir(figpath)
 
-datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
+datpath          = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 
-expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090"]
-expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090"]
+expnames         = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090"]
+expnames_long    = ["31km Control","31km SSP585","9km 1950","9km 2090"]
 
-vname           = "sst"#"Dmaxgrad" #"sst"#"str"
+vname            = "sst"#"Dmaxgrad" #"sst"#"str"
 
-vnames          = ['sst']#['sst','ssr','str','Dmaxgrad',"D20"]
-nvars           = len(vnames)
-
+vnames           = ['sst']#['sst','ssr','str','Dmaxgrad',"D20"]
+nvars            = len(vnames)
 
 standardize_enso = False
 
@@ -235,7 +231,7 @@ for vv in range(nvars):
         ncout   = "%s%s_%s_ENSO_regression_allmonths_standardize%i.nc" % (datpath,expnames[ex],vname,standardize_enso)
         
         dsout.to_netcdf(ncout,encoding=edict)
-        
+    
     # Monthly
     for ex in range(4):
         ts_in   = ds_enso[ex]

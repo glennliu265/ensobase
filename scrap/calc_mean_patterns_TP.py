@@ -81,7 +81,7 @@ for vname in vnames:
             print("Could not find %s in %s" % (vname,expnames_long[ex]))
             skipexps.append(expnames[ex])
             ds_all.append(None)
-
+            
             
             continue
         # Correct Upper Case Variable Names
@@ -99,6 +99,9 @@ for vname in vnames:
             print("Cropping time for %s: %s to %s" % (expnames_long[ex],str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
             ds = ds.sel(time=slice(str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
             
+        print(expnames_long[ex])
+        print("\tStart: %s" % ds.time.isel(time=0))
+        print("\tEnd : %s" % ds.time.isel(time=-1))
             
         ds_all.append(ds)
     

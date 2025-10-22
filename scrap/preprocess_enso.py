@@ -47,12 +47,12 @@ import utils as ut
 #%% 
 
 # Simulation Names -----
-expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
+expnames        = ['glorys',]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
 expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 
-timecrops       = [[1950,2100],None,None,None,None]
+timecrops       = [None,]#[[1950,2100],None,None,None,None]
 
-vnames          = ["ttcre","tscre"]#['sst','str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc']
+vnames          = ['sst',]#["ttcre","tscre"]#['sst','str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc']
 
 nexps           = len(expnames)
 #%% Set data and outpath
