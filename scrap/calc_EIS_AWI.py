@@ -12,7 +12,6 @@ Created on Thu Oct  9 10:47:15 2025
 """
 
 import sys
-
 import time
 import numpy as np
 import numpy.ma as ma
@@ -24,10 +23,8 @@ import glob
 import scipy as sp
 import cartopy.crs as ccrs
 import matplotlib.gridspec as gridspec
-
 from scipy.io import loadmat
 import matplotlib as mpl
-
 import climlab
 
 #%% Import Custom Modules
@@ -44,8 +41,6 @@ import utils as ut
 #%% Datpaths
 
 TP_crop         = False # Set True to calculate using Tropical Pacific Values
-
-
 expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
 expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 
@@ -60,11 +55,14 @@ datpath_glob    = "/home/niu4/gliu8/projects/scrap/processed_global/"
 vnames          = ["skt","pl_t_700"]
 expname         = "TCo2559-DART-1950C"
 
-
-
 #%% First, just try for the tropical pacific
 # need to load in T700 and T0 (skt is ok?)
 
+chunkdict = dict(
+    lat  = 5120/40,
+    lon  = 10256/16,#16
+    time_counter = 120/30 
+    )
 
 dsall = []
 if TP_crop: # Load just the tropical version
@@ -76,9 +74,11 @@ else:
     for v in range(2):
         vname  = vnames[v]
         ncname = ut.get_rawpath_awi(expname,vname,ensnum=None)[0]
-        ds = xr.open_dataset(ncname).load()
+        ds = xr.open_dataset(ncname)#chunks=chunkdict)#.load()
         dsall.append(ds)
 
+
+dsall       = [ds.chunk(chunkdict) for ds in dsall]
 skt,t700    = dsall
 skt         = skt.skt
 t700        = t700.t.squeeze()
@@ -89,19 +89,28 @@ print(np.any(skt < 0))
 
 #%% Check they are in Kelvin
 
+# Calculate EIS
+st     = time.time()
 eis    = climlab.thermo.EIS(skt.data,t700.data)
 
+# Read back into DataArray
 coords = dict(time=skt.time_counter.data,lat=skt.lat,lon=skt.lon)#skt.coords
 ds_eis = xr.DataArray(eis,coords=coords,dims=coords,name="eis")
+edict  = proc.make_encoding_dict(ds_eis)
 
-edict   = proc.make_encoding_dict(ds_eis)
+# Load and do computation (552 Seconds for Global)
+if not TP_crop:
+    ds_eis = ds_eis.compute()
+print("Calculated in %2.fs" % (time.time()-st))
 
+# Set Output and Write 1235 sec
+st = time.time()
 if TP_crop:
     outname = "%s%s_eis_useskt.nc" % (datpath,expname)
 else:
     outname = "%s%s_eis_useskt.nc" % (datpath_glob,expname)
 ds_eis.to_netcdf(outname,encoding=edict)
-
+print("Saved in %2.fs" % (time.time()-st))
 
 
 
