@@ -49,8 +49,10 @@ proc.makedir(figpath)
 
 datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 
-expnames        = ["TCo2559-DART-1950C",]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C","glorys"]
-expnames_long   = ["5km 1950",] #["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950","GLORYS"]
+expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C","glorys"]
+expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950","GLORYS"]
+
+
 
 vname           = "sst"#"Dmaxgrad" #"sst"#"str"
 
@@ -259,6 +261,7 @@ def combine_events(var_in,id_in,tol=1,return_dict=False,verbose=True):
     ncevent         = len(event_combine)
     event_time      = []
     center_ids      = []
+    event_max       = []
     for ie in range(ncevent):
         idsin = event_combine[ie]
         if len(idsin) == 1: # Only 1 step
@@ -267,15 +270,56 @@ def combine_events(var_in,id_in,tol=1,return_dict=False,verbose=True):
         else:
             amplitudes = var_in.isel(time=idsin) #.argmax()
             idmax      = np.argmax(np.abs(amplitudes.data)).item()
+            event_max.append(np.nanmax(np.abs(amplitudes.data)).item())
             event_time.append(var_in.time.isel(time=idsin[idmax]))
             center_ids.append(idsin[idmax])
     
     if return_dict:
+        
+        def get_mon(ds):
+            return [da.time.dt.month.data.item() for da in ds]
+        
+        def get_duration(ds):
+            return [len(ts) for ts in ds]
+        
+        durations = get_duration(event_combine)
+        months    = get_mon(event_time)
+        
         outdict = dict(event_time=event_time,
                        center_ids=center_ids,
-                       event_combine=event_combine)
+                       event_combine=event_combine,
+                       event_max=event_max,
+                       durations=durations,
+                       eventmonths=months)
         return outdict
     return event_time,center_ids,event_combine
+
+def stack_events(target_var,eventids,ibefore,iafter):
+    # Stack events between -ibefore and +iafter months
+    
+    nevents        = len(eventids)
+    plotlags       = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
+    stacked_events = np.zeros((nevents,len(plotlags))) * np.nan
+    ntime          = len(target_var)
+    for ie in range(nevents):
+        
+        ievent    = eventids[ie]
+        istart    = ievent-ibefore
+        iend      = ievent+iafter
+        
+        if (istart >=0) and (iend < ntime):
+            stacked_events[ie,:] = target_var[istart:(iend+1)]
+            
+        elif iend >= ntime:
+            filler = np.zeros( (iend-ntime+1)) * np.nan
+            subset = np.hstack([target_var[istart:],filler])
+            stacked_events[ie,:] = subset
+        elif istart < 0: # Note havent tested this
+            filler  = np.zeros(np.abs(istart)) * np.nan
+            subset  = np.hstack([filler,target_var[:(iend+1)],])
+            stacked_events[ie,:] = subset
+    return stacked_events
+            
 
 
 # ninotimes,center_ids_nino,nino_combine = combine_events(ensoin,id_nino)
@@ -326,8 +370,36 @@ for ex in tqdm.tqdm(range(nexps)):
     print("For %s:" % expnames_long[ex])
     print("\tIdentified %i Nino Events" % (len(oout['event_combine'])))
     print("\tIdentified %i Nina Events" % (len(aout['event_combine'])))
+    
+#%% Identify Frequency by Month + Duration
+
+def get_mon(ds):
+    return [da.time.dt.month.data.item() for da in ds]
+
+def get_duration(ds):
+    return [len(ts) for ts in ds]
+
+ninomons = [get_mon(ds['event_time']) for ds in ninodicts]
+ninamons = [get_mon(ds['event_time']) for ds in ninadicts]
+
+# Also get # of years for reference 
+expyrs = [int(len(ts)/12) for ts in ensoids]
+
+# Count length of the event
+ninodurations = [get_duration(ds['event_combine']) for ds in ninodicts]
+ninadurations = [get_duration(ds['event_combine']) for ds in ninadicts]
+
+# Print it
+print("Average Duration for El Nino Events:")
+for ex in range(nexps):
+    print("\t%s    \t\t: \t%i months" % (expnames[ex],np.nanmean(ninodurations[ex])))
+print("Average Duration for La Nina Events:")
+for ex in range(nexps):
+    print("\t%s    \t\t: \t%i months" % (expnames[ex],np.nanmean(ninadurations[ex])))
 
 
+
+    
 #%% Plot Identified ENSO Events
 
 for ex in range(nexps):
@@ -355,7 +427,10 @@ for ex in range(nexps):
     title = "AWI-CM3 (%s)\n 1$\sigma$=%.4f, " % (expnames_long[ex],sigma) + r"#$Ni\tilde{n}o$: %i, #$Ni\tilde{n}a$: %i" % (len(ninos),len(ninas))
     ax.set_title(title)
     
-    ax.set_ylim([-5,5])
+    if expnames[ex] == "TCo319_ssp585":
+        ax.set_ylim([-7.5,7.5])
+    else:
+        ax.set_ylim([-4.5,4.5])
     ax.grid(True,which='both',ls='dotted',lw=0.50)
     
     ax.set_xlim([ensoin.time.isel(time=0),ensoin.time.isel(time=-1)])
@@ -364,17 +439,7 @@ for ex in range(nexps):
     figname = "%sNino_Events_Identified_%s_tol%02imon.png" % (figpath,expnames[ex],tol)
     plt.savefig(figname,dpi=150,bbox_inches='tight')
     #plt.show()
-    
-#%% Identify Frequency by Month
 
-def get_mon(ds):
-    return [da.time.dt.month.data.item() for da in ds]
-
-ninomons = [get_mon(ds['event_time']) for ds in ninodicts]
-ninamons = [get_mon(ds['event_time']) for ds in ninadicts]
-
-# Also get # of years for reference 
-expyrs = [int(len(ts)/12) for ts in ensoids]
 
 #%% Plot Frequency by Month
 
@@ -436,8 +501,6 @@ for ninotype in ["nino","nina"]:
         
     for ex in range(nexps):
         expdict     = indict[ex]
-            
-        
         
         ibefore = 12
         iafter  = 36
@@ -453,27 +516,29 @@ for ninotype in ["nino","nina"]:
         nevents     = len(eventids)
         
         
-        plotlags       = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
-        stacked_events = np.zeros((nevents,len(plotlags))) * np.nan
-        ntime          = len(target_var)
-        for ie in range(nevents):
+        # plotlags       = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
+        # stacked_events = np.zeros((nevents,len(plotlags))) * np.nan
+        # ntime          = len(target_var)
+        # for ie in range(nevents):
             
-            ievent    = eventids[ie]
-            istart    = ievent-ibefore
-            iend      = ievent+iafter
-    
+        #     ievent    = eventids[ie]
+        #     istart    = ievent-ibefore
+        #     iend      = ievent+iafter
+        
             
-            if (istart >=0) and (iend < ntime):
-                stacked_events[ie,:] = target_var[istart:(iend+1)]
+        #     if (istart >=0) and (iend < ntime):
+        #         stacked_events[ie,:] = target_var[istart:(iend+1)]
                 
-            elif iend >= ntime:
-                filler = np.zeros( (iend-ntime+1)) * np.nan
-                subset = np.hstack([target_var[istart:],filler])
-                stacked_events[ie,:] = subset
-            elif istart < 0: # Note havent tested this
-                filler  = np.zeros(np.abs(istart)) * np.nan
-                subset  = np.hstack([filler,target_var[:(iend+1)],])
-                stacked_events[ie,:] = subset
+        #     elif iend >= ntime:
+        #         filler = np.zeros( (iend-ntime+1)) * np.nan
+        #         subset = np.hstack([target_var[istart:],filler])
+        #         stacked_events[ie,:] = subset
+        #     elif istart < 0: # Note havent tested this
+        #         filler  = np.zeros(np.abs(istart)) * np.nan
+        #         subset  = np.hstack([filler,target_var[:(iend+1)],])
+        #         stacked_events[ie,:] = subset
+        stacked_events = stack_events(target_var,eventids,ibefore,iafter)
+        
         #%% Now Plot Each one
         
         xtkslag     = np.arange(-12,39,3)
@@ -494,7 +559,7 @@ for ninotype in ["nino","nina"]:
             plotvar = stacked_events[ie,:]
             ax.plot(plotlags,plotvar,lw=.80,alpha=0.55,label=lab)
             
-        ax.plot(plotlags,stacked_events.mean(0),color="k",lw=1,alpha=1,label='Mean')
+        ax.plot(plotlags,np.nanmean(stacked_events,0),color="k",lw=1,alpha=1,label='Mean')
         ax.legend()
         
         ax.axvline([0],ls='solid',color="k",lw=0.50)
@@ -504,7 +569,10 @@ for ninotype in ["nino","nina"]:
         
         ax.set_xlabel("Lags (Months)")
         ax.set_ylabel("SST Anomaly $\degree C$")
-        ax.set_ylim([-4.25,4.25])
+        if expnames[ex] == "TCo319_ssp585":
+            ax.set_ylim([-7.5,7.5])
+        else:
+            ax.set_ylim([-4.5,4.5])
         ax.set_xticks(xtkslag)
         ax.set_xlim([plotlags[0],plotlags[-1]])
         
@@ -517,9 +585,96 @@ for ninotype in ["nino","nina"]:
         
         #plt.show()
 
-#%%
+#%% Get Stacked Events
+
+stacked_events = []
+for ninotype in ["nino","nina"]:
+        
+    if ninotype == "nino":
+        indict = ninodicts
+    elif ninotype == "nina":
+        indict = ninadicts
     
-            
+    exstack = []
+    for ex in range(nexps):
+        expdict     = indict[ex]
+        print(ex)
+        ibefore = 12
+        iafter  = 36
+        plotlags    = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
+        target_var  = ensoids[ex].data
+        eventids    = expdict['center_ids']
+        
+        exstack.append(stack_events(target_var,eventids,ibefore,iafter))
+    stacked_events.append(exstack)
+        
+#%% Plot the average Response
+
+
+fig,ax = plt.subplots(1,1,constrained_layout=True)
+for nn in range(2):
+    
+    for ex in range(nexps):
+        
+        plotvar = np.nanmean(stacked_events[nn][ex],0)
+        ax.plot(plotlags,plotvar,label=expnames[ex],lw=2.5)
+ax.legend()
+
+ax.axvline([0],ls='solid',color="k",lw=0.50)
+ax.axhline([0],ls='solid',color="k",lw=0.50)
+#ax.axhline([sigma],ls='dotted',color="red",lw=0.75)
+#ax.axhline([-sigma],ls='dotted',color="blue",lw=0.75)
+
+ax.set_xlabel("Lags (Months)")
+ax.set_ylabel("SST Anomaly $\degree C$")
+ax.set_ylim([-4.25,4.25])
+ax.set_xticks(xtkslag)
+ax.set_xlim([plotlags[0],plotlags[-1]])
+    
+plt.show()
+
+#%% Plot the standard Deviations
+
+
+expcols = ["cornflowerblue",'lightcoral',
+           "slateblue","firebrick",
+           "midnightblue","k"]
+
+ensostdevs = np.array([es['std'].data.item() for es in ensoids])
+
+fig,ax = plt.subplots(1,1,sharey=True,constrained_layout=True,
+                      figsize=(8,4.5))
+
+
+plotexps = [0,1,2,3,4,5]
+
+braw = ax.bar(np.array(expnames_long)[plotexps],
+        ensostdevs[plotexps],color=np.array(expcols)[plotexps]
+        )
+
+ax.bar_label(braw,fmt="%.02f",c='white',fontsize=fsz_axis,label_type='center')
+
+ax.set_ylabel(r"1$\sigma$ $Ni\tilde{n}o3.4$ [$\degree C$]")
+ax.set_ylim([0,2])
+
+# ax       = axs[1]
+# plotexps = [1,3]
+# ax.bar(np.array(expnames_long)[plotexps],
+#        ensostdevs[plotexps],color=np.array(expcols)[plotexps]
+#        )
+ax.spines[['right', 'top']].set_visible(False)
+
+figname = "%sENSO_Thresholds_%s.png" % (figpath,ninoid_name)
+plt.savefig(figname,dpi=150,bbox_inches='tight')
+
+plt.show()
+
+
+#%% Examine the duration of ENSO events and how they have changed
+
+
+    
+    
     
     
 
