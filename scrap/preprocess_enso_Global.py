@@ -132,5 +132,9 @@ for vname in vnames:
     edict   = proc.make_encoding_dict(dsanom)
     dsanom.to_netcdf(outname,encoding=edict)
     proc.printtime(st,print_str="\tsaved")
+    
+    dsanom.close()
+    dsvar.close()
+    
 
 
