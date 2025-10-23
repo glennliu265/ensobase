@@ -60,6 +60,7 @@ outpath         = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
 expname         = "TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
 timecrop        = [1950,2100]
 vnames          = ['ttr','ttrc','tsr','tsrc',"sst"]
+
 #vname           = "sst"
 
 for vname in vnames:
@@ -82,16 +83,24 @@ for vname in vnames:
     
     dsvar           = xr.open_dataset(ncname)[vname]
     
-    # Standardize the names
-    dsvar = ut.standardize_names(dsvar)
+   
     
     # Crop time (mostly for control run, pre 1950)
     if timecrop is not None:
-        print("Cropping time for %s: %s to %s" % (expname,str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
-        dsvar = dsvar.sel(time=slice(str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
-    
+        try:
+            print("Cropping time for %s: %s to %s" % (expname,str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
+            dsvar = dsvar.sel(time_counter=slice(str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
+            timename    = "time_counter"
+        except:
+            print("Renaming variables first")
+            # Standardize the names
+            dsvar = ut.standardize_names(dsvar)
+            print("Cropping time for %s: %s to %s" % (expname,str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
+            dsvar = dsvar.sel(time=slice(str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
+            timename    = "time"
+        
     # Set up Chunking
-    dsvar           = dsvar.chunk('auto')
+    dsvar           = dsvar.chunk(dict(lat='auto',lon='auto'))
     
     #%% Set up function and preprocess
     
@@ -113,8 +122,8 @@ for vname in vnames:
         preprocess_enso_point,  # Pass the function
         dsvar,  # The inputs in order that is expected
         # Which dimensions to operate over for each argument...
-        input_core_dims=[['time'],],
-        output_core_dims=[['time'],],  # Output Dimension
+        input_core_dims=[[timename],],
+        output_core_dims=[[timename],],  # Output Dimension
         vectorize=True,  # True to loop over non-core dims
         dask='parallelized',
         output_dtypes='float32',
