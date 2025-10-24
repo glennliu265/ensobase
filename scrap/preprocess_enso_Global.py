@@ -57,8 +57,8 @@ outpath         = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
 
 #%% Load Variable
 
-expname         = "TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
-timecrop        = [1950,2100]
+expname         = "TCo1279-DART-2090" #"TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
+timecrop        = None#[1950,2100]
 vnames          = ['ttr','ttrc','tsr','tsrc',"sst"]
 
 #vname           = "sst"
@@ -129,7 +129,7 @@ for vname in vnames:
         output_dtypes='float32',
         )
     
-    # 520.45s, 492.45
+    # 520.45s, 492.45, 5875.68s
     st = time.time()
     dsanom = dsanom.compute()
     print("Preprocessed in %.2fs" % (time.time()-st))
