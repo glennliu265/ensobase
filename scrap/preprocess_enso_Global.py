@@ -98,6 +98,15 @@ for vname in vnames:
             print("Cropping time for %s: %s to %s" % (expname,str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
             dsvar = dsvar.sel(time=slice(str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
             timename    = "time"
+    else:
+        if "time_counter" in list(dsvar.coords):
+            timename = "time_counter"
+        else:
+            dsvar = ut.standardize_names(dsvar)
+            timename = "time"
+            
+        
+    
         
     # Set up Chunking
     dsvar           = dsvar.chunk(dict(lat='auto',lon='auto'))
