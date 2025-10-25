@@ -68,7 +68,7 @@ def remove_duplicate_times(ds,verbose=True):
     print("Found %i duplicate times. Taking first entry." % (len(ds.time) - len(index)))
     return ds.isel(time=index)
 
-ex       = 2
+ex       = 3
 #calcname = "ttcre" # 
 expname  = expnames[ex]
 
