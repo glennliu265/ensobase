@@ -13,9 +13,6 @@ Created on Wed Oct 15 11:34:32 2025
 @author: gliu
 """
 
-
-
-
 import sys
 import time
 import numpy as np
@@ -51,7 +48,7 @@ import scm
 
 gmeanpath = "/home/niu4/gliu8/projects/scrap/global_mean/"
 ninopath = "/home/niu4/gliu8/projects/scrap/nino34/"
-figpath = "/home/niu4/gliu8/figures/bydate/2025-10-21/"
+figpath = "/home/niu4/gliu8/figures/bydate/2025-10-29/"
 proc.makedir(figpath)
 
 vnames = ["ttr", "ttrc", "tsr", "tsrc"]
@@ -207,17 +204,15 @@ for v in range(len(fluxes_in)):
         except:
             continue
         
-        
-        
         sst_in,flx_in       = proc.match_time_month(sst_in,flx_in)
         #flx_in,sst_in       = proc.match_time_month(sst_in,flx_in)
         #betas               = ut.calc_lag_regression_1d(flx_in.data,sst_in.data,lags)
         #betas_all[v,ex,:] = betas
         
-        dsout             = calc_leadlag_regression_2d(sst_in,flx_in.drop(('lat','lon')).squeeze(),lags,sep_mon=False)
+        dsout             = ut.calc_leadlag_regression_2d(sst_in,flx_in.drop(('lat','lon')).squeeze(),lags,sep_mon=False)
         betas_all[v,ex,:] = dsout.regression_coefficient.data
         
-        dsoutmon          = calc_leadlag_regression_2d(sst_in,flx_in.drop(('lat','lon')).squeeze(),lags,sep_mon=True)
+        dsoutmon          = ut.calc_leadlag_regression_2d(sst_in,flx_in.drop(('lat','lon')).squeeze(),lags,sep_mon=True)
         betas_all_mon[v,ex,:,:] = dsoutmon.regression_coefficient.data.T
         
         
@@ -234,6 +229,8 @@ for v in range(len(fluxes_in)):
 
             print(v)
 
+
+
 #%%
 
 fig,axs = plt.subplots(1,5,figsize=(18,3),constrained_layout=True)
@@ -247,14 +244,11 @@ for ii in range(5):
         ax.plot(lags,plotvar,label=expnames_long[ex],c=expcols[ex],lw=2)
         
         if ex == 0: # Plot uncertainty for the first experiment
-            mu    = mcbetas[v,:,:].mean(0)
-            sigma = mcbetas[v,:,:].std(0)
+            mu    = mcbetas[ii,:,:].mean(0)
+            sigma = mcbetas[ii,:,:].std(0)
             ax.plot(lags,mu,color='dimgray',ls='dashed',lw=0.75)
             ax.fill_between(lags,mu-sigma,mu+sigma,color='dimgray',alpha=0.15,label="")
-        
-        
-        
-        
+    
     if ii == 4:
         ax.legend(ncol=2,fontsize=8)
     
@@ -271,8 +265,7 @@ figname = "%sFluxes_Lag_Regression_%s.png" % (figpath,ensoid_name)
 plt.savefig(figname, dpi=150, bbox_inches='tight')
 plt.show()
 
-
-#%% Print the Maximum VAlues
+#%% Print the Maximum Values
 
 for ii in range(5):
     print(flxnames[ii])
@@ -284,10 +277,47 @@ for ii in range(5):
     print("\n")
         
     
-#%% Try computing the monthly feedback
+#%% Try computing the monthly feedback (note it doesnt look good... very noiy. Need to think more carefully)
 
-# Note seems to roughly work... 
+
+#%% Plot to see if there are any unique monthly features
+
+v     = 0
+ex    = 0
+vmax  = .75
+mons3 = proc.get_monstr()
+
+fig,axs = plt.subplots(5,1,constrained_layout=True,figsize=(12.5,8))
+
+
+for ex in range(5):
+    ax      = axs[ex]
+    plotvar = betas_all_mon[v,ex,:,:]
+    pcm     = ax.pcolormesh(lags,mons3,plotvar,cmap='cmo.balance',vmin=-vmax,vmax=vmax)
+
+cb = viz.hcbar(pcm,ax=axs.flatten())
+
+plt.show()
+
+#%% Try Plotting Separately for each month
+
+v       = 0
+
+fig,axs = plt.subplots(1,12,constrained_layout=True,figsize=(12.5,4),sharey=True)
+for im in range(12):
+    ax = axs[im]
+    for ex in range(5):
+        plotvar = betas_all_mon[v,ex,im,:]
+        ax.plot(lags,plotvar,label=expnames_long[ex],c=expcols[ex],lw=2)
     
+    ax.set_ylim([-.75,.75])
+    
+plt.show()
+
+
+
+#%%
+# Note seems to roughly work... (Note Moved over to utils folder) 
 def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     adddim=False
     if len(dsvar.shape) == 1:
@@ -401,7 +431,7 @@ def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     return ds_out
 
 
-    
+
 
 # %% Check the Mean of each timeseries to see conversion (debugging)
 
