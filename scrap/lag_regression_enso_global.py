@@ -47,7 +47,7 @@ expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"
 ensoid_name     = "nino34"
 standardize     = False
 
-timecrops        = [[1993,2024]]
+timecrops        =[[1950,2100],None,None,None,None]
 
 datpath         = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
 outpath         = "/home/niu4/gliu8/projects/scrap/global_lag_regressions/"
