@@ -47,8 +47,7 @@ import utils as ut
 # vnames          = ['sst',]#["ttcre","tscre"]#['sst','str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc']
 # nexps           = len(expnames)
 
-
-timecrops = []
+timecrops       = []
 
 #%% Set data and outpath
 
@@ -70,7 +69,6 @@ for vname in vnames:
     ncname          = nclist[0]
     
     #%% Load Seasonal Cycle for Deseasonalizing (calculated from calc_mean_patterns_General.py)
-    
     # ncsearch        = "%s%s_%s*.nc" % (summarypath,expname,vname)
     # ncsummary       = glob.glob(ncsearch)
     # print(ncsummary)
@@ -80,10 +78,7 @@ for vname in vnames:
     # ds_scycle       = xr.open_dataset(ncsummary).scycle # Get seasonal scycle
     
     #%% Open File and Chunk
-    
     dsvar           = xr.open_dataset(ncname)[vname]
-    
-   
     
     # Crop time (mostly for control run, pre 1950)
     if timecrop is not None:
@@ -144,7 +139,6 @@ for vname in vnames:
     print("Preprocessed in %.2fs" % (time.time()-st))
     
     #%% Save Output
-    
     st      = time.time()
     outname = "%s%s_%s_anom.nc" % (outpath,expname,vname)
     edict   = proc.make_encoding_dict(dsanom)
