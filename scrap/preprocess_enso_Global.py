@@ -56,12 +56,10 @@ outpath         = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
 
 #%% Load Variable
 
-expname         = "TCo1279-DART-2090" #"TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
+expname         = "TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
 timecrop        = None#[1950,2100]
-vnames          = ['ttr','ttrc','tsr','tsrc',"sst"]
-
-#vname           = "sst"
-
+vnames          = ['sst','ttr','ttrc','tsr','tsrc']
+#vname          = "sst"
 for vname in vnames:
     nclist          = ut.get_rawpath_awi(expname,vname,ensnum=None)
     print("Found the following:")
@@ -112,13 +110,17 @@ for vname in vnames:
         ntime   = len(ts)
         nyr     = int(ntime/12)
         x       = np.arange(ntime)
-        tsrs    = ts.reshape((12,nyr))
-        tsrsa   = tsrs - tsrs.mean(1)[:,None]
+        
+        tsrs    = ts.reshape((nyr,12))
+        tsrsa   = tsrs - tsrs.mean(0)[None,:]
+        
         tsa     = tsrsa.flatten()
+        
         #tsa     = proc.deseason(ts)
         if np.any(np.isnan(ts)):
             return np.ones(tsa.shape)*np.nan
         ydetrended,model=proc.detrend_poly(x,tsa,2)
+        
         return ydetrended
     
     # Set Up Function
