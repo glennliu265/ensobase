@@ -71,10 +71,15 @@ nexps       = len(expnames)
 expname     = expnames[ex]
 vname       = vnames[0]
 
-for ex in range(len(expnames)):
-    expname = expnames[ex]
+for vname in tqdm.tqdm(vnames):
+#for ex in tqdm.tqdm(range(len(expnames))):
+    for ex in range(len(expnames)):
+        
+        expname = expnames[ex]
     
-    for vname in vnames:
+    
+    # for vname in vnames:
+    #     st = time.time()
         
         # if expname == expnames[0] and vname == "tsr":
         #     continue # SKip because I did this one
@@ -214,6 +219,7 @@ for ex in range(len(expnames)):
         
         ds_out.close()
         dsvar.close()
+        print("Completed variable in %.2fs" % (time.time()-st))
 
 #%%
 
