@@ -56,7 +56,7 @@ outpath         = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
 
 #%% Load Variable
 
-expname         = "TCo1279-DART-1950" #"TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
+expname         = "TCo2559-DART-1950C" #"TCo1279-DART-1950" #"TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
 timecrop        = None #[1950,2100]
 vnames          = ['ttr','ttrc','tsr','tsrc','sst']
 #vname          = "sst"
