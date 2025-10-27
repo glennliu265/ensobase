@@ -71,11 +71,13 @@ nexps       = len(expnames)
 expname     = expnames[ex]
 vname       = vnames[0]
 
-for expname in expnames:
+for ex in range(len(expnames)):
+    expname = expnames[ex]
+    
     for vname in vnames:
         
-        if expname == expnames[0] and vname == "tsr":
-            continue # SKip because I did this one
+        # if expname == expnames[0] and vname == "tsr":
+        #     continue # SKip because I did this one
         
         # Load the variable
         st              = time.time()
@@ -96,8 +98,6 @@ for expname in expnames:
         if timecrop is not None:
             print("Cropping time for %s: %s to %s" % (expnames_long[ex],str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
             dsvar = dsvar.sel(time=slice(str(timecrop[0])+'-01-01',str(timecrop[1])+'-12-31'))
-        
-        
         
         # Check to make sure the time matches
         ensoid          = ensoids[ex]
