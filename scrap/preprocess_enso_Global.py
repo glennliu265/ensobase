@@ -47,7 +47,7 @@ import utils as ut
 # vnames          = ['sst',]#["ttcre","tscre"]#['sst','str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc']
 # nexps           = len(expnames)
 
-timecrops       = []
+#timecrops       = #[]
 
 #%% Set data and outpath
 
@@ -57,7 +57,7 @@ outpath         = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
 #%% Load Variable
 
 expname         = "TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
-timecrop        = None#[1950,2100]
+timecrop        = [1950,2100]
 vnames          = ['sst','ttr','ttrc','tsr','tsrc']
 #vname          = "sst"
 for vname in vnames:
