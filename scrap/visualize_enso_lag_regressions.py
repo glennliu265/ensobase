@@ -255,6 +255,7 @@ ensoids = [ut.load_ensoid(expname,ninoid_name,standardize=standardize) for expna
 # LagRegression_AllMonths_TCo2559-DART-1950C_ttrc_nino34_standardize0_lag-12to12.nc
 nexps  = len(expnames)
 ds_all = []
+sigs   = []
 for ex in tqdm.tqdm(range(nexps)):
     ncname = "%sLagRegression_AllMonths_%s_%s_%s_standardize%i_lag%02ito%02i.nc" % (datpath,expnames[ex],vname,ninoid_name,
                                                                                     standardize,leadlags[0],leadlags[-1])
@@ -263,8 +264,12 @@ for ex in tqdm.tqdm(range(nexps)):
     except:
         print("Could not find %s, %s" % (vname,expnames[ex]))
         ds_all.append(None)
+        sigs.append(None)
         continue
-    ds     = ut.varcheck(ds,vname,expnames[ex])
+    
+    sigs.append(ds.sig) # Note since varcheck not converts ds --> da, should grab sig first
+    
+    ds     = ut.varcheck(ds,vname,expnames[ex]) 
     
     ds_all.append(ds)
     
@@ -313,7 +318,7 @@ if not bbox_test:
                             transform=projd,cmap=cmap,vmin=-vmax,vmax=vmax)
     
     # Plot Significance
-    plotmask = ds_all[ex].sig.isel(lag=il)
+    plotmask = sigs[ex].isel(lag=il)#ds_all[ex].sig.isel(lag=il)
     lon      = plotmask.lon
     lat      = plotmask.lat
     
@@ -366,7 +371,8 @@ plt.show()
 ex      = 1
 lag     = 0
 cmap    = 'cmo.ice'
-cints   = np.arange(0,1.05,.05)
+cints    = [0,] # #np.arange(-0.1,0.1,0.5)
+#cints   = np.arange(0,1.05,.05)
 #cints   = np.arange(-1.5,1.6,0.1) # SST
 #cints   = np.arange(-0.05,0.06,0.01) #np.arange(-1,1.1,0.1)#np.arange(-5,5.5,0.5)#np.arange(-24,26,2)
 vmax    = cints[0]
@@ -383,7 +389,8 @@ for ex in range(nexps):
         
         #plotvar = ds_all[ex][vname].sel(lag=lag)
         try:
-            plotvar = ds_all[ex][vname].isel(lag=il)
+            plotvar = ds_all[ex].isel(lag=il)
+            sigin     = sigs[ex]
         except:
             continue
         
@@ -400,7 +407,7 @@ for ex in range(nexps):
         
         
         # Plot Significance
-        plotmask = ds_all[ex].sig.isel(lag=il)
+        plotmask = sigin.isel(lag=il)
         lon      = plotmask.lon
         lat      = plotmask.lat
         if len(lon) < 500: # Adjust stippling based on length of longitude
