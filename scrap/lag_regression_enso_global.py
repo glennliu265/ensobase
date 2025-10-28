@@ -47,7 +47,7 @@ expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"
 
 ensoid_name     = "nino34"
 standardize     = False
-regrid_1x1      = False
+regrid_1x1      = True
 
 timecrops        = [[1950,2100],None,None,None,None]
 
@@ -60,7 +60,7 @@ else:
 figpath             = "/home/niu4/gliu8/figures/bydate/2025-10-21/"
 proc.makedir(figpath)
 
-vnames          = ['tsr','ttr','ttrc','ttcre','tscre','tsrc','ttcre','tscre',]#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+vnames          = ['allsky','clearsky','cre']#['tsr','ttr','ttrc','ttcre','tscre','tsrc','ttcre','tscre',]#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 #%% Load ENSO ID
 
@@ -69,7 +69,7 @@ ensoids         = [ut.load_ensoid(expname,ensoid_name,standardize=standardize) f
 #%% Looping for each experiment
 
 # Indicate Lead Lags
-leadlags    = np.arange(-12,13,1)
+leadlags    = np.arange(-18,19,1)
 sep_mon     = False
 
 ex          = 2
