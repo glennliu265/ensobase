@@ -41,20 +41,26 @@ import utils as ut
 
 #%% User Edits
 
+
 expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
 expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 
 ensoid_name     = "nino34"
 standardize     = False
+regrid_1x1      = True
 
-timecrops        =[[1950,2100],None,None,None,None]
+timecrops        = [[1950,2100],None,None,None,None]
 
-datpath         = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
-outpath         = "/home/niu4/gliu8/projects/scrap/global_lag_regressions/"
-figpath         = "/home/niu4/gliu8/figures/bydate/2025-10-21/"
+if regrid_1x1:
+    datpath         = "/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend2/"
+    outpath         = "/home/niu4/gliu8/projects/scrap/regrid_1x1/global_lag_regressions/"
+else:
+    datpath         = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
+    outpath         = "/home/niu4/gliu8/projects/scrap/global_lag_regressions/"
+figpath             = "/home/niu4/gliu8/figures/bydate/2025-10-21/"
 proc.makedir(figpath)
 
-vnames          = ['tsr','ttr','ttrc','ttcre','tscre','tsrc']#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+vnames          = ['ttcre',]#['ttcre','tscre','tsr','ttr','ttrc','ttcre','tscre','tsrc']#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 #%% Load ENSO ID
 
@@ -66,7 +72,7 @@ ensoids         = [ut.load_ensoid(expname,ensoid_name,standardize=standardize) f
 leadlags    = np.arange(-6,7,1)
 sep_mon     = False
 
-ex          = 0
+ex          = 2
 nexps       = len(expnames)
 expname     = expnames[ex]
 vname       = vnames[0]
@@ -76,7 +82,6 @@ for vname in tqdm.tqdm(vnames):
     for ex in range(len(expnames)):
         
         expname = expnames[ex]
-    
     
     # for vname in vnames:
     #     st = time.time()
