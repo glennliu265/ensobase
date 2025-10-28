@@ -60,7 +60,7 @@ else:
 figpath             = "/home/niu4/gliu8/figures/bydate/2025-10-21/"
 proc.makedir(figpath)
 
-vnames          = ['allsky','clearsky','cre']#['tsr','ttr','ttrc','ttcre','tscre','tsrc','ttcre','tscre',]#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+vnames              = ['tsr','ttr','ttrc','ttcre','tscre','tsrc','ttcre','tscre',] #['allsky','clearsky','cre']# #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 #%% Load ENSO ID
 
