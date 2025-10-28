@@ -51,32 +51,50 @@ import utils as ut
 
 #%% Set data and outpath
 
-summarypath     = "/home/niu4/gliu8/projects/scrap/summary_stats/"
-outpath         = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
+regrid_1x1      = True
+
+if regrid_1x1:
+    print("Using Regridded Output!")
+    datpath         = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+    summarypath     = "/home/niu4/gliu8/projects/scrap/summary_stats/"
+    outpath         = datpath + "global_anom_detrend2/"
+else:
+    print("Using original resolution")
+    # datpath is found using ut.get_rawpath_awi
+    summarypath     = "/home/niu4/gliu8/projects/scrap/summary_stats/"
+    outpath         = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
 
 #%% Load Variable
 
-expname         = "TCo2559-DART-1950C" #"TCo1279-DART-1950" #"TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
-timecrop        = None #[1950,2100]
-vnames          = ['ttr','ttrc','tsr','tsrc','sst']
+expname         = "TCo1279-DART-1950" #"TCo319_ctl1950d" #"TCo2559-DART-1950C" #"TCo1279-DART-1950" #"TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
+timecrop        = None#[1950,2100] # None
+vnames          = ['ttr','ttrc','tsr','tsrc',]#'sst']
 #vname          = "sst"
 for vname in vnames:
-    nclist          = ut.get_rawpath_awi(expname,vname,ensnum=None)
-    print("Found the following:")
-    print("\tTaking the first found file: %s" % nclist[0])
-    ncname          = nclist[0]
     
-    #%% Load Seasonal Cycle for Deseasonalizing (calculated from calc_mean_patterns_General.py)
-    # ncsearch        = "%s%s_%s*.nc" % (summarypath,expname,vname)
-    # ncsummary       = glob.glob(ncsearch)
-    # print(ncsummary)
-    # print("Found the following:")
-    # ncsummary       = ncsummary[0]
-    # print("\tTaking the first found file: %s" % ncsummary)
-    # ds_scycle       = xr.open_dataset(ncsummary).scycle # Get seasonal scycle
-    
-    #%% Open File and Chunk
-    dsvar           = xr.open_dataset(ncname)[vname]
+    if not regrid_1x1:
+        nclist          = ut.get_rawpath_awi(expname,vname,ensnum=None)
+        print("Found the following:")
+        print("\tTaking the first found file: %s" % nclist[0])
+        ncname          = nclist[0]
+        
+        #% Load Seasonal Cycle for Deseasonalizing (calculated from calc_mean_patterns_General.py)
+        # ncsearch        = "%s%s_%s*.nc" % (summarypath,expname,vname)
+        # ncsummary       = glob.glob(ncsearch)
+        # print(ncsummary)
+        # print("Found the following:")
+        # ncsummary       = ncsummary[0]
+        # print("\tTaking the first found file: %s" % ncsummary)
+        # ds_scycle       = xr.open_dataset(ncsummary).scycle # Get seasonal scycle
+        
+        #%% Open File and Chunk
+        dsvar           = xr.open_dataset(ncname)#[vname]#[vname]
+        
+    else:
+        
+        ncname = "%s%s_%s_regrid1x1.nc" % (datpath,expname,vname)# TCo1279-DART-1950_tsrc_regrid1x1.nc
+        dsvar  = xr.open_dataset(ncname)[vname]
+        
     
     # Crop time (mostly for control run, pre 1950)
     if timecrop is not None:
@@ -97,10 +115,7 @@ for vname in vnames:
         else:
             dsvar = ut.standardize_names(dsvar)
             timename = "time"
-            
-        
     
-        
     # Set up Chunking
     dsvar           = dsvar.chunk(dict(lat='auto',lon='auto'))
     
