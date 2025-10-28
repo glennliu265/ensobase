@@ -44,7 +44,7 @@ import utils as ut
 
 #%% 
 
-regrid_1x1       = True
+regrid_1x1       = False
 
 # Simulation Names -----
 expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
