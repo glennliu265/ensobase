@@ -44,7 +44,7 @@ import utils as ut
 
 #%% 
 
-regrid_1x1       = False
+regrid_1x1       = True
 
 # Simulation Names -----
 expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
@@ -63,8 +63,11 @@ if regrid_1x1:
     datpath = "/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend2/"
 else:
     datpath = "/home/niu4/gliu8/projects/scrap/global_anom_detrend2/"
-vnames  = ["ttr","tsr","ttrc","tsrc"]
+vnames  = ["ttr","tsr","ttrc","tsrc",'ttcre','tscre']
 chunkdict = dict(lat="auto",lon="auto")
+
+
+calcnames = ['allsky','clearsky','cre'] # ['ttcre','tscre']
 
 
 #%% Compute Shortwave and Longwave CRE
@@ -81,13 +84,19 @@ for ex in range(nexps):
     #calcname = "ttcre" # 
     expname  = expnames[ex]
     
-    for calcname in ['ttcre','tscre']:#'tscre']:
+    for calcname in calcnames:#['ttcre','tscre']:#'tscre']:
         st = time.time()
                 
         if calcname == "tscre":
             varids = [1,3]
         elif calcname == "ttcre":
             varids = [1,2]
+        elif calcname == "allsky":
+            varids = [0,1]
+        elif calcname == "clearsky":
+            varids = [2,3]
+        elif calcname == "cre":
+            varids = [4,5]
         
         ds_all   = []
         foundvar = True
@@ -130,7 +139,16 @@ for ex in range(nexps):
             if ntimes[0] != ntimes[1]:
                 ds_all = [remove_duplicate_times(ds) for ds in ds_all]
             
-            ds_cre  = ds_all[0] - ds_all[1]
+            print("Computing %s" % calcname)
+            if calcname in ['ttcre','tscre']: # Difference All Sky and Clear Sky
+                print("\tDifferencing %s - %s" % (vnames[varids[0]],vnames[varids[1]]))
+                ds_cre  = ds_all[0] - ds_all[1]
+            elif calcname in ['allsky','clearsky','cre']: # Sum longwave and shortwave for net
+                print("\tSumming %s + %s" % (vnames[varids[0]],vnames[varids[1]]))
+                ds_cre  = ds_all[0] + ds_all[1]
+            else:
+                print("[%s] option not found... ending" % calcname)
+                continue
             ds_cre  = ds_cre.rename(calcname)
             outname = "%s%s_%s_anom.nc" % (datpath,expnames[ex],calcname)
             print("Saving output to %s" % outname)
