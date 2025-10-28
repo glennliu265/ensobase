@@ -669,7 +669,12 @@ def varcheck(ds,vname,expname):
         print("Converting from Kelvin to Celsius for %s" % expname)
         ds = ds - 273.15
         
-    if vname in ['str','ssr','strc','ssrc','ttr','tsr','ttrc','tsrc','sshf','slhf']: # Accumulation over 3h
+    if vname in ['str','ssr',
+                 'strc','ssrc',
+                 'ttr','tsr',
+                 'ttrc','tsrc',
+                 'ttcre','tscre',
+                 'sshf','slhf']: # Accumulation over 3h
         # Conversion for STR and SSR considering 3h Accumulation
         if "TCo319" in expname:
             print("Correction for accumulation over 6 hours for %s" % expname)
