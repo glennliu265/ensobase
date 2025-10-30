@@ -88,7 +88,7 @@ for vname in vnames:
         # ds_scycle       = xr.open_dataset(ncsummary).scycle # Get seasonal scycle
         
         #%% Open File and Chunk
-        dsvar           = xr.open_dataset(ncname)#[vname]#[vname]
+        dsvar           = xr.open_dataset(ncname)[vname]#[vname]#[vname]
         
     else:
         
