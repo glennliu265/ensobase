@@ -51,7 +51,7 @@ import utils as ut
 
 #%% Set data and outpath
 
-regrid_1x1      = True
+regrid_1x1      = False
 
 if regrid_1x1:
     print("Using Regridded Output!")
@@ -66,7 +66,7 @@ else:
 
 #%% Load Variable
 
-expname         = "TCo1279-DART-1950" #"TCo319_ctl1950d" #"TCo2559-DART-1950C" #"TCo1279-DART-1950" #"TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
+expname         = "TCo319_ssp585" #"TCo2559-DART-1950C" #"TCo319_ctl1950d" #"TCo2559-DART-1950C" #"TCo1279-DART-1950" #"TCo319_ctl1950d" #"TCo1279-DART-1950" #"TCo2559-DART-1950C" #"TCo319_ssp585"
 timecrop        = None#[1950,2100] # None
 vnames          = ['ttr','ttrc','tsr','tsrc',]#'sst']
 #vname          = "sst"
@@ -120,7 +120,6 @@ for vname in vnames:
     dsvar           = dsvar.chunk(dict(lat='auto',lon='auto'))
     
     #%% Set up function and preprocess
-    
     def preprocess_enso_point(ts):
         ntime   = len(ts)
         nyr     = int(ntime/12)
