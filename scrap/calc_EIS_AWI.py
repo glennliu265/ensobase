@@ -53,15 +53,21 @@ ex              = 4
 datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 datpath_glob    = "/home/niu4/gliu8/projects/scrap/processed_global/"
 vnames          = ["skt","pl_t_700"]
-expname         = "TCo2559-DART-1950C"
+expname         = "TCo1279-DART-1950" #"TCo2559-DART-1950C"
+
+if expname == "TCo2559-DART-1950C":
+    vnames          = ["skt","pl_t_700"]
+elif expname == "TCo1279-DART-1950":
+    vnames          = ["skt","t700"]
+    
 
 #%% First, just try for the tropical pacific
 # need to load in T700 and T0 (skt is ok?)
 
 chunkdict = dict(
-    lat  = 5120/40,
-    lon  = 10256/16,#16
-    time_counter = 120/30 
+    lat  = 'auto',#5120/40,
+    lon  = 'auto',#10256/16,#16
+    time_counter = 'auto',#120/30 
     )
 
 dsall = []
@@ -111,8 +117,6 @@ else:
     outname = "%s%s_eis_useskt.nc" % (datpath_glob,expname)
 ds_eis.to_netcdf(outname,encoding=edict)
 print("Saved in %2.fs" % (time.time()-st))
-
-
 
 
 # #%% Reload if already calculated
