@@ -8,7 +8,7 @@
 expnames=("TCo319_ctl1950d" "TCo319_ssp585" "TCo2559-DART-1950C" "TCo1279-DART-1950" "TCo1279-DART-2090")
 dpath=/home/niu4/gliu8/projects/scrap/regrid_1x1
 
-for exp in $expnames; do # This loop format is for zsh. Use ${expes[@]} if you are using bash.
+for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if you are using bash.
 
     # Calcualte Allsky
     cdo -add ${dpath}/${exp}_tsr_regrid1x1.nc ${dpath}/${exp}_ttr_regrid1x1.nc temp.nc
