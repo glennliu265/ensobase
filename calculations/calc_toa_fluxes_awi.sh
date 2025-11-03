@@ -6,29 +6,30 @@
 ##
 
 expnames=("TCo319_ctl1950d" "TCo319_ssp585" "TCo2559-DART-1950C" "TCo1279-DART-1950" "TCo1279-DART-2090")
+dpath=/home/niu4/gliu8/projects/scrap/regrid_1x1
 
 for exp in $expnames; do # This loop format is for zsh. Use ${expes[@]} if you are using bash.
 
     # Calcualte Allsky
-    cdo -add ${exp}_tsr_regrid1x1.nc ${exp}_ttr_regrid1x1.nc temp.nc
-    cdo chname,tsr,allsky temp.nc ${exp}_allsky_regrid1x1.nc 
+    cdo -add ${dpath}/${exp}_tsr_regrid1x1.nc ${dpath}/${exp}_ttr_regrid1x1.nc temp.nc
+    cdo chname,tsr,allsky temp.nc ${dpath}/${exp}_allsky_regrid1x1.nc 
 
     # Calculate Clearsky
-    cdo -add ${exp}_tsrc_regrid1x1.nc ${exp}_ttrc_regrid1x1.nc temp.nc
-    cdo chname,tsrc,clearsky temp.nc ${exp}_clearsky_regrid1x1.nc
+    cdo -add ${dpath}/${exp}_tsrc_regrid1x1.nc ${dpath}/${exp}_ttrc_regrid1x1.nc temp.nc
+    cdo chname,tsrc,clearsky temp.nc ${dpath}/${exp}_clearsky_regrid1x1.nc
 
     # Calculate tsr cre
-    cdo -sub ${exp}_tsr_regrid1x1.nc ${exp}_tsrc_regrid1x1.nc temp.nc #
-    cdo chname,tsr,tscre temp.nc ${exp}_tscre_regrid1x1.nc
+    cdo -sub ${dpath}/${exp}_tsr_regrid1x1.nc ${dpath}/${exp}_tsrc_regrid1x1.nc temp.nc #
+    cdo chname,tsr,tscre temp.nc ${dpath}/${exp}_tscre_regrid1x1.nc
 
 
     # Calculate ttr cre
-    cdo -sub ${exp}_ttr_regrid1x1.nc ${exp}_ttrc_regrid1x1.nc temp.nc #
-    cdo chname,ttr,ttcre temp.nc ${exp}_ttcre_regrid1x1.nc
+    cdo -sub ${dpath}/${exp}_ttr_regrid1x1.nc ${dpath}/${exp}_ttrc_regrid1x1.nc temp.nc #
+    cdo chname,ttr,ttcre temp.nc ${dpath}/${exp}_ttcre_regrid1x1.nc
 
     # Calculare cre
-    cdo -sub ${exp}_allsky_regrid1x1.nc ${exp}_clearsky_regrid1x1.nc temp.nc
-    cdo chname,allsky,cre temp.nc ${exp}_cre_regrid1x1.nc
+    cdo -sub ${dpath}/${exp}_allsky_regrid1x1.nc ${dpath}/${exp}_clearsky_regrid1x1.nc temp.nc
+    cdo chname,allsky,cre temp.nc ${dpath}/${exp}_cre_regrid1x1.nc
 
     echo "Completed $exp"
 done
