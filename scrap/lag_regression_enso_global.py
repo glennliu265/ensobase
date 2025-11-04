@@ -60,7 +60,7 @@ else:
 figpath             = "/home/niu4/gliu8/figures/bydate/2025-10-21/"
 proc.makedir(figpath)
 
-vnames              = ['tsr','ttr','ttrc','ttcre','tscre','tsrc','ttcre','tscre',] #['allsky','clearsky','cre']# #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+vnames              = ['eis','allsky','cre','clearsky',] #['tsr','ttr','ttrc','ttcre','tscre','tsrc','ttcre','tscre',] #['allsky','clearsky','cre']# #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 #%% Load ENSO ID
 
@@ -198,7 +198,7 @@ for vname in tqdm.tqdm(vnames):
                     rout  = proc.regress_ttest(invar,ints,verbose=False)
                     beta_lags[im,:,:,ll] = rout['regression_coeff']
                     sig_lags[im,:,:,ll]  = rout['sigmask']
-                    
+            
             # Concatenate
             betas = np.concatenate([beta_leads,beta_lags],axis=3)
             sigs  = np.concatenate([sig_leads,sig_lags],axis=3)
