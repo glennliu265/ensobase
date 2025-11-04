@@ -96,9 +96,13 @@ for ex,expname in enumerate(expnames):
             dsvar           = xr.open_dataset(ncname)[vname]#[vname]#[vname]
             
         else:
-            
             ncname = "%s%s_%s_regrid1x1.nc" % (datpath,expname,vname)# TCo1279-DART-1950_tsrc_regrid1x1.nc
-            dsvar  = xr.open_dataset(ncname)[vname]
+            try:
+                
+                dsvar  = xr.open_dataset(ncname)[vname]
+            except:
+                print("Could not find %s for %s... skipping" % (vname,expname))
+                continue
             
         
         # Crop time (mostly for control run, pre 1950)
