@@ -562,7 +562,7 @@ def remove_duplicate_times(ds,verbose=True,timename='time'):
     # From : https://stackoverflow.com/questions/51058379/drop-duplicate-times-in-xarray
     _, index = np.unique(ds[timename], return_index=True)
     print("Found %i duplicate times. Taking first entry." % (len(ds[timename]) - len(index)))
-    return ds.isel({timename=index})
+    return ds.isel({timename:index})
  
 def standardize_names(ds):
     
