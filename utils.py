@@ -29,6 +29,7 @@ combine_events              : (g) Given identified events, combine similar event
 get_rawpath_awi             : (A) Get rawpath for AWI output on niu
 init_tp_map                 : (v) initialize tropical Pacific plot 
 load_ensoid                 : (l) load enso indices calculated by calc_nino34.py
+load_land_mask_awi          : (l) load land mask from AWI-CM3, where land points are np.nan
 mcsample                    : (g) Monte Carlo Sampler to repeat function
 preprocess_enso             : (c) detrend (quadratic) and deseasonalize for ENSO calculations
 remove_duplicate_times      : (g) Remove duplicate times from a DataArray
@@ -441,6 +442,32 @@ def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
     if standardize:
         return ds.sst
     return ds.sst * ds['std'].data.item()
+
+def load_land_mask_awi(expname,regrid=False,outpath=None):
+    if outpath is None:
+        outpath = '/home/niu4/gliu8/projects/scrap/awi_common/'
+    if "TCo319" in expname: # 31km Simulations
+        print("Loading for 31 km simulations...")
+        if regrid: # Load 180x360
+            dsmask = "Tco319_ctl1950d_r360x180_landmask.nc"
+        else: # Load 640x1213
+            dsmask = "TCo319_atmgrid_original_landmask.nc"#"TCo319_ssp585_atm_landmask.nc"
+    elif "TCo1279" in expname: # 9km Simulations
+        print("Loading for 9 km simulations...")
+        if regrid:
+            dsmask = "TCo1279_DART-1950_ocn_r3600x1800_landmask.nc"
+        else:
+            dsmask = "TCo1279_atmgrid_original_landmask.nc"#"TCo1279-DART-1950_atm_landmask.nc"
+    elif "TCo2559" in expname: # 5km simulations
+        print("Loading for 5 km simulations...")
+        if regrid:
+            dsmask = "TCo2559-DART-1950C_ocn_r3600x1800_landmask.nc"
+        else:
+            dsmask = "TCo2559_atmgrid_original_landmask.nc"
+    else:
+        print("Experiment not found")
+        return np.nan
+    return xr.open_dataset(dsmask).land_mask.load()
 
 def mcsampler(ts_full,sample_len,mciter,preserve_month=True,scramble_year=False,target_timeseries=None):
     # Given a monthly timeseries [time] and sample length (int), take [mciter] # of random samples.
