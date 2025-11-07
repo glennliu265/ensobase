@@ -79,9 +79,7 @@ outpath         = "/home/niu4/gliu8/projects/scrap/global_lag_regressions/"
 figpath         = "/home/niu4/gliu8/figures/bydate/2025-10-28/"
 proc.makedir(figpath)
 
-
-vnames          = ['tsr','ttr','ttrc','tsrc','ttcre','tscre','tsrc','allsky','clearsky','cre']#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
-
+vnames          = ['eis','clearsky','cre',]#'clearsky','cre']#['tsr','ttr','ttrc','tsrc','ttcre','tscre','tsrc','allsky','clearsky','cre']#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 regrid_1x1      = True
 leadlags        = np.arange(-18,19,1)
 sep_mon         = False
@@ -112,18 +110,23 @@ for ii in range(3):
         ncname = "%sLagRegression_AllMonths_%s_%s_%s_standardize%i_lag%ito%i.nc" % (datpath,
                                                                                     expnames[ex],vname,ensoid_name,
                                                                                     standardize,leadlags[0],leadlags[-1])
-        
-        ds = xr.open_dataset(ncname)[vname].load()
+        try:
+            ds = xr.open_dataset(ncname)[vname].load()
+        except:
+            print("Could not find %s for %s" % (vname,expnames[ii]))
+            ds_all.append(None)
+            continue
         
         ds = ut.standardize_names(ds)
         ds = ut.varcheck(ds,vname,expnames[ex])
         
         ds_all.append(ds)
     
-    ds_all = xr.merge(ds_all)
+    
+    nonecheck = np.array([ss is not None for ss in ds_all])
+    if np.all(nonecheck):
+        ds_all = xr.merge(ds_all)
     ds_byexp.append(ds_all)
-       
-        
 
 #%% Old Loop by Variable
 
@@ -218,7 +221,6 @@ for vname in ['tsr','ttr','ttrc','tsrc','tscre','tsrc','ttcre',]:
 #%% Make Individual Difference Plots
 
 v           = 1
-
 vname       = vnames[v]
 for vname in vnames:
     vmax        = 10
@@ -313,18 +315,87 @@ for vname in plot_vnames:
 
 
 
-    
+#%% Plot Specific Lags
+
+ii          = 0
+for ii in tqdm.tqdm(range(3)):
+    vname       = 'cre'#'eis'
+    ex          = expids[ii]   
+    invar       = ds_byexp[ii][vname]
+    proj        = ccrs.PlateCarree()
+    vmax        = 5
         
+    plotlags    = [-5,0,5]
     
+    fig,axs     = init_globalmap(4,1,figsize=(12,12))
     
+    for a in range(4):
+        ax = axs[a]
+        
+        if a < 3:
+            lagin = plotlags[a]
+            plotvar = invar.sel(lag=lagin)
+            
+        else:
+            
+            plotvar = invar.sel(lag=5) - invar.sel(lag=-5)
+        pcm     = ax.pcolormesh(plotvar.lon,plotvar.lat,plotvar,vmin=-vmax,vmax=vmax,cmap='cmo.balance',zorder=3,transform=proj)
+        
+    cb = viz.hcbar(pcm,ax=axs.flatten(),fraction=0.025)
+    cb.set_label("%s %s [EIS per degC]" % (expnames_long[ex],vname))   
     
+    savename = "%sLagRegression_AllMonths_regrid_CeppiPlot_%s_%s.png" % (figpath,vname,expnames[ex])
+    plt.savefig(savename,dpi=150,bbox_inches='tight')
     
+    #plt.show()
+
+#%% Remake Figure from Ceppi et al (lag relationship)
+vname = 'eis'
+
+bbox_tropics = [0,360,-30,30]
+
+ds_dummy = xr.zeros_like(ds_byexp[1])
+ds_byexp[0] = ds_dummy
     
-    
-    
+ds_tropics   = [proc.sel_region_xr(ds,bbox_tropics) for ds in ds_byexp]
+ds_aavgs     = [proc.area_avg_cosweight(ds,bbox_tropics) for ds in ds_tropics]
+
+fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(8,4.5))
+
+for ii in range(3):
+    ex = expids[ii]
+    plotvar = ds_aavgs[ii][vname]
+    if vname == "eis":
+        plotvar = plotvar*-1
+    ax.plot(plotvar.lag,plotvar,label=expnames_long[ex],c=expcols[ex],lw=2.5)
     
 
 
+if vname == "eis":
+    ax.set_ylim([-.35,.35])
+    ax.set_yticks([-.2,-.1,0,.1,.2])
+else:
+    ax.set_ylim([-.75,.75])
+    ax.set_yticks([-.5,0,.5])
+    
+
+ax.set_xlim([-18,18])
+
+ax.set_xticks([-12,0,12])
+ax.axhline([0],lw=0.75,c='k')
+ax.axvline([0],lw=0.75,c='k')
+ax.legend()
+
+ax.set_box_aspect(1)
+ax.set_title(vname)
+savename = "%sLagRegression_Lineplot_AllMonths_regrid_CeppiPlot_%s.png" % (figpath,vname)
+plt.savefig(savename,dpi=150,bbox_inches='tight')
+
+
+plt.show()
+
+
+#test    = ds_byexp[0]
 
     
     
