@@ -467,7 +467,7 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
     else:
         print("Experiment not found")
         return np.nan
-    return xr.open_dataset(dsmask).land_mask.load()
+    return xr.open_dataset(outpath+dsmask).land_mask.load()
 
 def mcsampler(ts_full,sample_len,mciter,preserve_month=True,scramble_year=False,target_timeseries=None):
     # Given a monthly timeseries [time] and sample length (int), take [mciter] # of random samples.
