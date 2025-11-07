@@ -528,7 +528,8 @@ def mcsampler(ts_full,sample_len,mciter,preserve_month=True,scramble_year=False,
             randsamp = [ts[sample_ids[mc]] for mc in range(mciter)]
             randsamp = np.array(randsamp)
             sampled_timeseries.append(randsamp) # [var][iter x time]
-    outdict['other_sampled_timeseries'] = sampled_timeseries
+        
+        outdict['other_sampled_timeseries'] = sampled_timeseries
     
     return outdict
 
@@ -557,11 +558,11 @@ def preprocess_enso(ds):
     print("Detrended in %.2fs" % (time.time()-st))
     return dsanom
 
-def remove_duplicate_times(ds,verbose=True):
+def remove_duplicate_times(ds,verbose=True,timename='time'):
     # From : https://stackoverflow.com/questions/51058379/drop-duplicate-times-in-xarray
-    _, index = np.unique(ds['time'], return_index=True)
-    print("Found %i duplicate times. Taking first entry." % (len(ds.time) - len(index)))
-    return ds.isel(time=index)
+    _, index = np.unique(ds[timename], return_index=True)
+    print("Found %i duplicate times. Taking first entry." % (len(ds[timename]) - len(index)))
+    return ds.isel({timename=index})
  
 def standardize_names(ds):
     
@@ -662,6 +663,7 @@ def swap_rename(ds,chkvar,newvar):
     return ds
 
 def varcheck(ds,vname,expname):
+    
     if type(ds) == xr.Dataset:
         print("Converting to DataArray!")
         ds = ds[vname]
