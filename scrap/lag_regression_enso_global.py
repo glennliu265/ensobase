@@ -42,14 +42,14 @@ import utils as ut
 #%% User Edits
 
 
-expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
-expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
+expnames            = ["TCo319_ctl1950d",]#"TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
+expnames_long       = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 
-ensoid_name     = "nino34"
-standardize     = False
-regrid_1x1      = True
+ensoid_name         = "nino34"
+standardize         = False
+regrid_1x1          = True
 
-timecrops        = [[1950,2100],None,None,None,None]
+timecrops           = [[1950,2100],None,None,None,None]
 
 if regrid_1x1:
     datpath         = "/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend2/"
@@ -60,7 +60,7 @@ else:
 figpath             = "/home/niu4/gliu8/figures/bydate/2025-10-21/"
 proc.makedir(figpath)
 
-vnames              = ['eis','allsky','cre','clearsky',] #['tsr','ttr','ttrc','ttcre','tscre','tsrc','ttcre','tscre',] #['allsky','clearsky','cre']# #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+vnames              = ['allsky','cre','clearsky',] #'eis',['tsr','ttr','ttrc','ttcre','tscre','tsrc','ttcre','tscre',] #['allsky','clearsky','cre']# #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 #%% Load ENSO ID
 
@@ -226,7 +226,6 @@ for vname in tqdm.tqdm(vnames):
         print("Completed variable in %.2fs" % (time.time()-st))
 
 #%%
-
 
 
 # Nevermind, forgot the function does this for you haha....
