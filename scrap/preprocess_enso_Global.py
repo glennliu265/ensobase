@@ -45,6 +45,7 @@ expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo127
 # expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 timecrops       = [[1950,2100],None,None,None,None]
 # vnames          = ['sst',]#["ttcre","tscre"]#['sst','str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc']
+vnames = ["allsky",'cre','clearsky']
 nexps           = len(expnames)
 
 #timecrops       = #[]
@@ -125,8 +126,14 @@ for ex,expname in enumerate(expnames):
                 dsvar = ut.standardize_names(dsvar)
                 timename = "time"
         
+        dsvar = ut.remove_duplicate_times(dsvar,timename=timename)
+        
         # Set up Chunking
-        dsvar           = dsvar.chunk(dict(lat='auto',lon='auto'))
+        st = time.time()
+        if regrid_1x1:
+            dsvar= dsvar.load()
+        else:
+            dsvar           = dsvar.chunk(dict(lat='auto',lon='auto'))
         
         #%% Set up function and preprocess
         def preprocess_enso_point(ts):
@@ -135,7 +142,10 @@ for ex,expname in enumerate(expnames):
             x       = np.arange(ntime)
             
             tsrs    = ts.reshape((nyr,12))
-            tsrsa   = tsrs - tsrs.mean(0)[None,:]
+            #tsrs1   = ts.reshape((12,nyr))
+            scycle    = tsrs.mean(0)[None,:]
+            tsrsa     = tsrs - scycle
+            #scyclechk = tsrsa.mean(0)
             
             tsa     = tsrsa.flatten()
             
@@ -155,12 +165,13 @@ for ex,expname in enumerate(expnames):
             output_core_dims=[[timename],],  # Output Dimension
             vectorize=True,  # True to loop over non-core dims
             dask='parallelized',
-            output_dtypes='float32',
+            #output_dtypes='float32',
             )
         
         # 520.45s, 492.45, 5875.68s
-        st = time.time()
-        dsanom = dsanom.compute()
+        
+        if not regrid_1x1:
+            dsanom = dsanom.compute()
         print("Preprocessed in %.2fs" % (time.time()-st))
         
         #%% Save Output
