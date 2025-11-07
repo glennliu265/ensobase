@@ -11,7 +11,6 @@ Created on Fri Oct 10 09:46:49 2025
 @author: gliu
 """
 
-
 import sys
 
 import time
@@ -286,8 +285,8 @@ plot_bbox = [2,3,4]#np.arange(len(bboxes))#bboxes None#[0,1]
 # ---------
 indict  = vdicts[vname]
 
-cmap    = 'cmo.balance'#'cmo.curl'
-cints   = np.arange(-0.012,0.013,0.001)#np.arange(-2.5,2.6,0.1)
+cmap    = 'cmo.tarn'#'cmo.curl'
+cints   = np.arange(-0.1,0.12,0.02)#np.arange(-0.012,0.013,0.001)#np.arange(-2.5,2.6,0.1)
 # ---------
 
 color = "k"
@@ -310,7 +309,7 @@ else:
         sigint = 40
             
 
-plotvar = ds_all[ex][vname].isel(lag=il)
+plotvar = ds_all[ex].isel(lag=il)
 
 # Plot the variable
 if not bbox_test:
@@ -368,15 +367,16 @@ plt.show()
 
 #%% Plot SST Patterns
 
-ex      = 1
-lag     = 0
-cmap    = 'cmo.ice'
-cints    = [0,] # #np.arange(-0.1,0.1,0.5)
+ex          = 1
+lag         = 0
+cmap        = 'cmo.tarn'
+cints       = np.arange(-0.1,0.15,0.05)#[0,] # #np.arange(-0.1,0.1,0.5)
+
 #cints   = np.arange(0,1.05,.05)
 #cints   = np.arange(-1.5,1.6,0.1) # SST
 #cints   = np.arange(-0.05,0.06,0.01) #np.arange(-1,1.1,0.1)#np.arange(-5,5.5,0.5)#np.arange(-24,26,2)
-vmax    = cints[0]
-indict  = vdicts[vname]
+vmax        = cints[0]
+indict      = vdicts[vname]
 
 for ex in range(nexps):
     it = 0
