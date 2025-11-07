@@ -72,9 +72,9 @@ ensoids         = [ut.load_ensoid(expname,ensoid_name,standardize=standardize) f
 leadlags    = np.arange(-18,19,1)
 sep_mon     = False
 
-ex          = 2
-nexps       = len(expnames)
-expname     = expnames[ex]
+#ex          = 2
+#nexps       = len(expnames)
+#expname     = expnames[ex]
 vname       = vnames[0]
 
 for vname in tqdm.tqdm(vnames):
