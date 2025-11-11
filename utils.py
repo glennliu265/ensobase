@@ -28,6 +28,7 @@ calc_leadlag_regression_2d  : (g) Compute lead lag regression for 2D timseries (
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
 get_rawpath_awi             : (A) Get rawpath for AWI output on niu
 init_tp_map                 : (v) initialize tropical Pacific plot 
+init_global_map             : (v) Initialize a global map
 load_ensoid                 : (l) load enso indices calculated by calc_nino34.py
 load_land_mask_awi          : (l) load land mask from AWI-CM3, where land points are np.nan
 mcsample                    : (g) Monte Carlo Sampler to repeat function
@@ -95,7 +96,25 @@ def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
     if newfig:
         return fig,ax
     return ax
+
+def init_globalmap(nrow=1,ncol=1,figsize=(12,8)):
+    proj            = ccrs.Robinson(central_longitude=-180)
+    bbox            = [-180,180,-90,90]
+    fig,ax          = plt.subplots(nrow,ncol,subplot_kw={'projection':proj},figsize=figsize,constrained_layout=True)
     
+    multiax = True
+    if (type(ax) == mpl.axes._axes.Axes) or (type(ax) == cartopy.mpl.geoaxes.GeoAxes):
+        ax = [ax,]
+        multiax = False
+    
+    for a in ax:
+        a.coastlines(zorder=10,lw=0.75,transform=proj)
+        a.gridlines(ls ='dotted',draw_labels=True)
+        
+    if multiax is False:
+        ax = ax[0]
+    return fig,ax
+
 def calc_lag_regression_1d(var1,var2,lags): # CAn make 2d by mirroring calc_lag_covar_annn
     # Calculate the regression where
     # (+) lags indicate var1 lags  var2 (var 2 leads)
@@ -449,7 +468,7 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
     if "TCo319" in expname: # 31km Simulations
         print("Loading for 31 km simulations...")
         if regrid: # Load 180x360
-            dsmask = "Tco319_ctl1950d_r360x180_landmask.nc"
+            dsmask = "TCo319_ctl1950d_r360x180_landmask.nc"
         else: # Load 640x1213
             dsmask = "TCo319_atmgrid_original_landmask.nc"#"TCo319_ssp585_atm_landmask.nc"
     elif "TCo1279" in expname: # 9km Simulations
