@@ -107,7 +107,7 @@ def init_globalmap(nrow=1,ncol=1,figsize=(12,8)):
         ax = [ax,]
         multiax = False
     
-    for a in ax:
+    for a in ax.flatten():
         a.coastlines(zorder=10,lw=0.75,transform=proj)
         a.gridlines(ls ='dotted',draw_labels=True)
         
