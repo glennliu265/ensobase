@@ -181,7 +181,7 @@ for flxname in flxnames:
         dsflxs.append(dsflx)
     
     # Here might be the point to start selmons loop...
-    for selmon in selmons_loop:
+    for selmons in selmons_loop:
         
         # Perform MLR for each experiment
         for ex in range(2):
