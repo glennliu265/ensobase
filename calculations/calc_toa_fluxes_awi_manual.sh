@@ -126,8 +126,35 @@ cdo -add /home/niu4/gliu8/projects/common_data/awi_cm3/Tco319_ctl1950d_tsrc_1950
 cdo chname,tsrc,clearsky /home/niu4/gliu8/projects/scrap/processed_global/temp.nc /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_clearsky.nc
 
 # Recalculate CRE
-cdo -sub /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_allsky.nc  /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_clearsky.nc /home/niu4/gliu8/projects/scrap/processed_global//temp.nc
+cdo -sub /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_allsky.nc  /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_clearsky.nc /home/niu4/gliu8/projects/scrap/processed_global/temp.nc
 cdo chname,allsky,cre /home/niu4/gliu8/projects/scrap/processed_global/temp.nc /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_cre.nc
 
 
 /export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo2559-DART-1950C_5km/atm
+
+
+# Calculate for ERA5
+# expname="TCo2559-DART-1950C"
+rawpath='/home/niu4/gliu8/share/ERA5/processed'
+outpath='/home/niu4/gliu8/share/ERA5/processed'
+
+# All Sky
+cdo -add ${rawpath}/tsr_1979_2024.nc  ${rawpath}/ttr_1979_2024.nc ${outpath}/temp.nc
+cdo chname,tsr,allsky ${outpath}/temp.nc ${outpath}/allsky_1979_2024.nc
+
+# Clear Sky
+cdo -add ${rawpath}/tsrc_1979_2024.nc  ${rawpath}/ttrc_1979_2024.nc ${outpath}/temp.nc
+cdo chname,tsrc,clearsky ${outpath}/temp.nc ${outpath}/clearsky_1979_2024.nc
+
+# CRE
+cdo -sub ${outpath}/allsky_1979_2024.nc  ${outpath}/clearsky_1979_2024.nc ${outpath}/temp.nc
+cdo chname,allsky,cre ${outpath}/temp.nc ${outpath}/cre_1979_2024.nc
+
+# TTCRE 
+cdo -sub ${outpath}/ttr_1979_2024.nc  ${outpath}/ttrc_1979_2024.nc ${outpath}/temp.nc
+cdo chname,ttr,ttcre ${outpath}/temp.nc ${outpath}/ttcre_1979_2024.nc
+
+# TSCRE 
+cdo -sub ${outpath}/tsr_1979_2024.nc  ${outpath}/tsrc_1979_2024.nc ${outpath}/temp.nc
+cdo chname,ttr,tscre ${outpath}/temp.nc ${outpath}/tscre_1979_2024.nc
+
