@@ -239,7 +239,7 @@ tend     = None
 awipath  = "/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1/"
 outpath  = '/home/niu4/gliu8/projects/ccfs/enso_eof/'
 
-expnames = ["TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
+expnames = ["TCo2559-DART-1950C",]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
 nexps = len(expnames)
 for ex in range(nexps):
     
@@ -253,7 +253,9 @@ for ex in range(nexps):
  
 #%% Unindent this section for ERA5 Processing
     st = time.time()
-    ds = xr.open_dataset(infile)['sst']
+    ds = xr.open_dataset(infile)['sst'].squeeze()
+    if 'time' != timename:
+        ds = ds.drop_vars('time') # Pre-emptively drop conflicting time dimensions...
     ds = proc.format_ds(ds,timename=timename,
                         lonname=lonname,latname=latname,lon180=False)
     ds_tpac = proc.sel_region_xr(ds,bbox_takahashi)
