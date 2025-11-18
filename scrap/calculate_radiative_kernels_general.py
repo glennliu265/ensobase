@@ -88,9 +88,7 @@ def reduce_time(ds,dsst):
     dsnew,dsst = proc.match_time_month(ds,dsst)
     return dsnew
 
-#%% Load Land Mask
 
-#landmask = ut.load_land_mask_awi("TCo319",regrid=True)
 
 # =================
 #%% User Selections
@@ -100,18 +98,19 @@ expname     = "ERA5_1979_2024"
 datpath     = "/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/"
 outpath     = "/home/niu4/gliu8/projects/ccfs/"
 
-
-flxnames    = ['cre','allsky','clearsky']# ['cre',]
+flxnames    = ['cre',]#'allsky','clearsky']# ['cre',]
 ccf_vars    = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 ncstr       = datpath + "%s_1979_2024.nc"  
 
 tstart   = '1979-01-01'
 tend     = '2024-12-31'
 timename = 'valid_time'
-latname = 'latitude'
-lonname = 'longitude'
+latname  = 'latitude'
+lonname  = 'longitude'
 
-
+#% Load Land Mask
+landnc   = datpath + "mask_1979_2024.nc"
+landmask = xr.open_dataset(landnc)
 
 
 # Variables
@@ -224,9 +223,9 @@ for ff in range(len(flxnames)):
             for a in range(nlat):
                 latf = lat[a]
                 
-                # chkland = proc.selpt_ds(landmask,lonf,latf).data
-                # if np.isnan(chkland):
-                #     continue
+                chkland = proc.selpt_ds(landmask,lonf,latf).data
+                if np.isnan(chkland):
+                    continue
                 
                 
                 # Check for NaN in predictor
@@ -253,7 +252,7 @@ for ff in range(len(flxnames)):
         
         if add_ucc:
             ccfnames = ccf_vars
-        else:
+        else and "ucc" in ccf_vars:
             ccfnames = ccf_vars[:-1]
         
         coords_r2       = dict(lat=lat,lon=lon)
