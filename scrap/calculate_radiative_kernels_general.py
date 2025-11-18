@@ -101,12 +101,12 @@ datpath     = "/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/"
 outpath     = "/home/niu4/gliu8/projects/ccfs/"
 
 
-flxnames    = ['cre',]
+flxnames    = ['allsky','clearsky']# ['cre',]
 ccf_vars    = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 ncstr       = datpath + "%s_1979_2024.nc"  
 
-tstart = '1979-01-01'
-tend   = '2024-12-31'
+tstart   = '1979-01-01'
+tend     = '2024-12-31'
 timename = 'valid_time'
 latname = 'latitude'
 lonname = 'longitude'
@@ -177,107 +177,105 @@ dsvars_anoms = [preprocess(ds,tstart,tend,timename,latname,lonname) for ds in ds
 
 # Looping for fluxes
 ff      = 0
-flxname = flxnames[ff]
-
-# Load the flux
-ncsearch    = ncstr % (flxname)    
-foundnc     = glob.glob(ncsearch)
-print("Found the following for %s:" % flxname)
-print("\t"+ str(foundnc))
-try:
-    dsflx = xr.open_dataset(foundnc[0])[flxname]
-except:
-    print("No flux found... (%s)" % flxname)
-dsflx_anom = preprocess(dsflx,tstart,tend,timename,latname,lonname)
-
-
+for ff in range(len(flxnames)):
+    flxname = flxnames[ff]
     
-
-#%%
-
-# Here might be the point to start selmons loop...
-st = time.time()
-for selmons in selmons_loop:
+    # Load the flux
+    ncsearch    = ncstr % (flxname)    
+    foundnc     = glob.glob(ncsearch)
+    print("Found the following for %s:" % flxname)
+    print("\t"+ str(foundnc))
+    try:
+        dsflx = xr.open_dataset(foundnc[0])[flxname]
+    except:
+        print("No flux found... (%s)" % flxname)
+    dsflx_anom = preprocess(dsflx,tstart,tend,timename,latname,lonname)
     
-    # Subset months
-    if selmons is not None:
-        dsin_flx  = proc.selmon_ds(dsflx_anom,selmons)
-        dsin_vars = [proc.selmon_ds(ds,selmons) for ds in dsvars_anoms]
-    else:
-        dsin_flx  = dsflx_anom
-        dsin_vars = dsvars_anoms
-        print("Calculating for all months!")
+    #% ----------------------------------------------------------------
+    
+    # Here might be the point to start selmons loop...
+    st = time.time()
+    for selmons in selmons_loop:
         
-        
-    # Pre-allocate
-    lon             = dsin_flx.lon.data
-    lat             = dsin_flx.lat.data
-    dsin_flx        = dsin_flx.transpose('lat','lon','time')
-    nlat,nlon,ntime = dsin_flx.shape
-    nccfs           = len(dsin_vars)
-    coeffs          = np.zeros((nlat,nlon,nccfs)) * np.nan # [ Lat x Lon x CCFs ]
-    ypred           = np.zeros(dsin_flx.shape) * np.nan   # [ Lat x Lon x Time ]
-    r2              = np.zeros((nlat,nlon)) * np.nan       # [ Lat x Lon ]
-        
-    # Do a silly loop (took 5 min 17 sec)
-    for o in tqdm.tqdm(range(nlon)):
-        lonf = lon[o]
-        
-        for a in range(nlat):
-            latf = lat[a]
-            
-            # chkland = proc.selpt_ds(landmask,lonf,latf).data
-            # if np.isnan(chkland):
-            #     continue
+        # Subset months
+        if selmons is not None:
+            dsin_flx  = proc.selmon_ds(dsflx_anom,selmons)
+            dsin_vars = [proc.selmon_ds(ds,selmons) for ds in dsvars_anoms]
+        else:
+            dsin_flx  = dsflx_anom
+            dsin_vars = dsvars_anoms
+            print("Calculating for all months!")
             
             
-            # Check for NaN in predictor
-            dspts  = [proc.selpt_ds(ds,lonf,latf) for ds in dsin_vars]
-            chknan = [np.any(np.isnan(ds.data)) for ds in dspts]
-            if np.any(chknan):
-                iinan = np.where(chknan)[0][0]
-                #print("NaN detected for variables %s, lon (%.2f), lat (%.2f)... skipping." % (chknan,lonf,latf))
-                continue
-            # Check for NaN in target
-            flxpt  = proc.selpt_ds(dsin_flx,lonf,latf)
-            if np.any(np.isnan(flxpt.data)):
-                #print("NaN detected for Flux, lon (%.2f), lat (%.2f)... skipping." % (lonf,latf))
-                continue
+        # Pre-allocate
+        lon             = dsin_flx.lon.data
+        lat             = dsin_flx.lat.data
+        dsin_flx        = dsin_flx.transpose('lat','lon','time')
+        nlat,nlon,ntime = dsin_flx.shape
+        nccfs           = len(dsin_vars)
+        coeffs          = np.zeros((nlat,nlon,nccfs)) * np.nan # [ Lat x Lon x CCFs ]
+        ypred           = np.zeros(dsin_flx.shape) * np.nan   # [ Lat x Lon x Time ]
+        r2              = np.zeros((nlat,nlon)) * np.nan       # [ Lat x Lon ]
             
-            # Do calculations
-            mlr_out = mlr_ccfs(dspts,flxpt,standardize=standardize,verbose=False)
+        # Do a silly loop (took 5 min 17 sec)
+        for o in tqdm.tqdm(range(nlon)):
+            lonf = lon[o]
             
-            r2[a,o] = mlr_out['r2']
-            ypred[a,o,:] = mlr_out['pred']
-            coeffs[a,o,:] = mlr_out['coeffs']
+            for a in range(nlat):
+                latf = lat[a]
+                
+                # chkland = proc.selpt_ds(landmask,lonf,latf).data
+                # if np.isnan(chkland):
+                #     continue
+                
+                
+                # Check for NaN in predictor
+                dspts  = [proc.selpt_ds(ds,lonf,latf) for ds in dsin_vars]
+                chknan = [np.any(np.isnan(ds.data)) for ds in dspts]
+                if np.any(chknan):
+                    iinan = np.where(chknan)[0][0]
+                    #print("NaN detected for variables %s, lon (%.2f), lat (%.2f)... skipping." % (chknan,lonf,latf))
+                    continue
+                # Check for NaN in target
+                flxpt  = proc.selpt_ds(dsin_flx,lonf,latf)
+                if np.any(np.isnan(flxpt.data)):
+                    #print("NaN detected for Flux, lon (%.2f), lat (%.2f)... skipping." % (lonf,latf))
+                    continue
+                
+                # Do calculations
+                mlr_out = mlr_ccfs(dspts,flxpt,standardize=standardize,verbose=False)
+                
+                r2[a,o] = mlr_out['r2']
+                ypred[a,o,:] = mlr_out['pred']
+                coeffs[a,o,:] = mlr_out['coeffs']
+            
+    
         
-
+        if add_ucc:
+            ccfnames = ccf_vars
+        else:
+            ccfnames = ccf_vars[:-1]
+        
+        coords_r2       = dict(lat=lat,lon=lon)
+        coords_coeffs   = dict(lat=lat,lon=lon,ccf=ccfnames)
+        coords_pred     = dict(lat=lat,lon=lon,time=dsflx_anom.time)
+        
+        da_r2           = xr.DataArray(r2,coords=coords_r2,dims=coords_r2,name='r2')
+        da_coeffs       = xr.DataArray(coeffs,coords=coords_coeffs,dims=coords_coeffs,name='coeffs')
+        da_pred         = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='ypred')
+        ds_out          = xr.merge([da_r2,da_coeffs,da_pred])
+        edict           = proc.make_encoding_dict(ds_out)
+        outname         = "%s%s_%s_CCFs_Regression_standardize%i_adducc%i.nc" % (outpath,expname,flxname,standardize,add_ucc)
+        if selmons is not None:
+            selmonstr = proc.mon2str(np.array(selmons)-1)
+            outname      = proc.addstrtoext(outname,"_"+selmonstr,adjust=-1)
+        
+        ds_out.to_netcdf(outname,encoding=edict)
+        
+        print("Completed CCF kernel calculation for %s (%s) in %.2fs" % (flxname,expname,time.time()-st))
     
-    if add_ucc:
-        ccfnames = ccf_vars
-    else:
-        ccfnames = ccf_vars[:-1]
     
-    coords_r2       = dict(lat=lat,lon=lon)
-    coords_coeffs   = dict(lat=lat,lon=lon,ccf=ccfnames)
-    coords_pred     = dict(lat=lat,lon=lon,time=dsflx_anom.time)
     
-    da_r2           = xr.DataArray(r2,coords=coords_r2,dims=coords_r2,name='r2')
-    da_coeffs       = xr.DataArray(coeffs,coords=coords_coeffs,dims=coords_coeffs,name='coeffs')
-    da_pred         = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='ypred')
-    ds_out          = xr.merge([da_r2,da_coeffs,da_pred])
-    edict           = proc.make_encoding_dict(ds_out)
-    outname         = "%s%s_%s_CCFs_Regression_standardize%i_adducc%i.nc" % (outpath,expname,flxname,standardize,add_ucc)
-    if selmons is not None:
-        selmonstr = proc.mon2str(np.array(selmons)-1)
-        outname      = proc.addstrtoext(outname,"_"+selmonstr,adjust=-1)
-    
-    ds_out.to_netcdf(outname,encoding=edict)
-    
-    print("Completed CCF kernel calculation for %s (%s) in %.2fs" % (flxname,expname,time.time()-st))
-
-
-
 
     
     
