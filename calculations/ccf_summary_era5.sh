@@ -2,6 +2,7 @@
 vnames=("sst" "eis" "ws10" "Tadv" "w700" "r700") 
 rawpath='/home/niu4/gliu8/share/ERA5/processed'
 outpath='/home/niu4/gliu8/projects/ccfs/time_mean/'
+yearstr="1979_2024"
 
 for vname in ${vnames[@]}; do
   
