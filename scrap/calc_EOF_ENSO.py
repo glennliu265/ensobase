@@ -264,7 +264,7 @@ for ex in range(nexps):
     #%% Calculate ENSO
     
     
-    invar   = ds_tpac.transpose('time','lat','lon').sst.data
+    invar   = ds_tpac.transpose('time','lat','lon').data
     lat     = ds_tpac.lat
     lon     = ds_tpac.lon
     ensoout = calc_enso(invar,lon,lat,pcrem,bbox=bbox_takahashi,sep_mon=sep_mon)
