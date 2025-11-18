@@ -92,7 +92,7 @@ def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
         ax.set_extent(bbplot)
         ax     = viz.add_coast_grid(ax,bbox=bbplot,fill_color='k',
                                     proj=ccrs.PlateCarree(),fix_lon=fix_lon,ignore_error=True)
-
+    
     if newfig:
         return fig,ax
     return ax
@@ -614,10 +614,13 @@ def remove_duplicate_times(ds,verbose=True,timename='time'):
  
 def standardize_names(ds):
     
+    ds = swap_rename(ds,'valid_time','time')
     ds = swap_rename(ds,'time_counter','time')
     ds = swap_rename(ds,"TIME_COUNTER",'time')
     ds = swap_rename(ds,"LON","lon")
     ds = swap_rename(ds,"LAT","lat")
+    ds = swap_rename(ds,"longitude","lon")
+    ds = swap_rename(ds,"latitude","lat")
     ds = swap_rename (ds,"LAT232_409","lat")
     
     # Other preprocessing
