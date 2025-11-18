@@ -220,7 +220,7 @@ tend   = '2024-12-31'
 
 bbox_takahashi = [120,360-70,-10,10]
 pcrem          = 5
-sep_mon        = False
+sep_mon        = True
 
 if sep_mon:
     savename_in = proc.addstrtoext(savename,"_sepmon",adjust=-1)
@@ -239,7 +239,7 @@ tend     = None
 awipath  = "/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1/"
 outpath  = '/home/niu4/gliu8/projects/ccfs/enso_eof/'
 
-expnames = ["TCo2559-DART-1950C",]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
+expnames = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
 nexps = len(expnames)
 for ex in range(nexps):
     
