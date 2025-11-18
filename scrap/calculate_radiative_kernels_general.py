@@ -252,8 +252,11 @@ for ff in range(len(flxnames)):
         
         if add_ucc:
             ccfnames = ccf_vars
-        else and "ucc" in ccf_vars:
-            ccfnames = ccf_vars[:-1]
+        elif "ucc" in ccf_vars:
+            if ypred.shape[-1] != len(ccf_vars): # Check again please...
+                ccfnames = ccf_vars[:-1]
+        
+        
         
         coords_r2       = dict(lat=lat,lon=lon)
         coords_coeffs   = dict(lat=lat,lon=lon,ccf=ccfnames)
