@@ -254,7 +254,7 @@ for ex in range(nexps):
 #%% Unindent this section for ERA5 Processing
     st = time.time()
     ds = xr.open_dataset(infile)['sst'].squeeze()
-    if 'time' != timename:
+    if ('time' != timename) and ('time' in ds.coords):
         ds = ds.drop_vars('time') # Pre-emptively drop conflicting time dimensions...
     ds = proc.format_ds(ds,timename=timename,
                         lonname=lonname,latname=latname,lon180=False)
