@@ -255,7 +255,11 @@ for ff in range(len(flxnames)):
         elif "ucc" in ccf_vars:
             if ypred.shape[-1] != len(ccf_vars): # Check again please...
                 ccfnames = ccf_vars[:-1]
-        
+            else:
+                ccfnames = ccf_vars
+        else:
+            ccfnames = ccf_vars    
+            
         
         
         coords_r2       = dict(lat=lat,lon=lon)
@@ -267,6 +271,7 @@ for ff in range(len(flxnames)):
         da_pred         = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='ypred')
         ds_out          = xr.merge([da_r2,da_coeffs,da_pred])
         edict           = proc.make_encoding_dict(ds_out)
+        #outname = "test123.nc"
         outname         = "%s%s_%s_CCFs_Regression_standardize%i_adducc%i.nc" % (outpath,expname,flxname,standardize,add_ucc)
         if selmons is not None:
             selmonstr = proc.mon2str(np.array(selmons)-1)
