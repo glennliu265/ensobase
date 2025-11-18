@@ -198,7 +198,7 @@ def check_ENSO_sign(eofs,pcs,lon,lat,verbose=True):
     
     return eofs,pcs
 
-#%% User Edits
+#%% User Edits (Loop for ERA5)
 infile='/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/sst_1979_2024.nc'
 outpath='/home/niu4/gliu8/projects/ccfs/enso_eof/'
 expname='ERA5_1979_2024'
@@ -219,76 +219,97 @@ tend   = '2024-12-31'
 
 
 bbox_takahashi = [120,360-70,-10,10]
-pcrem = 5
-sep_mon = False
+pcrem          = 5
+sep_mon        = False
 
 if sep_mon:
     savename_in = proc.addstrtoext(savename,"_sepmon",adjust=-1)
 else:
     savename_in = savename
 
-#%% 
+#%% User Edits (Loop for AWI-CM3 )
 
-st = time.time()
-ds = xr.open_dataset(infile)
-ds = proc.format_ds(ds,timename=timename,
-                    lonname=lonname,latname=latname,lon180=False)
-ds_tpac = proc.sel_region_xr(ds,bbox_takahashi)
-ds_tpac = ds_tpac.sel(time=slice(tstart,tend)).load()
-print("Loaded Output in %.2fs" % (time.time()-st))
+vname    = "sst"
+timename = 'time_counter'
+latname  = 'lat'
+lonname  = 'lon'
 
-#%% Calculate ENSO
+tstart   = None
+tend     = None
+awipath  = "/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1/"
+outpath  = '/home/niu4/gliu8/projects/ccfs/enso_eof/'
 
-
-invar   = ds_tpac.transpose('time','lat','lon').sst.data
-lat     = ds_tpac.lat
-lon     = ds_tpac.lon
-ensoout = calc_enso(invar,lon,lat,pcrem,bbox=bbox_takahashi,sep_mon=sep_mon)
-eofall,pcall,varexpall = ensoout
-
-#%%
-
-pcnums  = np.arange(1,pcrem+1)
-times   = ds_tpac.time
-
-if sep_mon:
-    mons    = np.arange(1,13,1)
-    years   = np.arange(int(len(times)/12))
+expnames = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
+nexps = len(expnames)
+for ex in range(nexps):
     
-    # Make Dictionary
-    coords_eofs   = dict(lat=lat,lon=lon,month=mons,pc=pcnums) # 
-    coords_pcs    = dict(year=years,month=mons,pc=pcnums)
-    coords_varexp = dict(month=mons,pc=pcnums)
-else:
-    # Make Dictionary
-    coords_eofs   = dict(lat=lat,lon=lon,pc=pcnums) # 
-    coords_pcs    = dict(time=times,pc=pcnums)
-    coords_varexp = dict(pc=pcnums)
-
-
-# if lensflag:
-#     ens     = np.arange(1,nens+1,1)
-#     # Unpack and repack dict to append item to start # https://www.geeksforgeeks.org/python-append-items-at-beginning-of-dictionary/
-#     coords_eofs,coords_pcs,coords_varexp = [{**{'ens':ens},**dd} for dd in [coords_eofs,coords_pcs,coords_varexp]]
-
-
-da_eofs       = xr.DataArray(eofall,coords=coords_eofs,dims=coords_eofs,name='eofs')
-da_pcs        = xr.DataArray(pcall,coords=coords_pcs,dims=coords_pcs,name='pcs')
-da_varexp     = xr.DataArray(varexpall,coords=coords_varexp,dims=coords_varexp,name='varexp')
-
-# Merge everything
-da_out        = xr.merge([da_eofs,da_pcs,da_varexp])
-
-# Add Additional Variables
-if sep_mon:
-    da_out['time']      = times
-da_out['enso_bbox']     = bbox_takahashi
-
-edict = proc.make_encoding_dict(da_out)
-da_out.to_netcdf(savename_in,encoding=edict)
-
-
-#ds = ut.standardize_names(ds)
+    expname  = expnames[ex]
+    infile   = "%s%s_%s.nc" % (awipath,expname,'sst',)
+    savename = "%s%s_ENSO_EOF.nc" % (outpath,expname)   
+    if sep_mon:
+        savename_in = proc.addstrtoext(savename,"_sepmon",adjust=-1)
+    else:
+        savename_in = savename
+ 
+#%% Unindent this section for ERA5 Processing
+    st = time.time()
+    ds = xr.open_dataset(infile)
+    ds = proc.format_ds(ds,timename=timename,
+                        lonname=lonname,latname=latname,lon180=False)
+    ds_tpac = proc.sel_region_xr(ds,bbox_takahashi)
+    if tstart is not None and tend is not None: # (Don't think I have to do this)
+        ds_tpac = ds_tpac.sel(time=slice(tstart,tend)).load()
+    print("Loaded Output in %.2fs" % (time.time()-st))
+    
+    #%% Calculate ENSO
+    
+    
+    invar   = ds_tpac.transpose('time','lat','lon').sst.data
+    lat     = ds_tpac.lat
+    lon     = ds_tpac.lon
+    ensoout = calc_enso(invar,lon,lat,pcrem,bbox=bbox_takahashi,sep_mon=sep_mon)
+    eofall,pcall,varexpall = ensoout
+    
+    #%%
+    
+    pcnums  = np.arange(1,pcrem+1)
+    times   = ds_tpac.time
+    
+    if sep_mon:
+        mons    = np.arange(1,13,1)
+        years   = np.arange(int(len(times)/12))
+        
+        # Make Dictionary
+        coords_eofs   = dict(lat=lat,lon=lon,month=mons,pc=pcnums) # 
+        coords_pcs    = dict(year=years,month=mons,pc=pcnums)
+        coords_varexp = dict(month=mons,pc=pcnums)
+    else:
+        # Make Dictionary
+        coords_eofs   = dict(lat=lat,lon=lon,pc=pcnums) # 
+        coords_pcs    = dict(time=times,pc=pcnums)
+        coords_varexp = dict(pc=pcnums)
+    
+    
+    # if lensflag:
+    #     ens     = np.arange(1,nens+1,1)
+    #     # Unpack and repack dict to append item to start # https://www.geeksforgeeks.org/python-append-items-at-beginning-of-dictionary/
+    #     coords_eofs,coords_pcs,coords_varexp = [{**{'ens':ens},**dd} for dd in [coords_eofs,coords_pcs,coords_varexp]]
+    
+    
+    da_eofs       = xr.DataArray(eofall,coords=coords_eofs,dims=coords_eofs,name='eofs')
+    da_pcs        = xr.DataArray(pcall,coords=coords_pcs,dims=coords_pcs,name='pcs')
+    da_varexp     = xr.DataArray(varexpall,coords=coords_varexp,dims=coords_varexp,name='varexp')
+    
+    # Merge everything
+    da_out        = xr.merge([da_eofs,da_pcs,da_varexp])
+    
+    # Add Additional Variables
+    if sep_mon:
+        da_out['time']      = times
+    da_out['enso_bbox']     = bbox_takahashi
+    
+    edict = proc.make_encoding_dict(da_out)
+    da_out.to_netcdf(savename_in,encoding=edict)
 
 
 
