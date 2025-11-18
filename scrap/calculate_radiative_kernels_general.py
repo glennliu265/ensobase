@@ -101,7 +101,7 @@ datpath     = "/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/"
 outpath     = "/home/niu4/gliu8/projects/ccfs/"
 
 
-flxnames    = ['allsky','clearsky']# ['cre',]
+flxnames    = ['cre','allsky','clearsky']# ['cre',]
 ccf_vars    = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 ncstr       = datpath + "%s_1979_2024.nc"  
 
@@ -123,7 +123,7 @@ selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do
 # MLR Calculation Options
 standardize = True # Set to True to standardize predictors before MLR
 fill_value  = 0    # Replace NaN values with <fill_value>
-add_ucc     = True # Set to True to include upper cloud concentration as a predictor
+add_ucc     = False # Set to True to include upper cloud concentration as a predictor
 
 #%% First, check preprocessed CCFs and fluxes
 
@@ -176,7 +176,7 @@ dsvars_anoms = [preprocess(ds,tstart,tend,timename,latname,lonname) for ds in ds
 #%%
 
 # Looping for fluxes
-ff      = 0
+#ff      = 0
 for ff in range(len(flxnames)):
     flxname = flxnames[ff]
     
@@ -270,7 +270,7 @@ for ff in range(len(flxnames)):
             selmonstr = proc.mon2str(np.array(selmons)-1)
             outname      = proc.addstrtoext(outname,"_"+selmonstr,adjust=-1)
         
-        ds_out.to_netcdf(outname,encoding=edict)
+        ds_out.to_netcdf(outname)
         
         print("Completed CCF kernel calculation for %s (%s) in %.2fs" % (flxname,expname,time.time()-st))
     
