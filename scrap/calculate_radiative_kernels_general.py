@@ -92,7 +92,7 @@ def reduce_time(ds,dsst):
 #%% User Selections
 # =================
 
-regrid1x1   = False
+regrid1x1   = True
 expname     = "ERA5_1979_2024"
 datpath     = "/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/"
 outpath     = "/home/niu4/gliu8/projects/ccfs/"
@@ -104,7 +104,7 @@ if regrid1x1:
 flxnames     = ['cre',]#'allsky','clearsky']# ['cre',]
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 ncstr        = datpath + "%s_1979_2024.nc"  
-selmons_loop = [None,]#[[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
+selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
 
 
 tstart   = '1979-01-01'
