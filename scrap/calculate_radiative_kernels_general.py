@@ -215,7 +215,11 @@ for ff in range(len(flxnames)):
         if selmons is not None:
             dsin_flx  = proc.selmon_ds(dsflx_anom,selmons)
             dsin_vars = [proc.selmon_ds(ds,selmons) for ds in dsvars_anoms]
+            
+            #tindex = np.where(dsflx_anom.time.dt.month.isin(selmons))[0]
+            
         else:
+            
             dsin_flx  = dsflx_anom
             dsin_vars = dsvars_anoms
             print("Calculating for all months!")
@@ -228,7 +232,7 @@ for ff in range(len(flxnames)):
         nlat,nlon,ntime = dsin_flx.shape
         nccfs           = len(dsin_vars)
         coeffs          = np.zeros((nlat,nlon,nccfs)) * np.nan # [ Lat x Lon x CCFs ]
-        ypred           = np.zeros(dsin_flx.shape) * np.nan   # [ Lat x Lon x Time ]
+        ypred           = np.zeros(dsin_flx.shape) * np.nan    # [ Lat x Lon x Time ]
         r2              = np.zeros((nlat,nlon)) * np.nan       # [ Lat x Lon ]
         
         # Do a silly loop (took 5 min 17 sec)
@@ -260,7 +264,9 @@ for ff in range(len(flxnames)):
                 mlr_out = mlr_ccfs(dspts,flxpt,standardize=standardize,verbose=False)
                 
                 r2[a,o] = mlr_out['r2']
+                
                 ypred[a,o,:] = mlr_out['pred']
+  
                 coeffs[a,o,:] = mlr_out['coeffs']
             
     
@@ -279,14 +285,13 @@ for ff in range(len(flxnames)):
         
         coords_r2       = dict(lat=lat,lon=lon)
         coords_coeffs   = dict(lat=lat,lon=lon,ccf=ccfnames)
-        coords_pred     = dict(lat=lat,lon=lon,time=dsflx_anom.time)
+        coords_pred     = dict(lat=lat,lon=lon,time=dsin_flx.time)
         
         da_r2           = xr.DataArray(r2,coords=coords_r2,dims=coords_r2,name='r2')
         da_coeffs       = xr.DataArray(coeffs,coords=coords_coeffs,dims=coords_coeffs,name='coeffs')
         da_pred         = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='ypred')
         ds_out          = xr.merge([da_r2,da_coeffs,da_pred])
         edict           = proc.make_encoding_dict(ds_out)
-        #outname = "test123.nc"
         outname         = "%s%s_%s_CCFs_Regression_standardize%i_adducc%i.nc" % (outpath,expname,flxname,standardize,add_ucc)
         
         if selmons is not None:
