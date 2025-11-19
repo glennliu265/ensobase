@@ -88,19 +88,24 @@ def reduce_time(ds,dsst):
     dsnew,dsst = proc.match_time_month(ds,dsst)
     return dsnew
 
-
-
 # =================
 #%% User Selections
 # =================
 
+regrid1x1   = False
 expname     = "ERA5_1979_2024"
 datpath     = "/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/"
 outpath     = "/home/niu4/gliu8/projects/ccfs/"
 
-flxnames    = ['cre',]#'allsky','clearsky']# ['cre',]
-ccf_vars    = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
-ncstr       = datpath + "%s_1979_2024.nc"  
+if regrid1x1:
+    datpath = "/home/niu4/gliu8/projects/common_data/ERA5/regrid_1x1/anom_detrend1/"
+    outpath = "/home/niu4/gliu8/projects/ccfs/regrid_1x1/"
+
+flxnames     = ['cre',]#'allsky','clearsky']# ['cre',]
+ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
+ncstr        = datpath + "%s_1979_2024.nc"  
+selmons_loop = [None,]#[[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
+
 
 tstart   = '1979-01-01'
 tend     = '2024-12-31'
@@ -110,14 +115,9 @@ lonname  = 'longitude'
 
 #% Load Land Mask
 landnc   = datpath + "mask_1979_2024.nc"
-landmask = xr.open_dataset(landnc)
+landmask = xr.open_dataset(landnc).mask
 
 
-# Variables
-#flxnames    = ['cre']#['allsky','clearsky','cre']  # Loop for fluxes
-#ccf_vars    = ["sst","eis","Tadv","r700","w700","WS","ucc"] 
-
-selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
 
 # MLR Calculation Options
 standardize = True # Set to True to standardize predictors before MLR
@@ -153,25 +153,40 @@ for v in tqdm.tqdm(range(nvars)):
     dsvars.append(ds)
 
 # Manual Fix (need to standardize approach)
-dsvars[1] = dsvars[1].rename(dict(time='valid_time'))
+# Fixed dimensions wtih  [manual_replace_eis_coords]
+#dsvars[1] = dsvars[1].rename(dict(time='valid_time'))
 
 # Make sure they all have the right shape, dim names
 def preprocess(ds,tstart,tend,timename,latname,lonname):
+    print("\n now preprocessing")
     rename_dict = {
         timename : 'time',
         latname : 'lat',
         lonname : 'lon'
         }
-    ds = ds.squeeze()
-    ds = ds.rename(rename_dict)
-        
+    if 'time' not in ds.coords or timename not in ds.coords:
+        del rename_dict[timename]
+    if 'lat' in ds.coords:
+        print("lat already found...")
+        del rename_dict[latname]
+        #rename_dict = rename_dict
+    if 'lon' in ds.coords:
+        print("lon already found...")
+        del rename_dict[lonname]
     
-    ds = ds.sel(time=slice(tstart,tend))
+    ds = ds.rename(rename_dict)
+    ds = ut.standardize_names(ds)
+    
+    ds = ds.squeeze()
+    
+    
+    if 'time' in ds.coords and len(ds.shape) >= 3:
+        ds = ds.sel(time=slice(tstart,tend))
     return ds
 dsvars_anoms = [preprocess(ds,tstart,tend,timename,latname,lonname) for ds in dsvars]
 
+landmask = preprocess(landmask,tstart,tend,timename,latname,lonname)
 
-    
 #%%
 
 # Looping for fluxes
@@ -205,7 +220,7 @@ for ff in range(len(flxnames)):
             dsin_vars = dsvars_anoms
             print("Calculating for all months!")
             
-            
+        
         # Pre-allocate
         lon             = dsin_flx.lon.data
         lat             = dsin_flx.lat.data
@@ -215,7 +230,7 @@ for ff in range(len(flxnames)):
         coeffs          = np.zeros((nlat,nlon,nccfs)) * np.nan # [ Lat x Lon x CCFs ]
         ypred           = np.zeros(dsin_flx.shape) * np.nan   # [ Lat x Lon x Time ]
         r2              = np.zeros((nlat,nlon)) * np.nan       # [ Lat x Lon ]
-            
+        
         # Do a silly loop (took 5 min 17 sec)
         for o in tqdm.tqdm(range(nlon)):
             lonf = lon[o]
@@ -223,7 +238,7 @@ for ff in range(len(flxnames)):
             for a in range(nlat):
                 latf = lat[a]
                 
-                chkland = proc.selpt_ds(landmask,lonf,latf).data
+                chkland  = proc.selpt_ds(landmask,lonf,latf).data
                 if np.isnan(chkland):
                     continue
                 
@@ -273,9 +288,14 @@ for ff in range(len(flxnames)):
         edict           = proc.make_encoding_dict(ds_out)
         #outname = "test123.nc"
         outname         = "%s%s_%s_CCFs_Regression_standardize%i_adducc%i.nc" % (outpath,expname,flxname,standardize,add_ucc)
+        
         if selmons is not None:
             selmonstr = proc.mon2str(np.array(selmons)-1)
             outname      = proc.addstrtoext(outname,"_"+selmonstr,adjust=-1)
+        
+        if regrid1x1:
+            outname      = proc.addstrtoext(outname,"_regrid1x1",adjust=-1)
+            
         
         ds_out.to_netcdf(outname)
         
