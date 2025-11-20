@@ -49,8 +49,8 @@ proc.makedir(figpath)
 
 datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 
-expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C","glorys"]
-expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950","GLORYS"]
+expnames        = ["TCo2559-DART-1950C","TCo319_ctl1950d","TCo319_ssp585",]#"TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C","glorys"]
+expnames_long   = ["5km 1950","31km Control","31km SSP585",],"9km 1950","9km 2090","5km 1950","GLORYS"]
 
 
 
@@ -399,276 +399,279 @@ for ex in range(nexps):
 
 
 
+# ==================================================
+#%% Temprarily commenting below to sppeed up visualize ation of events
     
-#%% Plot Identified ENSO Events
+# #%% Plot Identified ENSO Events
 
-for ex in range(nexps):
+# for ex in range(nexps):
 
-    ensoin = ensoids[ex]
+#     ensoin = ensoids[ex]
     
-    fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(12.5,4.5))
+#     fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(12.5,4.5))
     
-    ax.plot(ensoin.time,ensoin,c='k',lw=2.5)
-    sigma  = ensoin.std('time')
+#     ax.plot(ensoin.time,ensoin,c='k',lw=2.5)
+#     sigma  = ensoin.std('time')
     
-    ax.axhline([0],ls='solid',lw=0.55,c='k')
-    ax.axhline([sigma],ls='dashed',lw=0.55,c='r')
-    ax.axhline([-sigma],ls='dashed',lw=0.55,c='b')
+#     ax.axhline([0],ls='solid',lw=0.55,c='k')
+#     ax.axhline([sigma],ls='dashed',lw=0.55,c='r')
+#     ax.axhline([-sigma],ls='dashed',lw=0.55,c='b')
     
-    ninos = ensoin.isel(time=ninodicts[ex]['center_ids'])
-    ax.plot(ninos.time,ninos,c='r',marker="o",markersize=10,linestyle='none')
+#     ninos = ensoin.isel(time=ninodicts[ex]['center_ids'])
+#     ax.plot(ninos.time,ninos,c='r',marker="o",markersize=10,linestyle='none')
     
-    ninas = ensoin.isel(time=ninadicts[ex]['center_ids'])
-    ax.plot(ninas.time,ninas,c='b',marker="d",markersize=10,linestyle='none')
+#     ninas = ensoin.isel(time=ninadicts[ex]['center_ids'])
+#     ax.plot(ninas.time,ninas,c='b',marker="d",markersize=10,linestyle='none')
     
     
-    ax.set_xlabel("Time (Years)")
-    ax.set_ylabel(r"Ni$\tilde{n}$o3.4 Index [$\degree$C]")
-    title = "AWI-CM3 (%s)\n 1$\sigma$=%.4f, " % (expnames_long[ex],sigma) + r"#$Ni\tilde{n}o$: %i, #$Ni\tilde{n}a$: %i" % (len(ninos),len(ninas))
-    ax.set_title(title)
+#     ax.set_xlabel("Time (Years)")
+#     ax.set_ylabel(r"Ni$\tilde{n}$o3.4 Index [$\degree$C]")
+#     title = "AWI-CM3 (%s)\n 1$\sigma$=%.4f, " % (expnames_long[ex],sigma) + r"#$Ni\tilde{n}o$: %i, #$Ni\tilde{n}a$: %i" % (len(ninos),len(ninas))
+#     ax.set_title(title)
     
-    if expnames[ex] == "TCo319_ssp585":
-        ax.set_ylim([-7.5,7.5])
-    else:
-        ax.set_ylim([-4.5,4.5])
-    ax.grid(True,which='both',ls='dotted',lw=0.50)
+#     if expnames[ex] == "TCo319_ssp585":
+#         ax.set_ylim([-7.5,7.5])
+#     else:
+#         ax.set_ylim([-4.5,4.5])
+#     ax.grid(True,which='both',ls='dotted',lw=0.50)
     
-    ax.set_xlim([ensoin.time.isel(time=0),ensoin.time.isel(time=-1)])
+#     ax.set_xlim([ensoin.time.isel(time=0),ensoin.time.isel(time=-1)])
     
-    # Save the figure
-    figname = "%sNino_Events_Identified_%s_tol%02imon.png" % (figpath,expnames[ex],tol)
-    plt.savefig(figname,dpi=150,bbox_inches='tight')
-    #plt.show()
-
-
-#%% Plot Frequency by Month
-
-mons3    = proc.get_monstr()
-fsz_axis = 12
-
-binedges = np.arange(0.5,13.5,1)
-imons =  np.arange(1,13,1)
-ex = 0
+#     # Save the figure
+#     figname = "%sNino_Events_Identified_%s_tol%02imon.png" % (figpath,expnames[ex],tol)
+#     plt.savefig(figname,dpi=150,bbox_inches='tight')
+#     #plt.show()
 
 
-for ex in range(4):
-    fig,axs = plt.subplots(2,1,figsize=(6,8))
-    
-    # Plot Nino
-    ax      = axs[0]
-    plotvar = ninomons[ex]
-    _,_,bpnino  = ax.hist(plotvar,bins =binedges,color='firebrick',alpha=0.5,edgecolor='w')
-    ax.set_xticks(imons,labels=mons3)
-    ax.grid(True,which='both',ls='dotted',lw=0.50,c='gray')
-    ax.bar_label(bpnino,fmt="%02i",c='lightgray',fontsize=fsz_axis,label_type='center')
-    ax.set_ylabel(r"Count (El $Ni\tilde{n}o$)")
-    if ex > 1:
-        ax.set_ylim([0,4])
-    else:
-        ax.set_ylim([0,13])
-    
-    # Plot Nina
-    ax      = axs[1]
-    plotvar = ninamons[ex]
-    _,_,bpnina = ax.hist(plotvar,bins =binedges,color='cornflowerblue',alpha=0.5,edgecolor='w')
-    ax.set_xticks(imons,labels=mons3)
-    ax.grid(True,which='both',ls='dotted',lw=0.50,c='gray')
-    ax.bar_label(bpnina,fmt="%02i",c='w',fontsize=fsz_axis,label_type='center')
-    #ax.set_title(#$Ni\tilde{n}a$: %i" % (len(ninos),len(ninas)))
-    ax.set_ylabel(r"Count (La $Ni\tilde{n}a$)")
-    if ex > 1:
-        ax.set_ylim([0,4])
-    else:
-        ax.set_ylim([0,13])
-    
-    plt.suptitle("AWI-CM3 (%s), nyears=%i" % (expnames_long[ex],expyrs[ex]),y=.90)
-    
-    
-    # Save the figure
-    figname = "%sNino_Events_MonthDistribution_%s_tol%02imon.png" % (figpath,expnames[ex],tol)
-    plt.savefig(figname,dpi=150,bbox_inches='tight')
+# #%% Plot Frequency by Month
 
-#%% Make Spaghetti Plot Centered around ENSO events
+# mons3    = proc.get_monstr()
+# fsz_axis = 12
 
-ninotype = "nina"
+# binedges = np.arange(0.5,13.5,1)
+# imons =  np.arange(1,13,1)
+# ex = 0
 
-for ninotype in ["nino","nina"]:
+
+# for ex in range(4):
+#     fig,axs = plt.subplots(2,1,figsize=(6,8))
     
-    if ninotype == "nino":
-        indict = ninodicts
-    elif ninotype == "nina":
-        indict = ninadicts
+#     # Plot Nino
+#     ax      = axs[0]
+#     plotvar = ninomons[ex]
+#     _,_,bpnino  = ax.hist(plotvar,bins =binedges,color='firebrick',alpha=0.5,edgecolor='w')
+#     ax.set_xticks(imons,labels=mons3)
+#     ax.grid(True,which='both',ls='dotted',lw=0.50,c='gray')
+#     ax.bar_label(bpnino,fmt="%02i",c='lightgray',fontsize=fsz_axis,label_type='center')
+#     ax.set_ylabel(r"Count (El $Ni\tilde{n}o$)")
+#     if ex > 1:
+#         ax.set_ylim([0,4])
+#     else:
+#         ax.set_ylim([0,13])
+    
+#     # Plot Nina
+#     ax      = axs[1]
+#     plotvar = ninamons[ex]
+#     _,_,bpnina = ax.hist(plotvar,bins =binedges,color='cornflowerblue',alpha=0.5,edgecolor='w')
+#     ax.set_xticks(imons,labels=mons3)
+#     ax.grid(True,which='both',ls='dotted',lw=0.50,c='gray')
+#     ax.bar_label(bpnina,fmt="%02i",c='w',fontsize=fsz_axis,label_type='center')
+#     #ax.set_title(#$Ni\tilde{n}a$: %i" % (len(ninos),len(ninas)))
+#     ax.set_ylabel(r"Count (La $Ni\tilde{n}a$)")
+#     if ex > 1:
+#         ax.set_ylim([0,4])
+#     else:
+#         ax.set_ylim([0,13])
+    
+#     plt.suptitle("AWI-CM3 (%s), nyears=%i" % (expnames_long[ex],expyrs[ex]),y=.90)
+    
+    
+#     # Save the figure
+#     figname = "%sNino_Events_MonthDistribution_%s_tol%02imon.png" % (figpath,expnames[ex],tol)
+#     plt.savefig(figname,dpi=150,bbox_inches='tight')
+
+# #%% Make Spaghetti Plot Centered around ENSO events
+
+# ninotype = "nina"
+
+# for ninotype in ["nino","nina"]:
+    
+#     if ninotype == "nino":
+#         indict = ninodicts
+#     elif ninotype == "nina":
+#         indict = ninadicts
         
-    for ex in range(nexps):
-        expdict     = indict[ex]
+#     for ex in range(nexps):
+#         expdict     = indict[ex]
         
-        ibefore = 12
-        iafter  = 36
+#         ibefore = 12
+#         iafter  = 36
         
-        plotlags    = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
-        
-        
-        target_var  = ensoids[ex].data
-        
+#         plotlags    = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
         
         
-        eventids    = expdict['center_ids']
-        nevents     = len(eventids)
+#         target_var  = ensoids[ex].data
         
         
-        # plotlags       = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
-        # stacked_events = np.zeros((nevents,len(plotlags))) * np.nan
-        # ntime          = len(target_var)
-        # for ie in range(nevents):
+        
+#         eventids    = expdict['center_ids']
+#         nevents     = len(eventids)
+        
+        
+#         # plotlags       = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
+#         # stacked_events = np.zeros((nevents,len(plotlags))) * np.nan
+#         # ntime          = len(target_var)
+#         # for ie in range(nevents):
             
-        #     ievent    = eventids[ie]
-        #     istart    = ievent-ibefore
-        #     iend      = ievent+iafter
+#         #     ievent    = eventids[ie]
+#         #     istart    = ievent-ibefore
+#         #     iend      = ievent+iafter
         
             
-        #     if (istart >=0) and (iend < ntime):
-        #         stacked_events[ie,:] = target_var[istart:(iend+1)]
+#         #     if (istart >=0) and (iend < ntime):
+#         #         stacked_events[ie,:] = target_var[istart:(iend+1)]
                 
-        #     elif iend >= ntime:
-        #         filler = np.zeros( (iend-ntime+1)) * np.nan
-        #         subset = np.hstack([target_var[istart:],filler])
-        #         stacked_events[ie,:] = subset
-        #     elif istart < 0: # Note havent tested this
-        #         filler  = np.zeros(np.abs(istart)) * np.nan
-        #         subset  = np.hstack([filler,target_var[:(iend+1)],])
-        #         stacked_events[ie,:] = subset
-        stacked_events = stack_events(target_var,eventids,ibefore,iafter)
+#         #     elif iend >= ntime:
+#         #         filler = np.zeros( (iend-ntime+1)) * np.nan
+#         #         subset = np.hstack([target_var[istart:],filler])
+#         #         stacked_events[ie,:] = subset
+#         #     elif istart < 0: # Note havent tested this
+#         #         filler  = np.zeros(np.abs(istart)) * np.nan
+#         #         subset  = np.hstack([filler,target_var[:(iend+1)],])
+#         #         stacked_events[ie,:] = subset
+#         stacked_events = stack_events(target_var,eventids,ibefore,iafter)
         
-        #%% Now Plot Each one
+#         #%% Now Plot Each one
         
-        xtkslag     = np.arange(-12,39,3)
+#         xtkslag     = np.arange(-12,39,3)
         
-        fig,ax      = plt.subplots(1,1,constrained_layout=True,figsize=(8,4.5))
+#         fig,ax      = plt.subplots(1,1,constrained_layout=True,figsize=(8,4.5))
         
-        #ax.set_prop_cycle(color=list(mpl.colormaps['Accent'].colors))
+#         #ax.set_prop_cycle(color=list(mpl.colormaps['Accent'].colors))
         
-        sigma       = ensoids[ex]['std'].item()
+#         sigma       = ensoids[ex]['std'].item()
         
-        for ie in range(nevents):
+#         for ie in range(nevents):
             
-            if ie == 0:
-                lab = "Individual Event"
-            else:
-                lab = ""
+#             if ie == 0:
+#                 lab = "Individual Event"
+#             else:
+#                 lab = ""
                 
-            plotvar = stacked_events[ie,:]
-            ax.plot(plotlags,plotvar,lw=.80,alpha=0.55,label=lab)
+#             plotvar = stacked_events[ie,:]
+#             ax.plot(plotlags,plotvar,lw=.80,alpha=0.55,label=lab)
             
-        ax.plot(plotlags,np.nanmean(stacked_events,0),color="k",lw=1,alpha=1,label='Mean')
-        ax.legend()
+#         ax.plot(plotlags,np.nanmean(stacked_events,0),color="k",lw=1,alpha=1,label='Mean')
+#         ax.legend()
         
-        ax.axvline([0],ls='solid',color="k",lw=0.50)
-        ax.axhline([0],ls='solid',color="k",lw=0.50)
-        ax.axhline([sigma],ls='dotted',color="red",lw=0.75)
-        ax.axhline([-sigma],ls='dotted',color="blue",lw=0.75)
+#         ax.axvline([0],ls='solid',color="k",lw=0.50)
+#         ax.axhline([0],ls='solid',color="k",lw=0.50)
+#         ax.axhline([sigma],ls='dotted',color="red",lw=0.75)
+#         ax.axhline([-sigma],ls='dotted',color="blue",lw=0.75)
         
-        ax.set_xlabel("Lags (Months)")
-        ax.set_ylabel("SST Anomaly $\degree C$")
-        if expnames[ex] == "TCo319_ssp585":
-            ax.set_ylim([-7.5,7.5])
-        else:
-            ax.set_ylim([-4.5,4.5])
-        ax.set_xticks(xtkslag)
-        ax.set_xlim([plotlags[0],plotlags[-1]])
+#         ax.set_xlabel("Lags (Months)")
+#         ax.set_ylabel("SST Anomaly $\degree C$")
+#         if expnames[ex] == "TCo319_ssp585":
+#             ax.set_ylim([-7.5,7.5])
+#         else:
+#             ax.set_ylim([-4.5,4.5])
+#         ax.set_xticks(xtkslag)
+#         ax.set_xlim([plotlags[0],plotlags[-1]])
         
-        ax.set_title("%s Composites (%s)\n$\sigma=$%.2f" %(ninotype,expnames_long[ex],sigma))
+#         ax.set_title("%s Composites (%s)\n$\sigma=$%.2f" %(ninotype,expnames_long[ex],sigma))
         
         
-        # Save the figure
-        figname = "%s%s_Events_Spaghetti_%s_tol%02imon.png" % (figpath,ninotype,expnames[ex],tol)
-        plt.savefig(figname,dpi=150,bbox_inches='tight')
+#         # Save the figure
+#         figname = "%s%s_Events_Spaghetti_%s_tol%02imon.png" % (figpath,ninotype,expnames[ex],tol)
+#         plt.savefig(figname,dpi=150,bbox_inches='tight')
         
-        #plt.show()
+#         #plt.show()
 
-#%% Get Stacked Events
+# #%% Get Stacked Events
 
-stacked_events = []
-for ninotype in ["nino","nina"]:
+# stacked_events = []
+# for ninotype in ["nino","nina"]:
         
-    if ninotype == "nino":
-        indict = ninodicts
-    elif ninotype == "nina":
-        indict = ninadicts
+#     if ninotype == "nino":
+#         indict = ninodicts
+#     elif ninotype == "nina":
+#         indict = ninadicts
     
-    exstack = []
-    for ex in range(nexps):
-        expdict     = indict[ex]
-        print(ex)
-        ibefore = 12
-        iafter  = 36
-        plotlags    = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
-        target_var  = ensoids[ex].data
-        eventids    = expdict['center_ids']
+#     exstack = []
+#     for ex in range(nexps):
+#         expdict     = indict[ex]
+#         print(ex)
+#         ibefore = 12
+#         iafter  = 36
+#         plotlags    = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
+#         target_var  = ensoids[ex].data
+#         eventids    = expdict['center_ids']
         
-        exstack.append(stack_events(target_var,eventids,ibefore,iafter))
-    stacked_events.append(exstack)
+#         exstack.append(stack_events(target_var,eventids,ibefore,iafter))
+#     stacked_events.append(exstack)
         
-#%% Plot the average Response
+# #%% Plot the average Response
 
 
-fig,ax = plt.subplots(1,1,constrained_layout=True)
-for nn in range(2):
+# fig,ax = plt.subplots(1,1,constrained_layout=True)
+# for nn in range(2):
     
-    for ex in range(nexps):
+#     for ex in range(nexps):
         
-        plotvar = np.nanmean(stacked_events[nn][ex],0)
-        ax.plot(plotlags,plotvar,label=expnames[ex],lw=2.5)
-ax.legend()
+#         plotvar = np.nanmean(stacked_events[nn][ex],0)
+#         ax.plot(plotlags,plotvar,label=expnames[ex],lw=2.5)
+# ax.legend()
 
-ax.axvline([0],ls='solid',color="k",lw=0.50)
-ax.axhline([0],ls='solid',color="k",lw=0.50)
-#ax.axhline([sigma],ls='dotted',color="red",lw=0.75)
-#ax.axhline([-sigma],ls='dotted',color="blue",lw=0.75)
+# ax.axvline([0],ls='solid',color="k",lw=0.50)
+# ax.axhline([0],ls='solid',color="k",lw=0.50)
+# #ax.axhline([sigma],ls='dotted',color="red",lw=0.75)
+# #ax.axhline([-sigma],ls='dotted',color="blue",lw=0.75)
 
-ax.set_xlabel("Lags (Months)")
-ax.set_ylabel("SST Anomaly $\degree C$")
-ax.set_ylim([-4.25,4.25])
-ax.set_xticks(xtkslag)
-ax.set_xlim([plotlags[0],plotlags[-1]])
+# ax.set_xlabel("Lags (Months)")
+# ax.set_ylabel("SST Anomaly $\degree C$")
+# ax.set_ylim([-4.25,4.25])
+# ax.set_xticks(xtkslag)
+# ax.set_xlim([plotlags[0],plotlags[-1]])
     
-plt.show()
+# plt.show()
 
-#%% Plot the standard Deviations
-
-
-expcols = ["cornflowerblue",'lightcoral',
-           "slateblue","firebrick",
-           "midnightblue","k"]
-
-ensostdevs = np.array([es['std'].data.item() for es in ensoids])
-
-fig,ax = plt.subplots(1,1,sharey=True,constrained_layout=True,
-                      figsize=(8,4.5))
+# #%% Plot the standard Deviations
 
 
-plotexps = [0,1,2,3,4,5]
+# expcols = ["cornflowerblue",'lightcoral',
+#            "slateblue","firebrick",
+#            "midnightblue","k"]
 
-braw = ax.bar(np.array(expnames_long)[plotexps],
-        ensostdevs[plotexps],color=np.array(expcols)[plotexps]
-        )
+# ensostdevs = np.array([es['std'].data.item() for es in ensoids])
 
-ax.bar_label(braw,fmt="%.02f",c='white',fontsize=fsz_axis,label_type='center')
+# fig,ax = plt.subplots(1,1,sharey=True,constrained_layout=True,
+#                       figsize=(8,4.5))
 
-ax.set_ylabel(r"1$\sigma$ $Ni\tilde{n}o3.4$ [$\degree C$]")
-ax.set_ylim([0,2])
 
-# ax       = axs[1]
-# plotexps = [1,3]
-# ax.bar(np.array(expnames_long)[plotexps],
-#        ensostdevs[plotexps],color=np.array(expcols)[plotexps]
-#        )
-ax.spines[['right', 'top']].set_visible(False)
+# plotexps = [0,1,2,3,4,5]
 
-figname = "%sENSO_Thresholds_%s.png" % (figpath,ninoid_name)
-plt.savefig(figname,dpi=150,bbox_inches='tight')
+# braw = ax.bar(np.array(expnames_long)[plotexps],
+#         ensostdevs[plotexps],color=np.array(expcols)[plotexps]
+#         )
 
-plt.show()
+# ax.bar_label(braw,fmt="%.02f",c='white',fontsize=fsz_axis,label_type='center')
 
+# ax.set_ylabel(r"1$\sigma$ $Ni\tilde{n}o3.4$ [$\degree C$]")
+# ax.set_ylim([0,2])
+
+# # ax       = axs[1]
+# # plotexps = [1,3]
+# # ax.bar(np.array(expnames_long)[plotexps],
+# #        ensostdevs[plotexps],color=np.array(expcols)[plotexps]
+# #        )
+# ax.spines[['right', 'top']].set_visible(False)
+
+# figname = "%sENSO_Thresholds_%s.png" % (figpath,ninoid_name)
+# plt.savefig(figname,dpi=150,bbox_inches='tight')
+
+# plt.show()
+# ==================================================
+#%% Temprarily commenting above to visualize events
 
 #%% Examine the duration of ENSO events and how they have changed
 
@@ -722,7 +725,7 @@ plt.show()
 # Part 2 ====================================================================== 
 #%% Lets Load a variable to analyze
 
-vname           = 'eis'#"Dmaxgrad"
+vname           = 'sst'#"Dmaxgrad"
 ds_var          = []
 
 for ex in tqdm.tqdm(range(nexps)):
@@ -750,10 +753,10 @@ else:
 #%% Examine Lag Compsites of choice variable before and after an event
 
 # User Settings
-plot_single_events  = True  # Set to True to make plots for individual events
+plot_single_events  = True # Set to True to make plots for individual events
 lags                = 18    # Number of lead + lags to composite over
-vmax_event          = 10    # Colorbar Limits for Single Events
-vmax_composite      = 8     # Colorbar limits for composites
+vmax_event          = 2.5    # Colorbar Limits for Single Events
+vmax_composite      = 2.5     # Colorbar limits for composites
 sel_mons            = None  # [12,1,2] # Indicate which central months to include in the composite
 plot_composite      = True  # Set to True to make plots for composite
 
@@ -770,6 +773,9 @@ elif vname == "D20" or vname == "Dmaxgrad":
 elif vname == "eis":
     vmax_event     = 7.5
     vmax_composite = 5
+elif vname == "sst":
+    vmax_event     = 2.5
+    vmax_composite = 2.5
 
 
 #Make some necessary variables
@@ -777,7 +783,7 @@ leadlags            = np.arange(-lags,lags+1)
 proj                = ccrs.PlateCarree()
 
 composites_byexp    = []
-for ex in [0,1,2,3]:
+for ex in range(nexps):#[0,1,2,3]:
     
     # Open the Nino/Nina Indices and Variables
     ninoids   = ninodicts[ex]['center_ids']
@@ -874,7 +880,7 @@ for ex in [0,1,2,3]:
                     
                     plt.close()
                     #plt.show()
-                    
+        
         # Next Part: Actually make the composites =============================
         if eventid_type == "nino":
             eventmons        = ninomons[ex]
@@ -979,69 +985,69 @@ for ex in range(nexps):
 
 
 
-#%% Check Work
+# #%% Check Work
 
 
 
 
 
-    # if iend > ntime:
-    #     iend   = ntime
-    # if istart < 0:
-    #     istart = 0
+#     # if iend > ntime:
+#     #     iend   = ntime
+#     # if istart < 0:
+#     #     istart = 0
         
     
-    varbefore = invar.data[istart:ievent,:,:]
-    varafter  = invar.data[ievent:(iend+1),:,:]
+#     varbefore = invar.data[istart:ievent,:,:]
+#     varafter  = invar.data[ievent:(iend+1),:,:]
     
-    temp_var[ie,:,nlat,nlon] = np.concatenate([varbefore,varafter],axis=0)
+#     temp_var[ie,:,nlat,nlon] = np.concatenate([varbefore,varafter],axis=0)
     
 
 
-#%% Try to figure things out
+# #%% Try to figure things out
     
-edummy = 2 
-ntime  = 16
-lags   = 18
+# edummy = 2 
+# ntime  = 16
+# lags   = 18
 
-dummyvar = np.zeros((lags*2+1,1,1)) * np.nan
-loopy    = np.arange(ntime)#np.random.normal(0,1,ntime)
+# dummyvar = np.zeros((lags*2+1,1,1)) * np.nan
+# loopy    = np.arange(ntime)#np.random.normal(0,1,ntime)
 
-for ie in range(nevents):
+# for ie in range(nevents):
     
-    ievent    = edummy
-    istart    = ievent-lags
-    iend      = ievent+lags
+#     ievent    = edummy
+#     istart    = ievent-lags
+#     iend      = ievent+lags
     
-    if istart < 0:
-        print("istart is at %s" % istart)
-        insert_start = np.abs(istart)#(lags - np.abs(istart)).item()
-        istart       = 0
-    else:
-        insert_start = 0
+#     if istart < 0:
+#         print("istart is at %s" % istart)
+#         insert_start = np.abs(istart)#(lags - np.abs(istart)).item()
+#         istart       = 0
+#     else:
+#         insert_start = 0
     
-    if iend > ntime:
-        print("iend is at %s" % (iend))
-        insert_end = lags + (ntime-ievent) #(lags*2+1) - (iend - ntime)
-        iend = ntime
-    else:
-        insert_end = lags*2+1
+#     if iend > ntime:
+#         print("iend is at %s" % (iend))
+#         insert_end = lags + (ntime-ievent) #(lags*2+1) - (iend - ntime)
+#         iend = ntime
+#     else:
+#         insert_end = lags*2+1
         
-    indices_in = np.arange(insert_start,insert_end)
-    dummyvar[indices_in,[0],[0]] = loopy[istart:(iend+1)]
+#     indices_in = np.arange(insert_start,insert_end)
+#     dummyvar[indices_in,[0],[0]] = loopy[istart:(iend+1)]
         
         
         
-#%%
+# #%%
 
-lags = np.arange(-18,19)
-lagid = np.arange(len(lags))
+# lags = np.arange(-18,19)
+# lagid = np.arange(len(lags))
 
-fig,ax = plt.subplots(2,1)
-ax[0].set_xticks(lags)
-ax[1].set_xticks(lagid)
+# fig,ax = plt.subplots(2,1)
+# ax[0].set_xticks(lags)
+# ax[1].set_xticks(lagid)
 
-plt.show()
+# plt.show()
 
 
 #%%
