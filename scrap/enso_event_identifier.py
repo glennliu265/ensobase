@@ -50,7 +50,7 @@ proc.makedir(figpath)
 datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 
 expnames        = ["TCo2559-DART-1950C","TCo319_ctl1950d","TCo319_ssp585",]#"TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C","glorys"]
-expnames_long   = ["5km 1950","31km Control","31km SSP585",],"9km 1950","9km 2090","5km 1950","GLORYS"]
+expnames_long   = ["5km 1950","31km Control","31km SSP585",]#,"9km 1950","9km 2090","5km 1950","GLORYS"]
 
 
 
