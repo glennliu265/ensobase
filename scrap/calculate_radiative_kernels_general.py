@@ -101,21 +101,23 @@ if regrid1x1:
     datpath = "/home/niu4/gliu8/projects/common_data/ERA5/regrid_1x1/anom_detrend1/"
     outpath = "/home/niu4/gliu8/projects/ccfs/regrid_1x1/"
 
-flxnames     = ['cre',]#'allsky','clearsky']# ['cre',]
+#NOTE: TEMP FIX -- check temperature advection calculation
+flip_Tadv    =True
+
+flxnames     = ['creln',]#'allsky','clearsky']# ['cre',]
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 ncstr        = datpath + "%s_1979_2024.nc"  
 selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
 
-
-tstart   = '1979-01-01'
-tend     = '2024-12-31'
-timename = 'valid_time'
-latname  = 'latitude'
-lonname  = 'longitude'
+tstart       = '1979-01-01'
+tend         = '2024-12-31'
+timename     = 'valid_time'
+latname      = 'latitude'
+lonname      = 'longitude'
 
 #% Load Land Mask
-landnc   = datpath + "mask_1979_2024.nc"
-landmask = xr.open_dataset(landnc).mask
+landnc       = datpath + "mask_1979_2024.nc"
+landmask     = xr.open_dataset(landnc).mask
 
 
 
@@ -129,7 +131,7 @@ add_ucc     = False # Set to True to include upper cloud concentration as a pred
 nvars  = len(ccf_vars)
 nclist = []
 for v in range(nvars):
-    vname = ccf_vars[v]
+    vname    = ccf_vars[v]
     ncsearch = ncstr % (vname)
     foundnc = glob.glob(ncsearch)
     print("Found the following for %s:" % vname)
@@ -183,9 +185,19 @@ def preprocess(ds,tstart,tend,timename,latname,lonname):
     if 'time' in ds.coords and len(ds.shape) >= 3:
         ds = ds.sel(time=slice(tstart,tend))
     return ds
+
 dsvars_anoms = [preprocess(ds,tstart,tend,timename,latname,lonname) for ds in dsvars]
 
-landmask = preprocess(landmask,tstart,tend,timename,latname,lonname)
+landmask     = preprocess(landmask,tstart,tend,timename,latname,lonname)
+
+if flip_Tadv:
+    print("WARNING! Applying temp fix and flipping temperature advection")
+    tadv_idx = ccf_vars.index('Tadv')
+    if dsvars_anoms[tadv_idx].name == "Tadv":
+        print("\tTemperature Advection found.... flipping")
+        dsvars_anoms[tadv_idx] = dsvars_anoms[tadv_idx] * -1
+    else:
+        print("\tTemperature Advection was not found.")
 
 #%%
 
