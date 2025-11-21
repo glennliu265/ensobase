@@ -92,7 +92,7 @@ def reduce_time(ds,dsst):
 #%% User Selections
 # =================
 
-regrid1x1   = True
+regrid1x1   = False
 expname     = "ERA5_1979_2024"
 datpath     = "/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/"
 outpath     = "/home/niu4/gliu8/projects/ccfs/"
