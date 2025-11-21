@@ -280,8 +280,6 @@ for ff in range(len(flxnames)):
                 ccfnames = ccf_vars
         else:
             ccfnames = ccf_vars    
-            
-        
         
         coords_r2       = dict(lat=lat,lon=lon)
         coords_coeffs   = dict(lat=lat,lon=lon,ccf=ccfnames)

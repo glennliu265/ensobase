@@ -183,6 +183,7 @@ for flxname in flxnames:
     # Here might be the point to start selmons loop...
     for selmons in selmons_loop:
         
+        
         # Perform MLR for each experiment
         for ex in range(2):
             st = time.time()
@@ -199,10 +200,12 @@ for flxname in flxnames:
                 print("Adjusting flux length")
                 dsexp_flx,_ = proc.match_time_month(dsexp_flx,dsexp_sel[0])
             
-            #
+            # Subset months
             if selmons is not None:
                 dsexp_flx = proc.selmon_ds(dsexp_flx,selmons)
                 dsexp_sel = [proc.selmon_ds(ds,selmons) for ds in dsexp_sel]
+            else:
+                print("Calculating for all months!")
             
             # Pre-allocate
             lon             = dsexp_flx.lon.data
