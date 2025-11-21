@@ -41,8 +41,7 @@ import utils as ut
 
 #%% User Edits
 
-
-expnames            = ["TCo319_ctl1950d",]#"TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
+expnames            = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
 expnames_long       = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 
 ensoid_name         = "nino34"
@@ -69,13 +68,13 @@ ensoids         = [ut.load_ensoid(expname,ensoid_name,standardize=standardize) f
 #%% Looping for each experiment
 
 # Indicate Lead Lags
-leadlags    = np.arange(-18,19,1)
-sep_mon     = False
+leadlags     = np.arange(-18,19,1)
+sep_mon      = False
 
 #ex          = 2
 #nexps       = len(expnames)
 #expname     = expnames[ex]
-vname       = vnames[0]
+vname        = vnames[0]
 
 for vname in tqdm.tqdm(vnames):
 #for ex in tqdm.tqdm(range(len(expnames))):

@@ -64,11 +64,9 @@ expname  = "TCo2559-DART-1950C" #"TCo319_ssp585"
 vname    = "sst"
 timecrop = None #[1950,2100]
 
-
 #datpath = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 #vnames  = ["lsp"]#["cp","sshf","slhf"]#"ttr","ttrc","tsr","tsrc"]
 #vname   = "tx_sur" #"lcc"
-
 
 nclist = ut.get_rawpath_awi(expname,vname,ensnum=None)
 #print(nclist)
@@ -122,10 +120,11 @@ outall      = [ds_timemean,ds_scycle,ds_timevar,ds_monvar]
 ncalcs      = len(outcalcs)
 ds_out      = xr.merge([outall[nn][vname].rename(outcalcs[nn]) for nn in range(ncalcs)])
 
-
-outname = "%s%s_%s_%s.nc" % (outpath,expname,vname,timestr)
-edict   = proc.make_encoding_dict(ds_out)
+outname     = "%s%s_%s_%s.nc" % (outpath,expname,vname,timestr)
+edict       = proc.make_encoding_dict(ds_out)
 ds_out.to_netcdf(outname)
 print("Saved output to %s" % outname)
+
+
 
 

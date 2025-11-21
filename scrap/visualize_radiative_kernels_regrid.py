@@ -39,22 +39,21 @@ import utils as ut
 
 #%% Load Land Mask and set other paths
 
-figpath = "/home/niu4/gliu8/figures/bydate/2025-11-12/"
-landmask = ut.load_land_mask_awi("TCo319",regrid=True)
+figpath     = "/home/niu4/gliu8/figures/bydate/2025-11-12/"
+landmask    = ut.load_land_mask_awi("TCo319",regrid=True)
 
 #%% Load Output
 
-expnames = ["TCo1279-DART-1950","TCo2559-DART-1950C"]
-datpath  = "/home/niu4/gliu8/projects/scrap/regrid_1x1/ccfs_regression_global/"
-ccf_vars = ["sst","eis","Tadv","r700","w700","WS","ucc"] 
-rawpath  = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+expnames    = ["TCo1279-DART-1950","TCo2559-DART-1950C"]
+datpath     = "/home/niu4/gliu8/projects/scrap/regrid_1x1/ccfs_regression_global/"
+ccf_vars    = ["sst","eis","Tadv","r700","w700","WS","ucc"] 
+rawpath     = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
 standardize = True
 add_ucc     = True
 flxname     = "cre"
 
-
-ds_flxs = []
-ds_all  = []
+ds_flxs     = []
+ds_all      = []
 for ex in range(2):
     
     
@@ -68,6 +67,7 @@ for ex in range(2):
     
     dsflx   = ut.preprocess_enso(ut.standardize_names(ds[flxname]))
     dsflx   = ut.varcheck(dsflx,flxname,expnames[ex])
+    
     ds_flxs.append(dsflx)
     
 
@@ -191,6 +191,7 @@ for ii in range(2):
 
 #%% Visualize the Coefficients
 
+
 for ex in range(2):
     fig,axs = ut.init_globalmap(nrow=3,ncol=2,figsize=(12,14))
     
@@ -203,7 +204,7 @@ for ex in range(2):
         
         ax      = axs.flatten()[cc]
         
-        plotvar = ds_all[ex].coeffs.isel(ccf=cc)
+        plotvar = ds_all[ex].coeffs.isel(ccf=cc) #/ dtmon
         title  = r"d(%s) / d (%s)" % (flxname,plotvar.ccf.item())
         ax.set_title(title)
         pcm     = ax.pcolormesh(plotvar.lon,plotvar.lat,plotvar,transform=proj,
@@ -217,23 +218,3 @@ for ex in range(2):
     plt.savefig(savename,dpi=150,bbox_inches='tight')
     #plt.show()
 
-#%%
-
-
-    
-    
-    
-
-
-
-
-
-
-
-
-
-#%%
-
-
-    
-    

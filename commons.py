@@ -34,6 +34,9 @@ import utils as ut
 expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
 expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 
+timecrops       = [[1950,2100],None,None,None,None]
+
+
 expcols = ["cornflowerblue",'lightcoral',
            "slateblue","firebrick",
            "midnightblue","k"] # Includes Glorys and different shade based on resolution
@@ -64,10 +67,11 @@ bbox_nino3      = [-150+360 , -90+360  , -5, 5]  # Nino 3 Box: For SST, <tau_x>
 bbox_nino34     = [-170+360 , -120+360 , -5, 5]
 bbox_epac       = [-155+360 , -80+360  , -5, 5]  # Eastern Pacific (for h_e calculation)
 bbox_wpac       = [120      , -155+360 , -5, 5]  # Western Pacific (for h_w calculation)
+bbox_tropics    = [0        , 360      , -30,30] # Tropics (from Ceppi and Fueglistaler 2021)
 
-bboxes  = [bbox_cep,bbox_nino3,bbox_nino34,bbox_epac,bbox_wpac]
+bboxes      = [bbox_cep,bbox_nino3,bbox_nino34,bbox_epac,bbox_wpac]
 bbnames_long = ["Central Equatorial Pacific","$Ni\tilde{n}o3$","$Ni\tilde{n}o3.4$","Tropical Eastern Pacific","Tropical Western Pacific"]
-bbnames = ["CEO","nino3","nino34","EPac","WPac"]
+bbnames      = ["CEO","nino3","nino34","EPac","WPac"]
 
 
 #%%

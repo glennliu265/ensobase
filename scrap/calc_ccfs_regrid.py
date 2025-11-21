@@ -150,6 +150,7 @@ dsws = [calc_ws(ds) for ds in dsbyexp]
 
 
 """
+
 ex        = 0
 RE        = 6375e3 # Earth Radius, in meters
 
@@ -263,10 +264,6 @@ wsmean.plot(vmin=.03,vmax=.13,cmap='cmo.balance'),plt.show()
 #         dsvars = [reduce_time(ds,dsvars[0]) for ds in dsvars]
     
 #     dsbyexp.append(dsvars)
-
-
-
-
 # #%% Anomalize and detrend variables
 
 # dsbyexp_anoms = []
