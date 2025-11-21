@@ -1,8 +1,8 @@
 #! /bin/zsh
-
 # Set the variables
 #vnames=("skt" "tsr" "ttr" "tsrc" "ttrc" "u10" "v10" "t700" "w700" "r700")
-vnames=("creln") #"eis" "ws10" "Tadv") #("sst") #("allsky" "clearsky" "cre" "ttcre" "tscre")
+
+vnames=("ws10") #"eis" "ws10" "Tadv") #("sst") #("allsky" "clearsky" "cre" "ttcre" "tscre")
 yearstr="1979_2024"
 rawpath='/home/niu4/gliu8/share/ERA5/processed'
 scyclepath='/home/niu4/gliu8/projects/common_data/ERA5/scycle'
