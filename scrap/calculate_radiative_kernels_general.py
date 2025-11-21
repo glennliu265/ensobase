@@ -92,7 +92,7 @@ def reduce_time(ds,dsst):
 #%% User Selections
 # =================
 
-regrid1x1   = False
+regrid1x1   = True
 expname     = "ERA5_1979_2024"
 datpath     = "/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/"
 outpath     = "/home/niu4/gliu8/projects/ccfs/"
@@ -107,7 +107,7 @@ flip_Tadv    =True
 flxnames     = ['creln',]#'allsky','clearsky']# ['cre',]
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 ncstr        = datpath + "%s_1979_2024.nc"  
-selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
+selmons_loop = [None,]#[[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
 
 tstart       = '1979-01-01'
 tend         = '2024-12-31'
@@ -217,8 +217,10 @@ for ff in range(len(flxnames)):
         print("No flux found... (%s)" % flxname)
     dsflx_anom = preprocess(dsflx,tstart,tend,timename,latname,lonname)
     
-    #% ----------------------------------------------------------------
+    # Drop Duplicate Times
+    #dsflx_anom = ut.remove_duplicate_times(dsflx_anom)
     
+    #% ----------------------------------------------------------------
     # Here might be the point to start selmons loop...
     st = time.time()
     for selmons in selmons_loop:
@@ -228,6 +230,7 @@ for ff in range(len(flxnames)):
             dsin_flx  = proc.selmon_ds(dsflx_anom,selmons)
             dsin_vars = [proc.selmon_ds(ds,selmons) for ds in dsvars_anoms]
             
+            
             #tindex = np.where(dsflx_anom.time.dt.month.isin(selmons))[0]
             
         else:
@@ -236,6 +239,7 @@ for ff in range(len(flxnames)):
             dsin_vars = dsvars_anoms
             print("Calculating for all months!")
             
+        
         
         # Pre-allocate
         lon             = dsin_flx.lon.data
