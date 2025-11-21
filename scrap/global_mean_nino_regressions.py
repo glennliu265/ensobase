@@ -48,7 +48,7 @@ import scm
 
 gmeanpath = "/home/niu4/gliu8/projects/scrap/global_mean/"
 ninopath = "/home/niu4/gliu8/projects/scrap/nino34/"
-figpath = "/home/niu4/gliu8/figures/bydate/2025-10-29/"
+figpath = "/home/niu4/gliu8/figures/bydate/2025-11-04/"
 proc.makedir(figpath)
 
 vnames = ["ttr", "ttrc", "tsr", "tsrc"]
@@ -65,6 +65,10 @@ expcols = ["cornflowerblue", 'lightcoral',
            "slateblue", "firebrick",
            "midnightblue", "k"]  # Includes Glorys and different shade based on resolution
 
+
+vnames_other = ['sst','eis',]#'w','r']
+
+
 # %% Load ENSO Indices
 
 
@@ -72,6 +76,7 @@ ensoids = [ut.load_ensoid(expname, ensoid_name,
                           standardize=standardize) for expname in expnames]
 
 # %%
+loadmaskeis=True
 apply_conversion = True
 nexps = len(expnames)
 vars_byexp = []
@@ -98,8 +103,15 @@ for ex in range(nexps):
             ds_byvar.append(ds.copy())
         except:
             print("Could not find %s for %s" % (vname, expnames[ex]))
-            ncname = "%s%s_%s_global_mean.nc" % (
-                gmeanpath, expnames[ex], vname)
+            if vname == 'eis' and loadmaskeis:
+                ncname = "%s%s_%s_global_mean_masked.nc" % (
+                    gmeanpath, expnames[ex], vname)
+            else:
+                ncname = "%s%s_%s_global_mean.nc" % (
+                    gmeanpath, expnames[ex], vname)
+                
+
+            
             print("\t" + ncname)
             ds = None
             #ds_byvar.append(None)
@@ -145,9 +157,27 @@ plt.savefig(figname, dpi=150, bbox_inches='tight')
 
 plt.show()
 
+#%% Plot Mean Seasonal Cycle
+
+fig,axs = viz.init_monplot(4,1,figsize=(12,10))
+mons3   = proc.get_monstr()
+
+for v in range(4):
+
+    ax = axs[v]
+    vname = vnames[v]
+    for ex in range(nexps):
+
+        if ex not in skipexps:
+            plotvar = vars_byexp[ex][vname].groupby('time.month').mean('time').squeeze()
+            ax.plot(mons3, plotvar, lw=2, c=expcols[ex])
+    ax.set_title(vnames[v])
+            
+    
+plt.show()
+
 # %% Calculate CRE and Net
 
-# cre    = []
 cre_lw    = []
 cre_sw    = []
 net       = []
@@ -160,13 +190,13 @@ for ex in range(nexps):
         net.append(None)
         net_clear.append(None)
         continue
-
+    
     dsin = vars_byexp[ex]
-    cl = dsin.ttr - dsin.ttrc
-    cs = dsin.tsr - dsin.tsrc
-    nn = dsin.tsr + dsin.ttr
-    nc = dsin.tsrc + dsin.ttrc
-
+    cl   = dsin.ttr - dsin.ttrc     # CRE  LW
+    cs   = dsin.tsr - dsin.tsrc     # CRE  SW
+    nn   = dsin.tsr + dsin.ttr      # All Sky (Net)
+    nc   = dsin.tsrc + dsin.ttrc    # Clear Sky
+    
     cre_lw.append(cl)
     cre_sw.append(cs)
     net.append(nn)
@@ -174,6 +204,35 @@ for ex in range(nexps):
 
 net_cre     = [net[ex] - net_clear[ex] if ex not in skipexps else None for ex in range(nexps)]
 net_cre_add = [cre_sw[ex] + cre_lw[ex] if ex not in skipexps else None for ex in range(nexps)]
+
+
+#%% For each experiment, plot the values
+
+plotvars    = [net,net_clear,net_cre,cre_lw,cre_sw]
+plotnames   = ["all sky","clear sky","cre","cre (LW)","cre (SW)"]
+
+ccols       = ['k','cornflowerblue','gray','red','blue']
+ccls        = ['solid','dashed','dotted','dotted','dotted']
+
+fig,axs     = viz.init_monplot(1,5,figsize=(16,4.5))
+mons3       = proc.get_monstr()
+
+for ex in range(nexps):
+    ax = axs[ex]
+    for v in range(5):
+        
+        plotvar = plotvars[v][ex].groupby('time.month').mean('time').squeeze()
+        ax.plot(mons3, plotvar, lw=2, c=ccols[v],ls=ccls[v],label=plotnames[v])
+    ax.set_title(expnames_long[ex])
+    
+    if ex == 0:
+        ax.legend()
+    
+    
+figname = "%sNet_TOA_Fluxes_Scycle.png" % figpath
+plt.savefig(figname, dpi=150, bbox_inches='tight')
+
+plt.show()
 
 # %% Perform Lag Regressions
 
@@ -233,7 +292,7 @@ for v in range(len(fluxes_in)):
 
 #%%
 
-fig,axs = plt.subplots(1,5,figsize=(18,3),constrained_layout=True)
+fig,axs = plt.subplots(1,5,figsize=(20,3),constrained_layout=True)
 
 for ii in range(5):
     ax = axs[ii]
@@ -250,12 +309,17 @@ for ii in range(5):
             ax.fill_between(lags,mu-sigma,mu+sigma,color='dimgray',alpha=0.15,label="")
     
     if ii == 4:
+        
         ax.legend(ncol=2,fontsize=8)
     
     ax.set_xticks(lags[::2])
     ax.set_xlim([lags[0],lags[-1]])
+    
     ax.axhline([0],lw=0.55,c='k')
     ax.axvline([0],lw=0.55,c='k')
+    
+    ax.set_xlabel("<-- Flux Leads | ENSO Leads -->")
+    
     ax.set_title(flxnames[ii])
     ax.grid(True,ls='dotted',c='gray',lw=0.55)
     ax.set_ylim([-.6,.6])
@@ -275,7 +339,6 @@ for ii in range(5):
         maxval  = plotvar[ilag]
         print("\t%.02f @ Lag %02i (%s)" % (maxval,lags[ilag],expnames_long[ex]))
     print("\n")
-        
     
 #%% Try computing the monthly feedback (note it doesnt look good... very noiy. Need to think more carefully)
 
@@ -303,6 +366,8 @@ plt.show()
 
 v       = 0
 
+
+
 fig,axs = plt.subplots(1,12,constrained_layout=True,figsize=(12.5,4),sharey=True)
 for im in range(12):
     ax = axs[im]
@@ -317,6 +382,7 @@ plt.show()
 
 
 #%%
+
 # Note seems to roughly work... (Note Moved over to utils folder) 
 def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     adddim=False
@@ -441,6 +507,114 @@ inds = [vars_byexp[ex][vname].mean(
 inds[0]/inds[2]
 inds[0]/inds[3]
 inds[0]/inds[4]
+
+# --------------------------------------------
+#%% Examine Relationship with other variables
+# --------------------------------------------
+
+othervars = []
+for vname in vnames_other:
+    print(vname)
+    if vname in ['w','r','t']:
+        vname_in = vname+"700"
+    else:
+        vname_in = vname
+        
+    expvars = []
+    for ex in tqdm.tqdm(range(nexps)):
+        expname = expnames[ex]
+        ncname  = "%s%s_%s_global_mean.nc" % (gmeanpath,expname,vname_in)
+        try:
+            ds      = xr.open_dataset(ncname)[vname].load()
+            ds      = ut.standardize_names(ds)
+            ds      = ut.varcheck(ds,vname,expname)
+            expvars.append(ds)
+        except:
+            print("%s not found for %s, skipping" % (vname,expname))
+            expvars.append(None)
+    othervars.append(expvars)
+        
+#%% Calculate Lag Regression (copied from above)
+
+preproc  = True
+
+betas_all_othervars = np.zeros((len(othervars),nexps,len(lags))) * np.nan
+
+# Do additional subsampling (currently only running for historical)
+mciter    = 1000
+minlen    = 8*12
+mcbetas   = np.zeros((len(fluxes_in),mciter,len(lags))) * np.nan
+
+for v in range(len(othervars)):
+    for ex in range(nexps):
+        print(vnames_other[v])
+        vname = vnames_other[v]
+        
+        sst_in            = ensoids[ex].squeeze()
+        try:
+            flx_in        = othervars[v][ex].squeeze()
+            if preproc:
+                flx_in = ut.preprocess_enso(flx_in.squeeze())
+            
+        except:
+            print("Issue on %s for %s, skipping" % (vname,expname))
+            continue
+        
+        sst_in,flx_in        = proc.match_time_month(sst_in,flx_in)
+        #flx_in,sst_in       = proc.match_time_month(sst_in,flx_in)
+        #betas               = ut.calc_lag_regression_1d(flx_in.data,sst_in.data,lags)
+        #betas_all[v,ex,:] = betas
+        
+        dsout                       = ut.calc_leadlag_regression_2d(sst_in,flx_in.drop(('lat','lon')).squeeze(),lags,sep_mon=False)
+        betas_all_othervars[v,ex,:] = dsout[vname].data#.regression_coefficient.data
+        
+        
+        
+        # Do some additional sampling
+        if ex == 0:
+            
+            outdict_31km = ut.mcsampler(sst_in,minlen,mciter,target_timeseries=[flx_in,],preserve_month=True,scramble_year=False)
+            ts1 = outdict_31km['samples']
+            ts2 = outdict_31km['other_sampled_timeseries'][0]
+            for mc in tqdm.tqdm(range(mciter)):
+                bb              = ut.calc_lag_regression_1d(ts2[mc,:],ts1[mc,:],lags)
+                mcbetas[v,mc,:] = bb
+
+            print(v)
+
+
+#%% For each variable, plot the relationship with Nino 3.4
+
+#for v in range(len(othervars)):
+
+v = 1
+
+fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(4.5,4.5))
+
+for ex in range(nexps):
+    
+    plotvar = betas_all_othervars[v,ex,:]
+    ax.plot(lags,plotvar,label=expnames_long[ex],color=expcols[ex],lw=2.5)
+
+ax.set_xticks(lags[::2])
+ax.set_xlim([lags[0],lags[-1]])
+
+ax.axhline([0],lw=0.55,c='k')
+ax.axvline([0],lw=0.55,c='k')
+ax.set_title(vnames_other[v])
+    
+
+ax.set_ylim([-0.5,0.5])
+ax.legend()
+plt.show()
+
+#%% Part III: Do Composites around ENSO events to understand their progression
+
+
+
+
+
+
 
 
 # %% Load Global Means

@@ -42,13 +42,14 @@ import utils as ut
 
 #%% Additional Functions
 
+import cartopy
 def init_globalmap(nrow=1,ncol=1,figsize=(12,8)):
     proj            = ccrs.Robinson(central_longitude=-180)
     bbox            = [-180,180,-90,90]
     fig,ax          = plt.subplots(nrow,ncol,subplot_kw={'projection':proj},figsize=figsize,constrained_layout=True)
     
     multiax = True
-    if type (ax) == mpl.axes._axes.Axes:
+    if (type(ax) == mpl.axes._axes.Axes) or (type(ax) == cartopy.mpl.geoaxes.GeoAxes):
         ax = [ax,]
         multiax = False
     
@@ -91,11 +92,17 @@ if regrid_1x1:
 else:
     datpath     = "/home/niu4/gliu8/projects/scrap/global_lag_regressions/"
 
-figpath         = "/home/niu4/gliu8/figures/bydate/2025-10-28/"
+figpath         = "/home/niu4/gliu8/figures/bydate/2025-11-12/"
 proc.makedir(figpath)
 
 
+
 #%% Load all variables
+
+
+landmask    = ut.load_land_mask_awi("TCo319",regrid=True)
+landmask_fix = landmask.copy()
+landmask['lon'] = landmask['lon'] + 0.5
 
 expids      = [0,2,4]
 ds_byvar    = []
@@ -119,6 +126,8 @@ for ii in range(3):
         
         ds = ut.standardize_names(ds)
         ds = ut.varcheck(ds,vname,expnames[ex])
+        
+        ds  = (ds * landmask).rename(vname)
         
         ds_all.append(ds)
     
@@ -349,26 +358,9 @@ for ii in tqdm.tqdm(range(3)):
     
     #plt.show()
 
+
 #%% Remake Figure from Ceppi et al (lag relationship)
-vname = 'eis'
 
-bbox_tropics = [0,360,-30,30]
-
-ds_dummy = xr.zeros_like(ds_byexp[1])
-ds_byexp[0] = ds_dummy
-    
-ds_tropics   = [proc.sel_region_xr(ds,bbox_tropics) for ds in ds_byexp]
-ds_aavgs     = [proc.area_avg_cosweight(ds,bbox_tropics) for ds in ds_tropics]
-
-fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(8,4.5))
-
-for ii in range(3):
-    ex = expids[ii]
-    plotvar = ds_aavgs[ii][vname]
-    if vname == "eis":
-        plotvar = plotvar*-1
-    ax.plot(plotvar.lag,plotvar,label=expnames_long[ex],c=expcols[ex],lw=2.5)
-    
 
 
 if vname == "eis":
