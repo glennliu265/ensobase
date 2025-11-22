@@ -107,7 +107,7 @@ flip_Tadv    =True
 flxnames     = ['cre',]#'allsky','clearsky']# ['cre',]
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 ncstr        = datpath + "%s_1979_2024.nc"  
-selmons_loop = [None,]#[[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
+selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]]  #[None,]# # Set to None to do 
 
 tstart       = '1979-01-01'
 tend         = '2024-12-31'
