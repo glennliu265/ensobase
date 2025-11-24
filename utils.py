@@ -32,6 +32,8 @@ init_global_map             : (v) Initialize a global map
 load_ensoid                 : (l) load enso indices calculated by calc_nino34.py
 load_land_mask_awi          : (l) load land mask from AWI-CM3, where land points are np.nan
 mcsample                    : (g) Monte Carlo Sampler to repeat function
+mlr                         : (g) single point multiple linear regression using Scipy
+mlr_ccfs                    : (c) Multiple linear regrssion for cloud controlling factor analysis
 preprocess_enso             : (c) detrend (quadratic) and deseasonalize for ENSO calculations
 remove_duplicate_times      : (g) Remove duplicate times from a DataArray
 swap_rename                 : (g) check if variable exists and rename if so
@@ -54,6 +56,9 @@ import matplotlib.pyplot as plt
 import sys
 import time
 import glob
+
+from sklearn.linear_model import LinearRegression
+import sklearn
 
 #%%
 
@@ -580,6 +585,46 @@ def mcsampler(ts_full,sample_len,mciter,preserve_month=True,scramble_year=False,
         outdict['other_sampled_timeseries'] = sampled_timeseries
     
     return outdict
+
+def mlr(X,y):
+    # MLR fit using scipy 
+    
+    # Initialize Model and Fit
+    model             = LinearRegression()
+    model.fit(X,y)
+    pred              = model.predict(X)
+    # Calculate Error and other variables
+    mlr_out           = {}
+    mlr_out['pred']   = pred
+    mlr_out['err']    = y - pred # Model Error # []
+    mlr_out['coeffs'] = model.coef_
+    mlr_out['r2']     = sklearn.metrics.r2_score(y,pred)
+    
+    return mlr_out
+
+def mlr_ccfs(ccfs,flx,standardize=True,fill_value=0,verbose=False):
+    # Perform MLR
+    #    ccfs: LIST of DataArrays [variable x time]
+    #    flx:  DataArray [time x 1]
+    
+    # Set up Predictors and Target (convert to Numpy Arrays)
+    predictors = np.array([ds for ds in ccfs]) # [variable x time]
+    if standardize:
+        if verbose:
+            print("Standardizing each variable")
+        predictors = np.array([ds/np.nanstd(ds) for ds in list(predictors)])
+    X = predictors.T
+    y = flx.data
+    
+    # Replace NaN Values in Predictors
+    if verbose:
+        if np.any(np.isnan(X)):
+            print("NaN values detected! Replace with %f" % fill_value)
+    X = np.where(np.isnan(X),fill_value,X) # Set NaN to zero
+    
+    # Use sklearn for now (can try LSE manual later...)
+    mlr_out = mlr(X,y)
+    return mlr_out
 
 def preprocess_enso(ds):
     # Remove Mean Seasonal Cycle and the Quadratic Trend
