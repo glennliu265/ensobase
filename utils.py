@@ -23,6 +23,7 @@ Function Types (will reorganize later):
 Function                Description
 --------                -----------
 awi_mean_loader             : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
+calc_grad_centered          : (g) Calculate centered-difference for spatial gradients
 calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
 calc_leadlag_regression_2d  : (g) Compute lead lag regression for 2D timseries (modeled after enso_lag_regression)
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
@@ -74,6 +75,34 @@ def awi_mean_loader(expname,vname,calcname,outpath=None):
     ncname = "%s%s_%s_%s.nc" % (outpath,expname,vname,calcname)
     ds = xr.open_dataset(ncname).load()
     return ds
+
+def calc_grad_centered(ds,latname='lat',lonname='lon'): # Copied from structure in calc_ekman_advection_htr
+    
+    if latname != 'lat' or lonname != 'lon':
+        lldict          = {latname : 'lat', lonname : 'lon'}
+        lldict_reverse  = {'lat' : latname, 'lon' : lonname}
+        rename_flag=True
+        ds = ds.rename(lldict)
+    else:
+        rename_flag=False
+    
+    dx,dy = proc.calc_dx_dy(ds.lon.values,ds.lat.values,centered=True)
+    
+    # Convert to DataArray
+    daconv   = [dx,dy]
+    llcoords = {'lat':ds.lat.values,'lon':ds.lon.values,}
+    da_out   = [xr.DataArray(ingrad,coords=llcoords,dims=llcoords) for ingrad in daconv]
+    dx,dy = da_out
+    
+    # Roll and Compute Gradients (centered difference)
+    ddx = (ds.roll(lon=-1) - ds.roll(lon=1)) / dx
+    ddy = (ds.roll(lat=-1) - ds.roll(lat=1)) / dy
+    ddy.loc[dict(lat=ddy.lat.values[-1])] = 0 # Set top latitude to zero (since latitude is not periodic)
+    
+    if rename_flag:
+        ddx,ddy =  [ds.rename(lldict_reverse) for ds in [ddx,ddy]]
+    
+    return ddx,ddy
 
 def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
     bbplot = [120, 290, -20, 20]
