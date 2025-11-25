@@ -16,6 +16,7 @@ done
 
 
 
+
 #cdo ymonsub /home/niu4/gliu8/projects/scrap/regrid_1x1/TCo1279-DART-2090_cre_regrid1x1.nc -ymonmean /home/niu4/gliu8/projects/scrap/regrid_1x1/TCo1279-DART-2090_cre_regrid1x1.nc /home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/temp.nc
 #cdo detrend /home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/temp.nc /home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/TCo1279-DART-2090_cre_anom_regrid1x1.nc
 
