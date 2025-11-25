@@ -1,8 +1,8 @@
 # Detrend (Linear) and Anomalize (remove scycle) using CDO
 # Note this doesnt work, I wonder if this is due to the time dimension
 
-expnames=("TCo319_ctl1950d" "TCo319_ssp585" "TCo2559-DART-1950C" "TCo1279-DART-1950" "TCo1279-DART-2090")
-vnames=("sst") #("allsky" "clearsky" "cre" "ttcre" "tscre")
+expnames=("TCo2559-DART-1950C" "TCo1279-DART-1950") #("TCo319_ctl1950d" "TCo319_ssp585" "TCo2559-DART-1950C" "TCo1279-DART-1950" "TCo1279-DART-2090")
+vnames=("Tadv" "ws10" "eis" "w700" "r700") #("sst") #("allsky" "clearsky" "cre" "ttcre" "tscre")
 dpath=/home/niu4/gliu8/projects/scrap/regrid_1x1
 detrendpath=/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1
 scyclepath=/home/niu4/gliu8/projects/scrap/regrid_1x1/scycle
