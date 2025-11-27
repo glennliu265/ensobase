@@ -133,7 +133,7 @@ cdo chname,allsky,cre /home/niu4/gliu8/projects/scrap/processed_global/temp.nc /
 /export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo2559-DART-1950C_5km/atm
 
 
-# Calculate for ERA5
+# Calculate for ERA5 # ============================================================
 # expname="TCo2559-DART-1950C"
 rawpath='/home/niu4/gliu8/share/ERA5/processed'
 outpath='/home/niu4/gliu8/share/ERA5/processed'
@@ -156,5 +156,27 @@ cdo chname,ttr,ttcre ${outpath}/temp.nc ${outpath}/ttcre_1979_2024.nc
 
 # TSCRE 
 cdo -sub ${outpath}/tsr_1979_2024.nc  ${outpath}/tsrc_1979_2024.nc ${outpath}/temp.nc
-cdo chname,ttr,tscre ${outpath}/temp.nc ${outpath}/tscre_1979_2024.nc
+cdo chname,tsr,tscre ${outpath}/temp.nc ${outpath}/tscre_1979_2024.nc
 
+# ==================================================================================
+
+# Calculate for CERES-EBAF =========================================================
+rawpath='/home/niu4/gliu8/share/CERES/processed'
+outpath='/home/niu4/gliu8/share/CERES/processed'
+# CRE
+cdo -sub ${rawpath}/CERES_EBAF_allsky_2000-03_to_2025-08.nc  ${rawpath}/CERES_EBAF_clearsky_2000-03_to_2025-08.nc ${outpath}/temp.nc
+cdo chname,allsky,cre ${outpath}/temp.nc ${outpath}/CERES_EBAF_cre_2000-03_to_2025-08.nc
+
+# TTCRE
+rawpath='/home/niu4/gliu8/share/CERES/processed'
+outpath='/home/niu4/gliu8/share/CERES/processed'
+cdo -sub ${rawpath}/CERES_EBAF_ttr_2000-03_to_2025-08.nc  ${rawpath}/CERES_EBAF_ttrc_2000-03_to_2025-08.nc ${outpath}/temp.nc
+cdo chname,ttr,ttcre ${outpath}/temp.nc ${outpath}/CERES_EBAF_ttcre_2000-03_to_2025-08.nc
+
+# TSCRE
+rawpath='/home/niu4/gliu8/share/CERES/processed'
+outpath='/home/niu4/gliu8/share/CERES/processed'
+cdo -sub ${rawpath}/CERES_EBAF_tsr_2000-03_to_2025-08.nc  ${rawpath}/CERES_EBAF_tsrc_2000-03_to_2025-08.nc ${outpath}/temp.nc
+cdo chname,tsr,tscre ${outpath}/temp.nc ${outpath}/CERES_EBAF_tscre_2000-03_to_2025-08.nc
+
+# ==================================================================================
