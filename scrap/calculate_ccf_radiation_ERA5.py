@@ -47,7 +47,7 @@ import utils as ut
 # Kernel Information
 datpath      = "/home/niu4/gliu8/projects/ccfs/regrid_1x1/"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
-flxname      = "cre"
+flxname      = "creln"
 standardize  = True
 add_ucc      = False
 selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [[]]#.None
@@ -101,7 +101,6 @@ for ccf in tqdm(ccf_vars):
 outpath = "/home/niu4/gliu8/projects/ccfs/regrid_1x1/%s_components/" % flxname
 proc.makedir(outpath)
 
-
 vv    = 0
 nccf  = len(ccf_vars)
 dtday = 3600*60
@@ -110,11 +109,12 @@ for vv in tqdm(range(nccf)):
     # Get Variable
     ccfname        = ccf_vars[vv]
     varanom        = dsvars_anom[vv]
-    varnom_std     = varanom / varanom.std('time')
+    
+    varanom_std     = varanom / varanom.std('valid_time') # Standardize Variable
     
     # Multiple by the Coefficient
     coeff_allmons  = dsall.coeffs.sel(ccf=ccfname)/dtday
-    R_component    = coeff_allmons * varanom
+    R_component    = coeff_allmons * varanom_std
     vname_new      = flxname + "_" + ccfname
     R_component    = R_component.rename(vname_new)
     rname_out      = "%s%s_component.nc" % (outpath,vname_new,)
@@ -127,7 +127,7 @@ for vv in tqdm(range(nccf)):
         
         selmons = selmons_loop[ss]
         
-        varmon     = proc.selmon_ds(varanom.rename({'valid_time':'time'}),selmons)
+        varmon     = proc.selmon_ds(varanom_std.rename({'valid_time':'time'}),selmons)
         varmon_out = varmon * coeff_seasonal[ss]
         R_component_seasonal.append(varmon_out)
         
