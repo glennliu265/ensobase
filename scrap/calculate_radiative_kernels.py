@@ -4,8 +4,6 @@
 
 Streamlined Version of calc_ccfs_regrid
 
-
-
 Created on Fri Nov 14 10:54:27 2025
 
 @author: gliu
@@ -27,6 +25,7 @@ import matplotlib.gridspec as gridspec
 from scipy.io import loadmat
 import matplotlib as mpl
 import climlab
+import importlib
 
 from sklearn.linear_model import LinearRegression
 import sklearn
@@ -73,7 +72,7 @@ def mlr_ccfs(ccfs,flx,standardize=True,fill_value=0,verbose=False):
             print("Standardizing each variable")
         predictors = np.array([ds/np.nanstd(ds) for ds in list(predictors)])
     X = predictors.T
-    y = flxpt.data
+    y = flx.data
     
     # Replace NaN Values in Predictors
     if verbose:
@@ -100,20 +99,21 @@ landmask = ut.load_land_mask_awi("TCo319",regrid=True)
 
 # Path to Data and Experiments
 expnames    = ["TCo1279-DART-1950","TCo2559-DART-1950C"]
-datpath     = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
-outpath     = "/home/niu4/gliu8/projects/scrap/regrid_1x1/ccfs_regression_global/"
+datpath     = "/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+outpath     = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
+
+anomalize   = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
 
 # Variables
 flxnames    = ['cre']#['allsky','clearsky','cre']  # Loop for fluxes
-ccf_vars    = ["sst","eis","Tadv","r700","w700","WS","ucc"] 
+ccf_vars    = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 
 selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
 
 # MLR Calculation Options
 standardize = True # Set to True to standardize predictors before MLR
 fill_value  = 0    # Replace NaN values with <fill_value>
-add_ucc     = True # Set to True to include upper cloud concentration as a predictor
-
+add_ucc     = False # Set to True to include upper cloud concentration as a predictor
 
 #%% Now Load each predictor variable to do CCFs calculation
 # Note that some were computed in [calc_ccfs_regrid.py]
@@ -150,17 +150,21 @@ for ex in range(2):
 
 #%% Anomalize and detrend variables
 
-dsbyexp_anoms = []
-for ex in range(2):
-    dsvars_anoms = []
-    
-    for v in tqdm.tqdm(range(len(ccf_vars))):
+if anomalize:
+    dsbyexp_anoms = []
+    for ex in range(2):
+        dsvars_anoms = []
         
-        dsin    = dsbyexp[ex][v]
-        dsanoms = ut.preprocess_enso(dsin)
-        dsvars_anoms.append(dsanoms)
+        for v in tqdm.tqdm(range(len(ccf_vars))):
+            
+            dsin    = dsbyexp[ex][v]
+            dsanoms = ut.preprocess_enso(dsin)
+            dsvars_anoms.append(dsanoms)
+        
+        dsbyexp_anoms.append(dsvars_anoms)
+else:
+    dsbyexp_anoms = dsbyexp
     
-    dsbyexp_anoms.append(dsvars_anoms)
 
 
 
@@ -175,9 +179,10 @@ for flxname in flxnames:
     dsflxs  = []
     for ex in range(2):
         dsflx   = xr.open_dataset("%s%s_%s_regrid1x1.nc" % (datpath,expnames[ex],flxname)).load()
-        dsflx   = ut.preprocess_enso(ut.standardize_names(dsflx[flxname]))
+        if anomalize:
+            dsflx   = ut.preprocess_enso(ut.standardize_names(dsflx[flxname]))
         dsflx   = ut.varcheck(dsflx,flxname,expnames[ex])
-        
+        dsflx   = ut.standardize_names(dsflx)
         dsflxs.append(dsflx)
     
     # Here might be the point to start selmons loop...
@@ -189,7 +194,8 @@ for flxname in flxnames:
             st = time.time()
             
             dsexp_sel      = dsbyexp_anoms[ex]
-            if add_ucc is False:
+            if add_ucc is False and "ucc" in ccf_vars:
+                print("Reducing dimensions by 1")
                 dsexp_sel = dsexp_sel[:-1]
             dsexp_flx      = dsflxs[ex]
             
@@ -208,6 +214,7 @@ for flxname in flxnames:
                 print("Calculating for all months!")
             
             # Pre-allocate
+            dsexp_flx       = dsexp_flx.transpose('lat','lon','time')
             lon             = dsexp_flx.lon.data
             lat             = dsexp_flx.lat.data
             nlat,nlon,ntime = dsexp_flx.shape
@@ -227,7 +234,6 @@ for flxname in flxnames:
                     if np.isnan(chkland):
                         continue
                     
-                    
                     # Check for NaN in predictor
                     dspts  = [proc.selpt_ds(ds,lonf,latf) for ds in dsexp_sel]
                     chknan = [np.any(np.isnan(ds.data)) for ds in dspts]
@@ -242,18 +248,18 @@ for flxname in flxnames:
                         continue
                     
                     # Do calculations
-                    mlr_out = mlr_ccfs(dspts,flxpt,standardize=standardize,verbose=False)
+                    mlr_out = ut.mlr_ccfs(dspts,flxpt,standardize=standardize,verbose=False)
                     
                     r2[a,o] = mlr_out['r2']
                     ypred[a,o,:] = mlr_out['pred']
                     coeffs[a,o,:] = mlr_out['coeffs']
             
-    
-            
             if add_ucc:
                 ccfnames = ccf_vars
             else:
-                ccfnames = ccf_vars[:-1]
+                if "ucc" in ccf_vars:
+                    ccfnames = ccf_vars[:-1]
+                ccfnames = ccf_vars
             
             coords_r2       = dict(lat=lat,lon=lon)
             coords_coeffs   = dict(lat=lat,lon=lon,ccf=ccfnames)
@@ -264,7 +270,7 @@ for flxname in flxnames:
             da_pred         = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='ypred')
             ds_out          = xr.merge([da_r2,da_coeffs,da_pred])
             edict           = proc.make_encoding_dict(ds_out)
-            outname         = "%s%s_%s_CCFs_Regression_standardize%i_regrid1x1_adducc%i.nc" % (outpath,expnames[ex],flxname,standardize,add_ucc)
+            outname         = "%s%s_%s_CCFs_Regression_standardize%i_adducc%i.nc" % (outpath,expnames[ex],flxname,standardize,add_ucc)
             if selmons is not None:
                 selmonstr = proc.mon2str(np.array(selmons)-1)
                 outname      = proc.addstrtoext(outname,"_"+selmonstr,adjust=-1)
