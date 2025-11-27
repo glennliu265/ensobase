@@ -63,7 +63,7 @@ vnames              = ['allsky','cre','clearsky',] #'eis',['tsr','ttr','ttrc','t
 
 #%% Load ENSO ID
 
-ensoids         = [ut.load_ensoid(expname,ensoid_name,standardize=standardize) for expname in expnames]
+ensoids             = [ut.load_ensoid(expname,ensoid_name,standardize=standardize) for expname in expnames]
 
 #%% Looping for each experiment
 

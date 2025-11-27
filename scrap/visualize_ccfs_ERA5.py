@@ -124,7 +124,7 @@ landmask = xr.open_dataset(landnc).mask
 
 ds_all = []
 for ccf in ccf_vars:
-
+    
     ncstr       = meanpath + "%s_1979_2024.nc" % ccf
     ds = xr.open_dataset(ncstr)[ccf].load()
     ds_all.append(ds)

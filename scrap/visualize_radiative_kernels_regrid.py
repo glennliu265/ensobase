@@ -39,7 +39,7 @@ import utils as ut
 
 #%% Load Land Mask and set other paths
 
-figpath     = "/home/niu4/gliu8/figures/bydate/2025-11-12/"
+figpath     = "/home/niu4/gliu8/figures/bydate/2025-11-20/"
 landmask    = ut.load_land_mask_awi("TCo319",regrid=True)
 
 #%% Load Output
@@ -125,7 +125,7 @@ for ii in range(2):
     else: # SEP
         lonf = 360-86
         latf = -5
-        
+    
     
     locfn,loctitle = proc.make_locstring(lonf,latf)
     fig,axs = plt.subplots(2,1,constrained_layout=True,figsize=(12.5,6))
@@ -167,9 +167,6 @@ for ii in range(2):
     #plt.show()
     
     #% Check the Shape of the Residual for selected points
-    
-
-    
     fig,axs = plt.subplots(2,1,constrained_layout=True,figsize=(6,6),sharex=True)
     
     for ex in range(2):

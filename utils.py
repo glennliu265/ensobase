@@ -382,7 +382,7 @@ def get_rawpath_awi(expname,vname,ensnum=None):
 
     # TCo1279_DART-2090
     ssppath0_09     = "/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo1279-DART-2090_9km/"
-
+    
     # TCo2559-DART-1950C
     ctlpath0_05_atm = "/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo2559-DART-1950C_5km/atm/"
     ctlpath0_05_ocn = "/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo2559-DART-1950C_5km/ocn/"
@@ -486,7 +486,7 @@ def get_rawpath_awi(expname,vname,ensnum=None):
         print("%s Not found for %s" % (vname,expname))
         return None
     print(nclist)
-    return nclist 
+    return nclist
 
 def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
     # Load Enso indices calculated with calc_nino34.py
