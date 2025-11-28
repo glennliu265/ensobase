@@ -130,8 +130,6 @@ elif expname == "ERA5_1979_2024":
     dsflx   = dsflx / dtday
 dsflx   = ut.standardize_names(dsflx)
 
-
-
 # Shift CERES data
 import pandas as pd
 def shift_time_monthstart(dsin,timename='time'):
@@ -161,11 +159,12 @@ ntimes_flux       = len(dsflx.time)
 
 st = time.time()
 
-dsexp_sel  = dsvars_anom
-dsexp_flx  = dsflx
-
 # Subset months
 for selmons in selmons_loop:
+    
+    dsexp_sel  = dsvars_anom
+    dsexp_flx  = dsflx
+    
     if selmons is not None:
         dsexp_flx = proc.selmon_ds(dsexp_flx,selmons)
         dsexp_sel = [proc.selmon_ds(ds,selmons) for ds in dsexp_sel]
