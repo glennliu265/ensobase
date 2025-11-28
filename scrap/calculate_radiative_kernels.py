@@ -9,7 +9,6 @@ Created on Fri Nov 14 10:54:27 2025
 @author: gliu
 """
 
-
 import sys
 import time
 import numpy as np
@@ -90,37 +89,54 @@ def reduce_time(ds,dsst):
 
 #%% Load Land Mask
 
-
-landmask = ut.load_land_mask_awi("TCo319",regrid=True)
+#landmask = ut.load_land_mask_awi("TCo319",regrid=True)
 
 # =================
 #%% User Selections
 # =================
 
 # Path to Data and Experiments
-expnames    = ["TCo1279-DART-1950","TCo2559-DART-1950C"]
-datpath     = "/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
-outpath     = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
+expnames        = ["CERES_FBCT_ERA5",]#["TCo1279-DART-1950","TCo2559-DART-1950C"]
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_FBCT_ERA5/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
 
-anomalize   = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
 
 # Variables
-flxnames    = ['cre']#['allsky','clearsky','cre']  # Loop for fluxes
-ccf_vars    = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
+flxnames        = ['creln']#['allsky','clearsky','cre']  # Loop for fluxes
+ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 
-selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
+selmons_loop    = [None,]#[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
 
 # MLR Calculation Options
-standardize = True # Set to True to standardize predictors before MLR
-fill_value  = 0    # Replace NaN values with <fill_value>
-add_ucc     = False # Set to True to include upper cloud concentration as a predictor
+standardize     = True # Set to True to standardize predictors before MLR
+fill_value      = 0    # Replace NaN values with <fill_value>
+add_ucc         = False # Set to True to include upper cloud concentration as a predictor
 
 #%% Now Load each predictor variable to do CCFs calculation
 # Note that some were computed in [calc_ccfs_regrid.py]
 # Others were preprocessed using remapbil in cdo
 
+"""
+Searches for datasets in 
+    .../ccfs/input_data/regrid_1x1/<expname>/anom_detrend1/
+
+Outputs computed kernels in
+    .../ccfs/kernels/regrid_1x1/<expname>/
+
+
+"""
+# Searches for the datasets in:
+
+nexps   = len(expnames)
 dsbyexp = []
-for ex in range(2):
+for ex in range(nexps):
+    
+    expname        = expnames[ex]
+    outpath_kernel = outpath + "%s/" % expname
+    proc.makedir(outpath_kernel)
+    
+    # Load the variables
     dsvars = []
     for v in range(len(ccf_vars)):
         
@@ -164,9 +180,6 @@ if anomalize:
         dsbyexp_anoms.append(dsvars_anoms)
 else:
     dsbyexp_anoms = dsbyexp
-    
-
-
 
 # =====================================
 #%% Part (2): Compute Radiative Kernels

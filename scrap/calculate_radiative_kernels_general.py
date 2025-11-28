@@ -72,7 +72,7 @@ def mlr_ccfs(ccfs,flx,standardize=True,fill_value=0,verbose=False):
             print("Standardizing each variable")
         predictors = np.array([ds/np.nanstd(ds) for ds in list(predictors)])
     X = predictors.T
-    y = flxpt.data
+    y = flx.data
     
     # Replace NaN Values in Predictors
     if verbose:
