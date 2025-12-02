@@ -151,7 +151,7 @@ def init_globalmap(nrow=1,ncol=1,figsize=(12,8)):
         ax = ax[0]
     return fig,ax
 
-def calc_lag_regression_1d(var1,var2,lags): # CAn make 2d by mirroring calc_lag_covar_annn
+def calc_lag_regression_1d(var1,var2,lags,correlation=False): # CAn make 2d by mirroring calc_lag_covar_annn
     # Calculate the regression where
     # (+) lags indicate var1 lags  var2 (var 2 leads)
     # (-) lags indicate var1 leads var2 (var 1 leads)
@@ -175,7 +175,10 @@ def calc_lag_regression_1d(var1,var2,lags): # CAn make 2d by mirroring calc_lag_
         varlag   = var2[lag:] # Now Varlag is the base...
         varbase  = var1[:(ntime-lag)]
         # Calculate correlation
-        beta = np.polyfit(varlag,varbase,1)[0]   
+        if correlation:
+            beta = np.corrcoef(varlag,varbase)[0,1]
+        else:
+            beta = np.polyfit(varlag,varbase,1)[0]   
         betalead.append(beta.item())
     
     # Append Together
@@ -795,7 +798,7 @@ def varcheck(ds,vname,expname):
     if np.any(ds > 273) and vname == "sst": # Convert to Celsius
         print("Converting from Kelvin to Celsius for %s" % expname)
         ds = ds - 273.15
-        
+    
     if vname in ['str','ssr',
                  'strc','ssrc',
                  'ttr','tsr',
