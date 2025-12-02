@@ -51,6 +51,8 @@ landmask = ut.load_land_mask_awi("TCo319",regrid=True)
 # =================
 
 # Path to Data and Experiments
+
+# CERES-FBCT with ERA5 ----- (calculate_unobscured_fluxes_CERES_FBCT)
 expname         = "CERES_FBCT_ERA5"
 datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_FBCT_ERA5/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
 outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
@@ -58,11 +60,38 @@ anomalize       = False # Kept for legacy. Input should be anomalized before usi
 tstart          = '2002-07-01'
 tend            = '2023-02-01'
 
+
+# CERES-EBAF with ERA5
+expname         = "CERES_EBAF_ERA5"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_EBAF_ERA5/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
+anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+tstart          = '2000-03-01'
+tend            = '2024-12-31'
+
+# # ERA5 1979-2024
+# expname         = "ERA5_1979_2024"
+# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+# outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
+# anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+# tstart          = '1979-01-01'
+# tend            = '2024-12-31'
+
+
+# 9km 1950 simulation
+expname         = "TCo1279-DART-1950"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
+anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+tstart          = None#'1979-01-01'
+tend            = None#'2024-12-31'
+
+
 # Variables
-flxname         = 'creln'#['allsky','clearsky','cre']  # Loop for fluxes
+flxname         = 'cre'#['allsky','clearsky','cre']  # Loop for fluxes
 ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 
-selmons_loop    = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # Set to None to do 
+selmons_loop    = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [None,]# # Set to None to do 
 
 # MLR Calculation Options
 standardize     = True # Set to True to standardize predictors before MLR
@@ -79,8 +108,6 @@ Searches for datasets in
 
 Outputs computed kernels in
     .../ccfs/kernels/regrid_1x1/<expname>/
-
-
 """
 
 # Prepare Output Path
@@ -103,7 +130,7 @@ for v in range(nccfs):
         if ccf_vars[v] == "w700": # Duplicate a month for the missing variables
             w700data = ds.data.squeeze()
             w700data_duplicate_jan1950 = np.concatenate([w700data[[0],...],w700data],axis=0)
-            newtime = dsvars[v-1].time
+            newtime = dsvars_anom[v-1].time
             coords  = dict(time=newtime,lat=ds.lat,lon=ds.lon)
             w700new = xr.DataArray(w700data_duplicate_jan1950,coords=coords,dims=coords,name='w700')
             ds = w700new
@@ -117,7 +144,7 @@ for v in range(nccfs):
     
     # SST is only 8 years, so reduce the time...
     if expname == 'TCo2559-DART-1950C': 
-        dsvars_anom = [reduce_time(ds,dsvars[0]) for ds in dsvars_anom]
+        dsvars_anom = [ut.reduce_time(ds,dsvars_anom[0]) for ds in dsvars_anom]
 
 # Load the fluxes
 dsflx   = xr.open_dataset("%s%s.nc" % (datpath,flxname))[flxname].load()
@@ -144,8 +171,12 @@ if "CERES" in expname:
     dsflx = shift_time_monthstart(dsflx,timename='time')
     
 # Limit to time
-dsflx       = dsflx.sel(time=slice(tstart,tend))
-dsvars_anom = [ds.sel(time=slice(tstart,tend)) for ds in dsvars_anom]
+if tstart or tend is not None:
+    dsflx       = dsflx.sel(time=slice(tstart,tend))
+    dsvars_anom = [ds.sel(time=slice(tstart,tend)) for ds in dsvars_anom]
+else:
+    print("No time range will be applied")
+    
 # for ii in range(nccfs): (note match time month does not play nice with pd.date_range, need to figure it out)
 #     dsvars_anom[ii],_=proc.match_time_month(dsvars_anom[ii],dsflx)
 
@@ -235,12 +266,12 @@ for selmons in selmons_loop:
     da_coeffs       = xr.DataArray(coeffs,coords=coords_coeffs,dims=coords_coeffs,name='coeffs')
     da_pred         = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='ypred')
     da_yerr         = xr.DataArray(yerr,coords=coords_pred,dims=coords_pred,name='yerr')
-    ds_out          = xr.merge([da_r2,da_coeffs,da_pred])
+    ds_out          = xr.merge([da_r2,da_coeffs,da_pred,da_yerr])
     edict           = proc.make_encoding_dict(ds_out)
     
     outname         = "%s%s_kernels_standardize%i.nc" % (outpath_kernel,flxname,standardize)
     if selmons is not None:
-        selmonstr = proc.mon2str(np.array(selmons)-1)
+        selmonstr    = proc.mon2str(np.array(selmons)-1)
         outname      = proc.addstrtoext(outname,"_"+selmonstr,adjust=-1)
     
     ds_out.to_netcdf(outname,encoding=edict)
