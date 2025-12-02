@@ -164,7 +164,10 @@ def calc_lag_regression_1d(var1,var2,lags,correlation=False): # CAn make 2d by m
         varbase  = var2[:(ntime-lag)]
         
         # Calculate correlation
-        beta = np.polyfit(varbase,varlag,1)[0]   
+        if correlation:
+            beta = np.corrcoef(varbase,varlag)[0,1]
+        else:
+            beta = np.polyfit(varbase,varlag,1)[0]   
         betalag.append(beta.item())
     
     neglags = lags[lags < 0]
