@@ -37,6 +37,7 @@ mlr                         : (g) single point multiple linear regression using 
 mlr_ccfs                    : (c) Multiple linear regrssion for cloud controlling factor analysis
 preprocess_enso             : (c) detrend (quadratic) and deseasonalize for ENSO calculations
 remove_duplicate_times      : (g) Remove duplicate times from a DataArray
+shift_time_monthstart       : (g) Shift times from center to start of month
 swap_rename                 : (g) check if variable exists and rename if so
 stack_events                : (g) For 1-d timeseries, stack events along specified leads/lags
 stack_events_2d             : (g) Stack Events, but applied to 2D case with time x lat x lon....
@@ -57,6 +58,7 @@ import matplotlib.pyplot as plt
 import sys
 import time
 import glob
+import pandas as pd
 
 from sklearn.linear_model import LinearRegression
 import sklearn
@@ -185,7 +187,7 @@ def calc_lag_regression_1d(var1,var2,lags,correlation=False): # CAn make 2d by m
         betalead.append(beta.item())
     
     # Append Together
-    return np.concat([np.flip(np.array(betalead)),np.array(betalag)])
+    return np.concatenate([np.flip(np.array(betalead)),np.array(betalag)])
 
 
 def combine_events(var_in,id_in,tol=1,verbose=True):
@@ -691,6 +693,17 @@ def remove_duplicate_times(ds,verbose=True,timename='time'):
     _, index = np.unique(ds[timename], return_index=True)
     print("Found %i duplicate times. Taking first entry." % (len(ds[timename]) - len(index)))
     return ds.isel({timename:index})
+
+def shift_time_monthstart(dsin,timename='time'):
+    # Shift dates from center of month to 1st of month (09-15 --> 09-01)
+    # example: calculate radiative kernel.py
+    oldtime         = dsin[timename]
+    tstart          =  str(oldtime[0].data)[:7] + "-01"
+    tend            =  str(oldtime[-1].data)[:7] + "-01"
+    newtime         = pd.date_range(start=tstart,end=tend,freq="MS")
+    dsin[timename]    = newtime
+    print("New time dimension between %s and %s" % (dsin[timename][0].data,dsin[timename][-1].data))
+    return dsin
  
 def standardize_names(ds):
     
@@ -819,11 +832,11 @@ def varcheck(ds,vname,expname):
         conversion  = 1/(3600 * accumulation_hr)  # 3 h accumulation time...? #1/(24*30*3600)
         # https://forum.ecmwf.int/t/surface-radiation-parameters-joule-m-2-to-watt-m-2/1588
         ds          = ds * conversion
-        
+    
     if vname in ["cp","lsp"]: # Convert from [meters/accumulation period] to [mm/day]
         if "TCo319" in expname:
             print("Correction for accumulation over 6 hours for %s" % expname)
-            accumulation_hr = 6
+            accumulation_hr = 6 
         else:
             print("Correction for accumulation over 3 hours for %s" % expname )
             accumulation_hr = 3
