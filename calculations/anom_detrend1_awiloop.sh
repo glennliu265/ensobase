@@ -31,7 +31,7 @@ expnames=("TCo2559-DART-1950C" "TCo1279-DART-1950" "TCo319_ctl1950d" "TCo319_ssp
 vnames=("cre" "allsky" "clearsky" "sst" "ttcre" "tscre") #("Tadv" "ws10" "eis" "w700" "r700" "sst") #("allsky" "clearsky" "cre" "ttcre" "tscre")
 dpath="/home/niu4/gliu8/projects/scrap/processed_global"
 detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
-scyclepath="/home/niu4/gliu8/projects/scrap/scycle"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
 for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if you are using bash.
     for vname in ${vnames[@]}; do
 
@@ -50,6 +50,44 @@ for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if 
     done
 done
 
+
+# Manually Do this for 2 missing cases
+
+# exp="TCo1279-DART-1950"
+# vname="ttcre"
+# dpath="/home/niu4/gliu8/projects/scrap/processed_global"
+# detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+# scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+# infile=${dpath}/${exp}_${vname}.nc
+# scyclefile=${scyclepath}/${exp}_${vname}.nc
+# outfile=${detrendpath}/${exp}_${vname}.nc
+# cdo ymonmean ${infile} ${scyclefile}
+# cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+# cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+exp="TCo319_ssp585"
+vname="cre"
+dpath="/home/niu4/gliu8/projects/scrap/processed_global"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${dpath}/${exp}_${vname}.nc
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo ymonmean ${infile} ${scyclefile}
+cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+exp="TCo1279-DART-2090"
+vname="cre"
+dpath="/home/niu4/gliu8/projects/scrap/processed_global"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${dpath}/${exp}_${vname}.nc
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo ymonmean ${infile} ${scyclefile}
+cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
 
 
 # vnames=("ws10") #"eis" "ws10" "Tadv") #("sst") #("allsky" "clearsky" "cre" "ttcre" "tscre")

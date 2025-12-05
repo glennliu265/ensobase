@@ -32,21 +32,36 @@ amvpath = "/home/niu4/gliu8/scripts/commons"
 sys.path.append(amvpath)
 from amv import proc,viz
 
+ensopath = "/home/niu4/gliu8/scripts/ensobase"
+sys.path.append(ensopath)
+import utils as ut
+
 #%% Indicate paths
 
-figpath         = "/home/niu4/gliu8/figures/bydate/2025-09-16/"
+figpath         = "/home/niu4/gliu8/figures/bydate/2025-12-AWI-Hackathon/"
 proc.makedir(figpath)
 
-datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
+
 outpath         = "/home/niu4/gliu8/projects/scrap/nino34/"
 
-expnames        = ["TCo2559-DART-1950C"]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090"] # ["glorys"]#
-expnames_long   = ["5km 1950"]#["31km Control","31km SSP585","9km 1950","9km 2090"]
-vname           = "sst"
+
+# # Calculate for AWI-CM3
+# datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
+# expnames        = ["TCo2559-DART-1950C"]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090"] # ["glorys"]#
+# expnames_long   = ["5km 1950"]#["31km Control","31km SSP585","9km 1950","9km 2090"]
+# vname           = "sst"
+nclist            = None
+
+# Calculate for ERA5 as well
+expnames        = ["ERA5_1979_2024",]
+expnames_long   = ["ERA5 (1979-2024)",]
+datpath         = "/home/niu4/gliu8/share/ERA5/processed/"
+vname           = 'sst'
+nclist          = ["sst_1979_2024.nc",]
 
 nexps           = len(expnames)
 
-ninoid_name        = 'nino3'#'nino34' # 
+ninoid_name        = 'nino34'#'nino34' # 
 
 bbox_nino34   = [-170+360,-120+360,-5,5]
 bbox_nino3    = [-150+360, -90+360 , -5, 5]  # Nino 3 Box: For SST, <tau_x>
@@ -64,6 +79,10 @@ def rename_time_dart(ds):
     if 'time_counter' in list(ds.coords):
         print("Renaming [time_counter] to [time]")
         ds = ds.rename({'time_counter':'time'})
+    if 'valid_time' in list(ds.coords):
+        print("Renaming [valid_time] to [time]")
+        ds = ds.rename({'valid_time':'time'})
+        
     return ds
 
 def movmean(ds,win):
@@ -76,8 +95,15 @@ def remake_da(ds,dsref,name='sst'):
 
 #%% Load the Dataset and preliminary processing
 
-dsall         = [xr.open_dataset("%s%s_%s.nc" % (datpath,ex,vname)).load() for ex in expnames]
+if nclist is not None:
+    dsall         = [xr.open_dataset(datpath+nc).load() for nc in nclist]
+else:
+    dsall         = [xr.open_dataset("%s%s_%s.nc" % (datpath,ex,vname)).load() for ex in expnames]
 dsall         = [rename_time_dart(ds) for ds in dsall]
+dsall         = [ut.standardize_names(ds) for ds in dsall]
+
+for dd,ds in enumerate(dsall):
+    if ds.lat[1] < ds.lat[0]:
 #sst_anom     = [proc.xrdeseason(ds) for ds in dsall]
 
 #%% Calculate ENSO Index

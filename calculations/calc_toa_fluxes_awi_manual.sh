@@ -26,7 +26,12 @@ cdo chname,ttr,ttcre ${outpath}/temp.nc ${outpath}/${expname}_ttcre.nc
 cdo -sub ${rawpath}/ctl1950d_atm_remapped_1m_tsr_1850-2134.nc  ${rawpath}/ctl1950d_atm_remapped_1m_tsrc_1850-2134.nc ${outpath}/temp.nc
 cdo chname,tsr,tscre ${outpath}/temp.nc ${outpath}/${expname}_tscre.nc
 
-
+# 1950 9km
+expname="TCo1279-DART-1950"
+rawpath="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo1279-DART-1950_9km/atm/mon"
+outpath="/home/niu4/gliu8/projects/scrap/processed_global"
+cdo -sub ${rawpath}/TCo1279-DART-1950_atm_remapped_1m_ttr_240months.nc ${rawpath}/TCo1279-DART-1950_atm_remapped_1m_ttrc_240months.nc ${outpath}/temp.nc
+cdo chname,ttr,ttcre ${outpath}/temp.nc ${outpath}/${expname}_ttcre.nc
 
 
 # ----- Runnning
@@ -56,7 +61,6 @@ cdo chname,ttr,ttcre ${outpath}/temp.nc ${outpath}/${expname}_ttcre.nc
 # TSCRE
 cdo -sub ${rawpath}/TCo319_ssp585_tsr_1m_2015-2114_atmogrid.nc  ${rawpath}/TCo319_ssp585_tsrc_1m_2015-2114_atmogrid.nc ${outpath}/temp.nc
 cdo chname,tsr,tscre ${outpath}/temp.nc ${outpath}/${expname}_tscre.nc
-
 
 
 
@@ -133,6 +137,10 @@ cdo chname,allsky,cre /home/niu4/gliu8/projects/scrap/processed_global/temp.nc /
 /export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo2559-DART-1950C_5km/atm
 
 
+
+
+
+
 # Calculate for ERA5 # ============================================================
 # expname="TCo2559-DART-1950C"
 rawpath='/home/niu4/gliu8/share/ERA5/processed'
@@ -155,6 +163,8 @@ cdo -sub ${outpath}/ttr_1979_2024.nc  ${outpath}/ttrc_1979_2024.nc ${outpath}/te
 cdo chname,ttr,ttcre ${outpath}/temp.nc ${outpath}/ttcre_1979_2024.nc
 
 # TSCRE 
+#rawpath='/home/niu4/gliu8/share/ERA5/processed'
+#outpath='/home/niu4/gliu8/share/ERA5/processed'
 cdo -sub ${outpath}/tsr_1979_2024.nc  ${outpath}/tsrc_1979_2024.nc ${outpath}/temp.nc
 cdo chname,tsr,tscre ${outpath}/temp.nc ${outpath}/tscre_1979_2024.nc
 

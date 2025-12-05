@@ -8,6 +8,8 @@ Goal: Trying to reproduce the results from the
 Ceppi and Fueglistaler 2021 and Hanke and Proistosescu 2024 papers
 but for the AWI-CM3 simulations
 
+2025.12.04: Added ERA5, prepping for AWI-Hackathon Simulations
+
 Created on Wed Oct 15 11:34:32 2025
 
 @author: gliu
@@ -48,7 +50,7 @@ import scm
 
 gmeanpath = "/home/niu4/gliu8/projects/scrap/global_mean/"
 ninopath = "/home/niu4/gliu8/projects/scrap/nino34/"
-figpath = "/home/niu4/gliu8/figures/bydate/2025-11-04/"
+figpath = "/home/niu4/gliu8/figures/bydate/2025-12-AWI-Hackathon/"
 proc.makedir(figpath)
 
 vnames = ["ttr", "ttrc", "tsr", "tsrc"]
@@ -58,24 +60,24 @@ ensoid_name = "nino34"
 
 # Simulation Names -----
 expnames = ["TCo319_ctl1950d", "TCo319_ssp585",
-            "TCo1279-DART-1950", "TCo1279-DART-2090", "TCo2559-DART-1950C"]
+            "TCo1279-DART-1950", "TCo1279-DART-2090", "TCo2559-DART-1950C","ERA5_1979_2024"]
 expnames_long = ["31km Control", "31km SSP585",
-                 "9km 1950", "9km 2090", "5km 1950"]
+                 "9km 1950", "9km 2090", "5km 1950","ERA5 (1979-2024)"]
 expcols = ["cornflowerblue", 'lightcoral',
            "slateblue", "firebrick",
            "midnightblue", "k"]  # Includes Glorys and different shade based on resolution
 
 
-vnames_other = ['sst','eis',]#'w','r']
+vnames_other = ['sst',]#'eis',]#'w','r']
 
 
 # %% Load ENSO Indices
 
-
 ensoids = [ut.load_ensoid(expname, ensoid_name,
                           standardize=standardize) for expname in expnames]
 
-# %%
+# %% Load Global Mean values for each variable (not detrended)
+
 loadmaskeis=True
 apply_conversion = True
 nexps = len(expnames)
@@ -99,7 +101,7 @@ for ex in range(nexps):
             ds = ut.remove_duplicate_times(ds)
             if apply_conversion:
                 ds = ut.varcheck(ds, vname, expnames[ex])
-
+            
             ds_byvar.append(ds.copy())
         except:
             print("Could not find %s for %s" % (vname, expnames[ex]))
@@ -172,8 +174,7 @@ for v in range(4):
             plotvar = vars_byexp[ex][vname].groupby('time.month').mean('time').squeeze()
             ax.plot(mons3, plotvar, lw=2, c=expcols[ex])
     ax.set_title(vnames[v])
-            
-    
+
 plt.show()
 
 # %% Calculate CRE and Net
@@ -365,7 +366,6 @@ plt.show()
 #%% Try Plotting Separately for each month
 
 v       = 0
-
 
 
 fig,axs = plt.subplots(1,12,constrained_layout=True,figsize=(12.5,4),sharey=True)
