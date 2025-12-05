@@ -85,7 +85,6 @@ anomalize       = False # Kept for legacy. Input should be anomalized before usi
 tstart          = '2000-03-01'
 tend            = '2024-12-31'
 
-
 # # 9km 1950 simulation
 # expname         = "TCo1279-DART-1950"
 # datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
@@ -93,7 +92,6 @@ tend            = '2024-12-31'
 # anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
 # tstart          = None#'1979-01-01'
 # tend            = None#'2024-12-31'
-
 
 # Variables
 flxname         = 'cre'#['allsky','clearsky','cre']  # Loop for fluxes
@@ -165,7 +163,7 @@ elif expname == "ERA5_1979_2024":
     dsflx   = dsflx / dtday
 dsflx   = ut.standardize_names(dsflx)
 
-# Shift CERES data
+# Shift CERES data (move function to ut)
 import pandas as pd
 def shift_time_monthstart(dsin,timename='time'):
     oldtime         = dsin[timename]
@@ -176,7 +174,7 @@ def shift_time_monthstart(dsin,timename='time'):
     print("New time dimension between %s and %s" % (dsin[timename][0].data,dsin[timename][-1].data))
     return dsin
 if "CERES" in expname:
-    dsflx = shift_time_monthstart(dsflx,timename='time')
+    dsflx = ut.shift_time_monthstart(dsflx,timename='time')
     
 # Limit to time
 if tstart or tend is not None:
