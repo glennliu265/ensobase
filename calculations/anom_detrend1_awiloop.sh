@@ -1,30 +1,56 @@
 # Detrend (Linear) and Anomalize (remove scycle) using CDO
 # Note this doesnt work, I wonder if this is due to the time dimension
 
+# expnames=("TCo2559-DART-1950C" "TCo1279-DART-1950" "TCo319_ctl1950d" "TCo319_ssp585" "TCo1279-DART-2090")
+# vnames=("cre" "allsky" "clearsky") #("Tadv" "ws10" "eis" "w700" "r700" "sst") #("allsky" "clearsky" "cre" "ttcre" "tscre")
+# dpath=/home/niu4/gliu8/projects/scrap/regrid_1x1
+# detrendpath=/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1
+# scyclepath=/home/niu4/gliu8/projects/scrap/regrid_1x1/scycle
+# for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if you are using bash.
+#     for vname in ${vnames[@]}; do
+
+#         infile=${dpath}/${exp}_${vname}_regrid1x1.nc
+#         scyclefile=${scyclepath}/${exp}_${vname}_regrid1x1.nc
+#         outfile=${detrendpath}/${exp}_${vname}_regrid1x1.nc
+
+#         cdo ymonmean ${infile} ${scyclefile}
+#         cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+#         cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+
+#         # cdo ymonsub ${dpath}/${exp}_${vname}_regrid1x1.nc -ymonmean ${dpath}/${exp}_${vname}_regrid1x1.nc ${outpath}/temp.nc
+#         # cdo detrend ${outpath}/temp.nc ${outpath}/${exp}_${vname}_anom_regrid1x1.nc
+#         # rm ${outpath}/temp.nc
+#         echo "Completed $vname for $exp"
+
+#     done
+#done
+
+# Repeat for nonregridded case
 expnames=("TCo2559-DART-1950C" "TCo1279-DART-1950" "TCo319_ctl1950d" "TCo319_ssp585" "TCo1279-DART-2090")
-vnames=("cre" "allsky" "clearsky") #("Tadv" "ws10" "eis" "w700" "r700" "sst") #("allsky" "clearsky" "cre" "ttcre" "tscre")
-dpath=/home/niu4/gliu8/projects/scrap/regrid_1x1
-detrendpath=/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1
-scyclepath=/home/niu4/gliu8/projects/scrap/regrid_1x1/scycle
+vnames=("cre" "allsky" "clearsky" "sst" "ttcre" "tscre") #("Tadv" "ws10" "eis" "w700" "r700" "sst") #("allsky" "clearsky" "cre" "ttcre" "tscre")
+dpath="/home/niu4/gliu8/projects/scrap/processed_global"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/scycle"
 for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if you are using bash.
     for vname in ${vnames[@]}; do
 
-        infile=${dpath}/${exp}_${vname}_regrid1x1.nc
-        scyclefile=${scyclepath}/${exp}_${vname}_regrid1x1.nc
-        outfile=${detrendpath}/${exp}_${vname}_regrid1x1.nc
+        infile=${dpath}/${exp}_${vname}.nc
+        scyclefile=${scyclepath}/${exp}_${vname}.nc
+        outfile=${detrendpath}/${exp}_${vname}.nc
 
         cdo ymonmean ${infile} ${scyclefile}
         cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
         cdo detrend ${detrendpath}/temp1.nc ${outfile}
 
 
-        # cdo ymonsub ${dpath}/${exp}_${vname}_regrid1x1.nc -ymonmean ${dpath}/${exp}_${vname}_regrid1x1.nc ${outpath}/temp.nc
-        # cdo detrend ${outpath}/temp.nc ${outpath}/${exp}_${vname}_anom_regrid1x1.nc
-        # rm ${outpath}/temp.nc
+
         echo "Completed $vname for $exp"
 
     done
 done
+
+
 
 # vnames=("ws10") #"eis" "ws10" "Tadv") #("sst") #("allsky" "clearsky" "cre" "ttcre" "tscre")
 # yearstr="1979_2024"
