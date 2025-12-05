@@ -46,19 +46,34 @@ expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"
 
 
 # Just look at the 4th experiment
-ex              = 4
+ex              = 0
 # timecrops       = [[1950,2100],None,None,None,None]
 
 # Only available for the 5km simulation
 datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 datpath_glob    = "/home/niu4/gliu8/projects/scrap/processed_global/"
 vnames          = ["skt","pl_t_700"]
-expname         = "TCo1279-DART-1950" #"TCo2559-DART-1950C"
+expname         = "TCo319_ctl1950d" #"TCo1279-DART-2090" #"TCo1279-DART-1950" #"TCo2559-DART-1950C"
+
+processed_path = False
 
 if expname == "TCo2559-DART-1950C":
-    vnames          = ["skt","pl_t_700"]
+    vnames      = ["skt","pl_t_700"]
+    
 elif expname == "TCo1279-DART-1950":
     vnames          = ["skt","t700"]
+    
+elif expname == "TCo319_ctl1950d" or expname == "TCo1279-DART-2090":
+    processed_path = True
+    
+    vnames      = ["sst","t700"] # Use SST as it is the same thing as skin temperature and you want ocean-only points
+    datpath     = '/home/niu4/gliu8/projects/scrap/processed_global/'
+    datpath_glob = '/home/niu4/gliu8/projects/scrap/processed_global/'
+    
+    
+
+    
+    
     
 
 #%% First, just try for the tropical pacific
@@ -77,17 +92,29 @@ if TP_crop: # Load just the tropical version
         ds = xr.open_dataset(ncname).load()
         dsall.append(ds)
 else:
+    
+    
+    
     for v in range(2):
         vname  = vnames[v]
-        ncname = ut.get_rawpath_awi(expname,vname,ensnum=None)[0]
+        if processed_path:
+            ncname = "%s%s_%s.nc" % (datpath_glob,expname,vname)
+        else:
+            ncname = ut.get_rawpath_awi(expname,vname,ensnum=None)[0]
         ds = xr.open_dataset(ncname)#chunks=chunkdict)#.load()
         dsall.append(ds)
 
 
+sktname     = vnames[0]
+t700name    = vnames[1]
+
 dsall       = [ds.chunk(chunkdict) for ds in dsall]
 skt,t700    = dsall
-skt         = skt.skt
-t700        = t700.t.squeeze()
+skt         = skt[sktname]
+t700        = t700[t700name].squeeze()
+
+# Make sure time matches up
+skt,t700 = proc.match_time_month(skt,t700,timename='time_counter')
 
 
 print(np.any(t700 < 0))
@@ -112,20 +139,16 @@ print("Calculated in %2.fs" % (time.time()-st))
 # Set Output and Write 1235 sec
 st = time.time()
 if TP_crop:
-    outname = "%s%s_eis_useskt.nc" % (datpath,expname)
+    outname = #"%s%s_eis_useskt.nc" % (datpath,expname)
 else:
-    outname = "%s%s_eis_useskt.nc" % (datpath_glob,expname)
+    outname = "%s%s_eis.nc" % (datpath_glob,expname) #"%s%s_eis_useskt.nc" % (datpath_glob,expname)
 ds_eis.to_netcdf(outname,encoding=edict)
 print("Saved in %2.fs" % (time.time()-st))
-
 
 # #%% Reload if already calculated
 
 # outname = "%s%s_eis_useskt.nc" % (datpath,expname)
 # ds_eis = xr.open_dataset(outname).eis.load()
-
-
-
 
 # #%%
 # eismean = ds_eis.mean('time')
