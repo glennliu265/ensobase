@@ -56,7 +56,7 @@ vnames   = ["tcc_cldtyp","ttr_cldtyp","tsr_cldtyp",
 
 ncsearch = datpath + "CERES_FBCT_%s_2002-07_to_2023-02.nc"
 
-dsall = []
+dsall    = []
 for vname in tqdm.tqdm(vnames):
     ncname = ncsearch % vname
     ds     = xr.open_dataset(ncname)[vname].load()
@@ -298,8 +298,8 @@ frac_mult = ( Lprime - Uprime.groupby('time.month')*Lnbar).groupby('time.month')
 term1 =  ((Rptbar.isel(press=idlow) * fbar.isel(press=idlow)) / Lbar).sum(('press','opt')) - Rclrbar
 
 # Calcualte Second Term
-Rdiff  = (Rptbar.isel(press=idlow) - Rclrbar)
-term2  = (Rdiff * fprime2_Lnprime.groupby('time.month')).sum(('press','opt'))
+Rdiff   = (Rptbar.isel(press=idlow) - Rclrbar)
+term2   = (Rdiff * fprime2_Lnprime.groupby('time.month')).sum(('press','opt'))
 
 # Calculate Full Term
 RLnprime = term1*frac_mult.groupby('time.month') + term2#*fprime2_Lnprime
@@ -316,22 +316,6 @@ RLnprime = RLnprime.rename("creln")
 outname  = ncsearch % "creln_anom"
 RLnprime.to_netcdf(outname)
 
-
 #%% Do a simple calculation
 
-
-
-
-#%% Compute the 
-
-
-
-#Lnbar.plot(vmin=5,vmax=75,cmap='Blues_r'),plt.show()
-
-
-
-
-
-
-#press = dsall.press
 
