@@ -85,6 +85,9 @@ for vname in vnames:
                 continue
             proc.printtime(st,print_str="Loaded")
             
+            # Apply name check
+            dsvar = ut.standardize_names(dsvar)
+            
             # Crop time (mostly for control run, pre 1950)
             timecrop = timecrops[ex]
             if timecrop is not None:
