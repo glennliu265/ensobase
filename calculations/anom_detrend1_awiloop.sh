@@ -111,3 +111,150 @@ cdo detrend ${detrendpath}/temp1.nc ${outfile}
 #cdo ymonsub /home/niu4/gliu8/projects/scrap/regrid_1x1/TCo1279-DART-2090_cre_regrid1x1.nc -ymonmean /home/niu4/gliu8/projects/scrap/regrid_1x1/TCo1279-DART-2090_cre_regrid1x1.nc /home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/temp.nc
 #cdo detrend /home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/temp.nc /home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/TCo1279-DART-2090_cre_anom_regrid1x1.nc
 
+
+# ======================================================
+# Manually Detrend some variables for hackathon analysis
+
+
+## MSL -------------------------------------------------
+# MSL 9km 1950
+exp="TCo1279-DART-1950"
+vname="msl"
+ncname="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo1279-DART-1950_9km/TCo1279_DART-1950_msl_1m_1950-1969.nc"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${ncname}
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo ymonmean ${infile} ${scyclefile}
+cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+# MSL 9km 2090
+exp="TCo1279-DART-2090"
+vname="msl"
+ncname="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo1279-DART-2090_9km/TCo1279_DART-2090_msl_1m_2090-2099.nc"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${ncname}
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo ymonmean ${infile} ${scyclefile}
+cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+# MSL 31km ssp585
+exp="TCo319_ssp585"
+vname="msl"
+ncname="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_ssp585/TCo319_ssp585_msl_1m_2015-2114.nc"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${ncname}
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo ymonmean ${infile} ${scyclefile}
+cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+# MSL 31km control (WARNING SeLECT YEAR Implemented)
+exp="TCo319_ctl1950d"
+vname="msl"
+ncname="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_control/TCo319_ctl1950d_msl_1m_1850-2134.nc"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${ncname}
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo selyear,1950/2100 ${ncname} ${detrendpath}/temp.nc
+cdo ymonmean ${detrendpath}/temp.nc ${scyclefile}
+cdo ymonsub ${detrendpath}/temp.nc ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+
+# Remap pr -----------------------
+# 9km 1950
+exp="TCo1279-DART-1950"
+vname="pr"
+ncname="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo1279-DART-1950_9km/TCo1279-DART-1950_atm_remapped_1m_pr_240months.nc"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${ncname}
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo ymonmean ${infile} ${scyclefile}
+cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+
+# 9km 2090
+exp="TCo1279-DART-2090"
+vname="pr"
+ncname="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo1279-DART-2090_9km/TCo1279-2090slice_aleph_pr_1m_2090-2099.nc"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${ncname}
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo ymonmean ${infile} ${scyclefile}
+cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+
+# lcc -------------------------------------------------
+exp="TCo1279-DART-2090"
+vname="lcc"
+ncname="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo1279-DART-2090_9km/TCo1279_2090slice_aleph_lcc_1m_2090-2099.nc"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${ncname}
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo ymonmean ${infile} ${scyclefile}
+cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+exp="TCo1279-DART-1950"
+vname="lcc"
+ncname="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo1279-DART-1950_9km/atm/mon/TCo1279-DART-1950_atm_remapped_1m_lcc_240months.nc"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${ncname}
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo ymonmean ${infile} ${scyclefile}
+cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+# 31km Control
+exp="TCo319_ctl1950d"
+vname="lcc"
+ncname="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_control/ctl1950d_atm_remapped_1m_lcc_1850-2134.nc"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${ncname}
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo selyear,1950/2100 ${ncname} ${detrendpath}/temp.nc
+cdo ymonmean ${detrendpath}/temp.nc ${scyclefile}
+cdo ymonsub ${detrendpath}/temp.nc ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+# 31km SSP5.85
+exp="TCo319_ssp585"
+vname="lcc"
+ncname="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_ssp585/TCo319_ssp585_lcc_1m_2015-2114_atmogrid.nc"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+infile=${ncname}
+scyclefile=${scyclepath}/${exp}_${vname}.nc
+outfile=${detrendpath}/${exp}_${vname}.nc
+cdo ymonmean ${infile} ${scyclefile}
+cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+cdo detrend ${detrendpath}/temp1.nc ${outfile}
+
+
+
+
+# ======================================================
+
+
