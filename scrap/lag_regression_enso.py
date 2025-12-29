@@ -40,7 +40,7 @@ import utils as ut
 
 #%% User Edits
 
-expnames        = ["TCo319_ctl1950d","TC0319_ssp585",]#"glorys",]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
+expnames        = ["TCo319_ctl1950d","TCo319_ssp585",]#"glorys",]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
 expnames_long   = ["31km Control","31km SSP585"]#"GLORYS Reanalysis"]#["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 
 ensoid_name     = "nino3"
@@ -50,7 +50,7 @@ timecrops        = [[1950,2100],None]#[1993,2024]]
 
 datpath         = "/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/TP_crop/anom_detrend2/"
 outpath         = "/home/niu4/gliu8/projects/enso_feedbacks/lag_regressions/regrid_1x1/" #"/home/niu4/gliu8/projects/scrap/TP_crop/lag_regressions/"
-ncname_rep      = "%s%s_%s_regrid1x1.nc" #"%s%s_%s_anom.nc"
+ncname_rep      = "%s%s_%s_regrid1x1.nc" #"%s%s_%s_anom.nc" (datpath,expnames[ex],vname)
 
 figpath         = "/home/niu4/gliu8/figures/bydate/2026-01-13/"
 proc.makedir(figpath)
