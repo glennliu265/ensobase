@@ -55,7 +55,7 @@ ncname_rep      = "%s%s_%s_regrid1x1.nc" #"%s%s_%s_anom.nc" (datpath,expnames[ex
 figpath         = "/home/niu4/gliu8/figures/bydate/2026-01-13/"
 proc.makedir(figpath)
 
-vnames          = ['sst',]#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+vnames          = ["ssh","tx_sur","temp75","vvel_ML50","uvel_ML50"]#'sst',]#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 #%% Load ENSO ID
 
