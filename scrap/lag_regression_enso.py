@@ -55,7 +55,7 @@ ncname_rep      = "%s%s_%s_regrid1x1.nc" #"%s%s_%s_anom.nc" (datpath,expnames[ex
 figpath         = "/home/niu4/gliu8/figures/bydate/2026-01-13/"
 proc.makedir(figpath)
 
-vnames          = ["ssh","tx_sur","temp75","vvel_ML50","uvel_ML50"]#'sst',]#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+vnames          = ["temp75","vvel_ML50","uvel_ML50"]#'sst',#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 #%% Load ENSO ID
 
@@ -99,7 +99,7 @@ for vname in vnames:
             dsvar,ensoid    = proc.match_time_month(dsvar,ensoid)
             
             # Get Dimension Lengths
-            dsvar           = dsvar.transpose('lon','lat','time')
+            dsvar           = dsvar.squeeze().transpose('lon','lat','time')
             nlon,nlat,ntime = dsvar.shape
             
         
