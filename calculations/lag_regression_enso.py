@@ -43,7 +43,7 @@ import utils as ut
 expnames        = ["TCo319_ctl1950d","TCo319_ssp585",]#"glorys",]#["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C"]
 expnames_long   = ["31km Control","31km SSP585"]#"GLORYS Reanalysis"]#["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 
-ensoid_name     = "nino3"
+ensoid_name     = "nino34"
 standardize     = False
 
 timecrops        = [[1950,2100],None]#[1993,2024]]
@@ -55,7 +55,7 @@ ncname_rep      = "%s%s_%s_regrid1x1.nc" #"%s%s_%s_anom.nc" (datpath,expnames[ex
 figpath         = "/home/niu4/gliu8/figures/bydate/2026-01-13/"
 proc.makedir(figpath)
 
-vnames          = ["temp75","vvel_ML50","uvel_ML50"]#'sst',#str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+vnames          = ["temp75","vvel_ML50","uvel_ML50",'sst',"tx_sur","ssh"] #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 #%% Load ENSO ID
 
