@@ -38,12 +38,10 @@ import utils as ut
 
 #%% Indicate paths
 
-figpath         = "/home/niu4/gliu8/figures/bydate/2025-12-AWI-Hackathon/"
+figpath         = "/home/niu4/gliu8/figures/bydate/2026-01-13/"
 proc.makedir(figpath)
 
-
 outpath         = "/home/niu4/gliu8/projects/scrap/nino34/"
-
 
 # # Calculate for AWI-CM3
 # datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
@@ -52,16 +50,26 @@ outpath         = "/home/niu4/gliu8/projects/scrap/nino34/"
 # vname           = "sst"
 nclist            = None
 
-# Calculate for ERA5 as well
-expnames        = ["ERA5_1979_2024",]
-expnames_long   = ["ERA5 (1979-2024)",]
-datpath         = "/home/niu4/gliu8/share/ERA5/processed/"
-vname           = 'sst'
-nclist          = ["sst_1979_2024.nc",]
+# # Calculate for ERA5 as well
+# expnames        = ["ERA5_1979_2024",]
+# expnames_long   = ["ERA5 (1979-2024)",]
+# datpath         = "/home/niu4/gliu8/share/ERA5/processed/"
+# vname           = 'sst'
+# nclist          = ["sst_1979_2024.nc",]
+
+# Calculate for Updated AWI-CM3 Runs
+datpath           = "/home/niu4/gliu8/projects/scrap/processed_global/"
+expnames          = ["TCo1279-DART-2060",
+                     "TCo319-DART-ctl1950d-gibbs-charn",
+                     "TCo319-DART-ssp585d-gibbs-charn",]
+vname             = "sst",
+nclist            = ["%s%s_sst.nc" % (datpath,ex) for ex in expnames ]
+
+
 
 nexps           = len(expnames)
 
-ninoid_name        = 'nino34'#'nino34' # 
+ninoid_name     = 'nino34'#'nino34' # 
 
 bbox_nino34   = [-170+360,-120+360,-5,5]
 bbox_nino3    = [-150+360, -90+360 , -5, 5]  # Nino 3 Box: For SST, <tau_x>
@@ -104,6 +112,8 @@ dsall         = [ut.standardize_names(ds) for ds in dsall]
 
 for dd,ds in enumerate(dsall):
     if ds.lat[1] < ds.lat[0]:
+        print("Flipping lat for %s"  % expnames[dd])
+        dsall[dd] = proc.fliplat(ds)
 #sst_anom     = [proc.xrdeseason(ds) for ds in dsall]
 
 #%% Calculate ENSO Index

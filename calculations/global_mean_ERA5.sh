@@ -13,7 +13,10 @@ for vname in ${vnames[@]}; do
 done
 
 # Manual Change for ERA5
-expname=
+datpath="/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1"
+#outpath="/home/niu4/gliu8/projects/scrap/global_mean"
+outpath="/home/niu4/gliu8/projects/ccfs/global_mean"
+expname="ERA5_1979_2024"
 vname="tscre"
 infile=${datpath}/${vname}_1979_2024.nc
 outfile=${outpath}/${expname}_${vname}_global_mean.nc
