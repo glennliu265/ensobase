@@ -63,7 +63,7 @@ expnames          = ["TCo1279-DART-2060",
                      "TCo319-DART-ctl1950d-gibbs-charn",
                      "TCo319-DART-ssp585d-gibbs-charn",]
 vname             = "sst",
-nclist            = ["%s%s_sst.nc" % (datpath,ex) for ex in expnames ]
+nclist            = ["%s_sst.nc" % (ex) for ex in expnames ]
 
 
 
