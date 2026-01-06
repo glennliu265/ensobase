@@ -66,20 +66,17 @@ vname             = "sst",
 nclist            = ["%s_sst.nc" % (ex) for ex in expnames ]
 
 
+nexps             = len(expnames)
 
-nexps           = len(expnames)
+ninoid_name       = 'nino3'#'nino34' # 
 
-ninoid_name     = 'nino3'#'nino34' # 
-
-bbox_nino34   = [-170+360,-120+360,-5,5]
-bbox_nino3    = [-150+360, -90+360 , -5, 5]  # Nino 3 Box: For SST, <tau_x>
+bbox_nino34       = [-170+360,-120+360,-5,5]
+bbox_nino3        = [-150+360, -90+360 , -5, 5]  # Nino 3 Box: For SST, <tau_x>
 
 if ninoid_name == "nino34":
     bbox = bbox_nino34
 elif ninoid_name == 'nino3':
     bbox = bbox_nino3
-    
-
 
 #%%Functions
 

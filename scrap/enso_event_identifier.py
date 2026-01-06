@@ -49,8 +49,8 @@ proc.makedir(figpath)
 
 datpath         = "/home/niu4/gliu8/projects/scrap/TP_crop/"
 
-expnames        = ["TCo2559-DART-1950C","TCo319_ctl1950d","TCo319_ssp585",]#"TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C","glorys"]
-expnames_long   = ["5km 1950","31km Control","31km SSP585",]#,"9km 1950","9km 2090","5km 1950","GLORYS"]
+expnames        = ["TCo2559-DART-1950C","TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo1279-DART-2090","TCo2559-DART-1950C","glorys"]
+expnames_long   = ["5km 1950","31km Control","31km SSP585","9km 1950","9km 2090","5km 1950","GLORYS"]
 
 vname           = "sst"#"Dmaxgrad" #"sst"#"str"
 
@@ -946,6 +946,17 @@ for ex in range(nexps):
     
     encoding=proc.make_encoding_dict(da_out)
     da_out.to_netcdf(outname,encoding=encoding)
+
+#%% Look at Monthly Variance
+
+monvars = [ds.groupby('time.month').std('time') for ds in ds_enso]
+
+
+
+
+
+
+
 
 # # ============================================================================================================================================================
 # #%%Scrap Below
