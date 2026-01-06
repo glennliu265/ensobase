@@ -51,7 +51,7 @@ import utils as ut
 # ncname_rep      = "%s%s_%s_regrid1x1.nc" #"%s%s_%s_anom.nc" (datpath,expnames[ex],vname)
 # vnames          = ["temp75","vvel_ML50","uvel_ML50",'sst',"tx_sur","ssh"] #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
-# Calculations with updated AWi-Cm3 output
+# 2026.01.06: Calculations with updated AWi-Cm3 output (Original Resolution) 
 expnames        = ["TCo1279-DART-2060","TCo319-DART-ctl1950d-gibbs-charn","TCo319-DART-ssp585d-gibbs-charn",]
 expnames_long   = ["9km 2060","31km Control","31km SSP5.85"]#"GLORYS Reanalysis"]#["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 ensoid_name     = "nino34"
@@ -61,6 +61,19 @@ datpath         = "/home/niu4/gliu8/projects/scrap/processed_global/global_anom_
 outpath         = "/home/niu4/gliu8/projects/enso_feedbacks/lag_regressions/" #"/home/niu4/gliu8/projects/scrap/TP_crop/lag_regressions/"
 ncname_rep      = "%s%s_%s.nc" #"%s%s_%s_anom.nc" (datpath,expnames[ex],vname)
 vnames          = ["sst","msl"] #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+
+# 2026.01.06: Calculations with updated AWI-CM3 output (Regridded)
+expnames        = ["TCo1279-DART-2060","TCo319-DART-ctl1950d-gibbs-charn","TCo319-DART-ssp585d-gibbs-charn",]
+expnames_long   = ["9km 2060","31km Control","31km SSP5.85"]#"GLORYS Reanalysis"]#["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
+ensoid_name     = "nino34"
+standardize     = False
+timecrops       = [None,None,None]#[1993,2024]]
+datpath         = "/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/TP_crop/anom_detrend2/"
+outpath         = "/home/niu4/gliu8/projects/enso_feedbacks/lag_regressions/regrid_1x1/" #"/home/niu4/gliu8/projects/scrap/TP_crop/lag_regressions/"
+ncname_rep      = "%s%s_%s_regrid_1x1.nc" #"%s%s_%s_anom.nc" (datpath,expnames[ex],vname)
+vnames          = ["sst",] #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+
+
 
 figpath         = "/home/niu4/gliu8/figures/bydate/2026-01-13/"
 proc.makedir(figpath)

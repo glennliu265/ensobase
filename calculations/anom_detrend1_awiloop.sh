@@ -50,6 +50,27 @@ for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if 
     done
 done
 
+# 2026.01.06: Run for Updated AWI-CM3 @ Original Resolution
+expnames=("TCo1279-DART-2060" "TCo319-DART-ctl1950d-gibbs-charn" "TCo319-DART-ssp585d-gibbs-charn")
+vnames=("sst" "msl" "lcc")
+dpath="/home/niu4/gliu8/projects/scrap/processed_global"
+detrendpath="/home/niu4/gliu8/projects/scrap/processed_global/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/processed_global/scycle"
+for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if you are using bash.
+    for vname in ${vnames[@]}; do
+
+        infile=${dpath}/${exp}_${vname}.nc
+        scyclefile=${scyclepath}/${exp}_${vname}.nc
+        outfile=${detrendpath}/${exp}_${vname}.nc
+
+        cdo ymonmean ${infile} ${scyclefile}
+        cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+        cdo detrend ${detrendpath}/temp1.nc ${outfile}
+        echo "Completed $vname for $exp"
+
+    done
+done
+
 
 # Manually Do this for 2 missing cases
 
