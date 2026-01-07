@@ -70,8 +70,8 @@ standardize     = False
 timecrops       = [None,None,None]#[1993,2024]]
 datpath         = "/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/TP_crop/anom_detrend2/"
 outpath         = "/home/niu4/gliu8/projects/enso_feedbacks/lag_regressions/regrid_1x1/" #"/home/niu4/gliu8/projects/scrap/TP_crop/lag_regressions/"
-ncname_rep      = "%s%s_%s_regrid_1x1.nc" #"%s%s_%s_anom.nc" (datpath,expnames[ex],vname)
-vnames          = ["sst",] #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
+ncname_rep      = "%s%s_%s_regrid1x1.nc" #"%s%s_%s_anom.nc" (datpath,expnames[ex],vname)
+vnames          = ["sst","msl"] #str','ssr','skt','ssh','lcc','tcc','ttr','ttrc','tsr','tsrc'] # 'sst',#
 
 
 
