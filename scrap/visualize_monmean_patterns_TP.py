@@ -46,8 +46,6 @@ expnames        = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-1950","TCo127
 expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"]
 
 timecrops       = [[1950,2100],None,None,None,None]
-
-
 figpath         = "/home/niu4/gliu8/figures/bydate/2025-10-14/"
 proc.makedir(figpath)
 
