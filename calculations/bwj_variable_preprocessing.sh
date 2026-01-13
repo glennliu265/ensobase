@@ -104,6 +104,18 @@ cp /export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_ctl1950d/monthly/awic
 # Copy over SSH (TCo319 SSP)
 cp /export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_ssp585/TCo319_ssp585_ssh_1m_2015-2117_1x1regrid.nc /home/niu4/gliu8/projects/scrap/regrid_1x1/TCo319_ssp585_ssh_regrid1x1.nc
 
+# -------------
+# Copy over Flux Variables for 31km Control
+# -------------
+vnames=("ssr" "str" "sshf" "slhf")
+for vname in ${vnames[@]}; do
+    cp /export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_ctl1950d/monthly/awicm3_tco319_ctl1950d_${vname}_atm_remapped_r360x180_1950-2100.nc /home/niu4/gliu8/projects/scrap/regrid_1x1/TCo319_ctl1950d_${vname}_regrid1x1.nc
+done
+
+cd /home/niu4/gliu8/projects/scrap/regrid_1x1/
+cdo enssum TCo319_ctl1950d_ssr_regrid1x1.nc TCo319_ctl1950d_str_regrid1x1.nc TCo319_ctl1950d_slhf_regrid1x1.nc TCo319_ctl1950d_sshf_regrid1x1.nc temp.nc
+cdo chname,ssr,qnet temp.nc TCo319_ctl1950d_qnet_regrid1x1.nc
+
 # ===================================================
 # Now Preprocess for variables (anomalize and detrend)
 # Copied from anom_detrend1_awiloop
@@ -129,5 +141,27 @@ for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if 
 done
 
 
+# ===================================================
+# Now Preprocess for variables only in one simulation
+# ===================================================
+dpath="/home/niu4/gliu8/projects/scrap/regrid_1x1"
+detrendpath="/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1"
+scyclepath="/home/niu4/gliu8/projects/scrap/regrid_1x1/scycle"
+vnames=("wvel50" "qnet")
+expnames=("TCo319_ctl1950d")
+for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if you are using bash.
+    for vname in ${vnames[@]}; do
+
+        infile=${dpath}/${exp}_${vname}_regrid1x1.nc
+        scyclefile=${scyclepath}/${exp}_${vname}_regrid1x1.nc
+        outfile=${detrendpath}/${exp}_${vname}_regrid1x1.nc
+
+        cdo ymonmean ${infile} ${scyclefile}
+        cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+        cdo detrend ${detrendpath}/temp1.nc ${outfile}
+        echo "Completed $vname for $exp"
+
+    done
+done
 
 
