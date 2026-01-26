@@ -42,11 +42,11 @@ import utils as ut
 #%% User Edits
 
 # Experiment Information
-expname      = "ERA5_1979_2024"
-flxname      = "creln"#"creln"
+expname      = "CERES_FBCT_ERA5" #"CERES_EBAF_ERA5"#"ERA5_1979_2024"
+flxname      = "cretotal"#"creln"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
-tstart       = '2000-03-01'
-tend         = '2024-12-31'
+tstart       = '2002-07-01'
+tend         = '2023-02-01'
 
 # Set Paths
 kernel_path  = '/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/%s/' % expname
@@ -58,7 +58,7 @@ proc.makedir(outpath)
 standardize  = True
 
 calc_seasonal = True
-selmons_loop  = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [[]]#.None
+selmons_loop  = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # No Need to put None, All Months is loaded separately
 
 
 #add_ucc      = False
@@ -89,15 +89,13 @@ if calc_seasonal:
 
         if selmons is not None:
             selmonstr = proc.mon2str(np.array(selmons)-1)
-            outname   = proc.addstrtoext(ncname_kernel,"_"+selmonstr,adjust=-1)
+            ncname_kernel   = proc.addstrtoext(ncname_kernel,"_"+selmonstr,adjust=-1)
         
         # Load Seasonal Outputs
-        ds = xr.open_dataset(outname).load()
+        ds = xr.open_dataset(ncname_kernel).load()
         
         ds_byseason.append(ds)
-
-
-    
+ 
 #%% Load each variable
 
 
@@ -122,6 +120,8 @@ for ccf in tqdm(ccf_vars):
 
 #%% For each variable, do the multiplication
 
+save_files = False # Set to True to Output NetCDFs
+print("Save Files is set to [%s]" % save_files)
 
 proc.makedir(outpath)
 
@@ -161,4 +161,35 @@ for vv in tqdm(range(nccf)):
         R_component_seasonal = R_component_seasonal.rename({'time':'valid_time'})
         rname_out      = "%s%s_%s_component_seasonal.nc" % (outpath,flxname,vname_new,)
         R_component_seasonal.to_netcdf(rname_out)
-        
+
+
+# #%% More Debugging
+
+# latf = 50
+# lonf = 330
+
+# raw = proc.selpt_ds(varanom)
+# allmon = proc.selpt_ds(R_component,lonf,latf)
+# varymon = proc.selpt_ds(R_component_seasonal,lonf,latf)
+
+
+# #%%
+
+# fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(12.5,4))
+
+# #ax.plot(proc.selpt_ds(varmon,lonf,latf),label="Variable")
+# #ax.plot(proc.selpt_ds(varmon_out,lonf,latf),label="Multiplied",ls='dashed',c='k')
+
+
+# ax.plot(proc.selpt_ds(varanom,lonf,latf),label="Variable")
+
+# ax.plot(proc.selpt_ds(R_component,lonf,latf),label="Multiplied Constant",ls='solid',c='gray')
+# ax.plot(proc.selpt_ds(R_component_seasonal,lonf,latf),label="Multiplied Seasonal",ls='dashed',c='k')
+
+# plt.show()
+
+
+# #%% Coeffs
+# raw      = proc.selpt_ds(varanom,lonf,latf)
+# coeffall = proc.selpt_ds(coeff_allmons,lonf,latf)
+# coeffmon = [proc.selpt_ds(ss,lonf,latf) for ss in coeff_seasonal]
