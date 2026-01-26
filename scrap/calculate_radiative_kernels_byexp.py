@@ -52,6 +52,7 @@ landmask = ut.load_land_mask_awi("TCo319",regrid=True)
 
 # Path to Data and Experiments
 
+
 # CERES-FBCT with ERA5 ----- (calculate_unobscured_fluxes_CERES_FBCT)
 expname         = "CERES_FBCT_ERA5"
 datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_FBCT_ERA5/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
@@ -61,29 +62,29 @@ tstart          = '2002-07-01'
 tend            = '2023-02-01'
 
 
-# CERES-EBAF with ERA5
-expname         = "CERES_EBAF_ERA5"
-datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_EBAF_ERA5/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
-outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
-anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
-tstart          = '2000-03-01'
-tend            = '2024-12-31'
-
-# # ERA5 1979-2024
-# expname         = "ERA5_1979_2024"
-# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+# # CERES-EBAF with ERA5
+# expname         = "CERES_EBAF_ERA5"
+# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_EBAF_ERA5/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
 # outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
 # anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
-# tstart          = '1979-01-01'
+# tstart          = '2000-03-01'
 # tend            = '2024-12-31'
 
-# ERAS5 2000-2024
-expname         = "ERA5_2000_2024"
-datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/ERA5_2000_2024/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
-outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
-anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
-tstart          = '2000-03-01'
-tend            = '2024-12-31'
+# # # ERA5 1979-2024
+# # expname         = "ERA5_1979_2024"
+# # datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+# # outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
+# # anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+# # tstart          = '1979-01-01'
+# # tend            = '2024-12-31'
+
+# # ERAS5 2000-2024
+# expname         = "ERA5_2000_2024"
+# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/ERA5_2000_2024/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+# outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
+# anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+# tstart          = '2000-03-01'
+# tend            = '2024-12-31'
 
 # # 9km 1950 simulation
 # expname         = "TCo1279-DART-1950"
@@ -94,10 +95,10 @@ tend            = '2024-12-31'
 # tend            = None#'2024-12-31'
 
 # Variables
-flxname         = 'cre'#['allsky','clearsky','cre']  # Loop for fluxes
+flxname         = 'cretotal'#['allsky','clearsky','cre']  # Loop for fluxes
 ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 
-selmons_loop    = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] #[[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [None,]# # Set to None to do 
+selmons_loop    = [None,[12,1,2],[3,4,5],[6,7,8],[9,10,11]] #[[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [None,]# # Set to None to do 
 
 # MLR Calculation Options
 standardize     = True # Set to True to standardize predictors before MLR
