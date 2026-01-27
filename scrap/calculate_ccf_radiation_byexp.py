@@ -43,7 +43,7 @@ import utils as ut
 
 # Experiment Information
 expname      = "CERES_FBCT_ERA5" #"CERES_EBAF_ERA5"#"ERA5_1979_2024"
-flxname      = "crelowcloud"#"creln"
+flxname      = "tscretotal"#"creln"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
 tstart       = '2002-07-01'
 tend         = '2023-02-01'

@@ -95,7 +95,7 @@ tend            = '2023-02-01'
 # tend            = None#'2024-12-31'
 
 # Variables
-flxname         = 'tscretotal'#['allsky','clearsky','cre']  # Loop for fluxes
+flxname         = 'ttcretotal'#['allsky','clearsky','cre']  # Loop for fluxes
 ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 
 selmons_loop    = [None,[12,1,2],[3,4,5],[6,7,8],[9,10,11]] #[[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [None,]# # Set to None to do 
