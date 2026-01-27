@@ -43,7 +43,7 @@ import utils as ut
 
 # Experiment Information
 expname      = "CERES_FBCT_ERA5" #"CERES_EBAF_ERA5"#"ERA5_1979_2024"
-flxname      = "ttcrelowcloud"#"creln"
+flxname      = "tscrelowcloud"#"creln"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
 tstart       = '2002-07-01'
 tend         = '2023-02-01'
@@ -120,8 +120,8 @@ for ccf in tqdm(ccf_vars):
 
 #%% For each variable, do the multiplication
 
-save_files = False # Set to True to Output NetCDFs
-print("Save Files is set to [%s]" % save_files)
+# save_files = False # Set to True to Output NetCDFs
+# print("Save Files is set to [%s]" % save_files)
 
 proc.makedir(outpath)
 
