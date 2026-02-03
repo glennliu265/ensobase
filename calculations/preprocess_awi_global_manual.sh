@@ -49,3 +49,14 @@ cdo chname,t,t700 /export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_ctl195
 cdo chname,r,r700 /export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_ctl1950d/monthly/awicm3_tco319_ctl1950d_pl_r_700_1950-2100.nc /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_r700.nc
 cdo chname,w,w700 /export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_ctl1950d/monthly/awicm3_tco319_ctl1950d_pl_w_700_1950-2100.nc /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_w700.nc
 
+# 10u/10/10ws: Rename files merged the aleph_data_pull_consolidate.sh
+cdo chname,10u,u10 /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_10u.nc /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_u10.nc
+rm /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_10u.nc
+
+cdo chname,10v,v10 /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_10v.nc /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_v10.nc
+rm /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_10v.nc
+
+cdo chname,10ws,ws10 /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_10ws.nc /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_ws10.nc
+rm /home/niu4/gliu8/projects/scrap/processed_global/TCo319_ctl1950d_10ws.nc
+
+

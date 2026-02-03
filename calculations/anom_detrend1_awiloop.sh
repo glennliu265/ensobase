@@ -72,6 +72,31 @@ for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if 
 done
 
 
+# 2026.02.02: Run for AWI-CM3, Regridded CCF Raw Output
+expnames=("TCo319_ctl1950d")
+vnames=("sst" "cre" "w700" "r700" "Tadv" "eis" "ws10")
+
+for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if you are using bash.
+    dpath="/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/${exp}/raw"
+    detrendpath="/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/${exp}/anom_detrend1"
+    scyclepath="/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/${exp}/raw/scycle"
+
+    for vname in ${vnames[@]}; do
+
+        infile=${dpath}/${vname}.nc
+        scyclefile=${scyclepath}/${vname}.nc
+        outfile=${detrendpath}/${vname}.nc
+
+        cdo ymonmean ${infile} ${scyclefile}
+        cdo ymonsub ${infile} ${scyclefile} ${detrendpath}/temp1.nc
+        cdo detrend ${detrendpath}/temp1.nc ${outfile}
+        echo "Completed $vname for $exp"
+
+    done
+done
+
+
+
 # Manually Do this for 2 missing cases
 
 # exp="TCo1279-DART-1950"
