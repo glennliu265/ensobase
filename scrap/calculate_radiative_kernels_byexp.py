@@ -61,7 +61,6 @@ anomalize       = False # Kept for legacy. Input should be anomalized before usi
 tstart          = '2002-07-01'
 tend            = '2023-02-01'
 
-
 # # CERES-EBAF with ERA5
 # expname         = "CERES_EBAF_ERA5"
 # datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_EBAF_ERA5/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
@@ -101,11 +100,12 @@ outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % ex
 anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
 tstart          = None#'1979-01-01'
 tend            = None#'2024-12-31'
+customname      = "TadvSeparate"
 
 # Variables
 flxname         = 'cre'#['allsky','clearsky','cre']  # Loop for fluxes
-ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
-
+#ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
+ccf_vars        = ["sst","eis","MeanAdvTanom","AnomAdvTmean","r700","w700","ws10",]
 selmons_loop    = [None,[12,1,2],[3,4,5],[6,7,8],[9,10,11]] #[[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [None,]# # Set to None to do 
 
 # MLR Calculation Options
@@ -261,9 +261,9 @@ for selmons in selmons_loop:
             r2[a,o]       = mlr_out['r2']
             ypred[a,o,:]  = mlr_out['pred']
             coeffs[a,o,:] = mlr_out['coeffs']
-            yerr[a,o,:]   = yerr_pt
+            yerr[a,o,:]   = yerr_pt 
             
-            # if add_ucc:
+            # if add_ucc:  
             #     ccfnames = ccf_vars
             
             # else:
@@ -284,7 +284,10 @@ for selmons in selmons_loop:
     ds_out          = xr.merge([da_r2,da_coeffs,da_pred,da_yerr])
     edict           = proc.make_encoding_dict(ds_out)
     
-    outname         = "%s%s_kernels_standardize%i.nc" % (outpath_kernel,flxname,standardize)
+    if customname is not None:
+        outname         = "%s%s_%s_kernels_standardize%i.nc" % (outpath_kernel,flxname,customname,standardize)
+    else:
+        outname         = "%s%s_kernels_standardize%i.nc" % (outpath_kernel,flxname,standardize)
     if selmons is not None:
         selmonstr    = proc.mon2str(np.array(selmons)-1)
         outname      = proc.addstrtoext(outname,"_"+selmonstr,adjust=-1)
