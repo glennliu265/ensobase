@@ -94,8 +94,16 @@ tend            = '2023-02-01'
 # tstart          = None#'1979-01-01'
 # tend            = None#'2024-12-31'
 
+# 31km Control, Regridded
+expname         = "TCo319_ctl1950d"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
+anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+tstart          = None#'1979-01-01'
+tend            = None#'2024-12-31'
+
 # Variables
-flxname         = 'ttcretotal'#['allsky','clearsky','cre']  # Loop for fluxes
+flxname         = 'cre'#['allsky','clearsky','cre']  # Loop for fluxes
 ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 
 selmons_loop    = [None,[12,1,2],[3,4,5],[6,7,8],[9,10,11]] #[[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [None,]# # Set to None to do 
