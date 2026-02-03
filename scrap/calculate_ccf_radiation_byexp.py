@@ -94,6 +94,7 @@ if calc_seasonal:
         # Load Seasonal Outputs
         ds = xr.open_dataset(ncname_kernel).load()
         
+        
         ds_byseason.append(ds)
  
 #%% Load each variable
@@ -105,13 +106,14 @@ for ccf in tqdm(ccf_vars):
     
     ncname = "%s%s.nc" % (ccf_path,ccf)
     ds     = xr.open_dataset(ncname)[ccf].load()
+    ds     = ut.standardize_names(ds)
     
 
     
     # Do some cropping (copied from calculate_radiative_kernels_byexp)
     tstart = str(dsall.time[0].data)[:7]
     tend   = str(dsall.time[-1].data)[:7]
-    ds = ds.sel(valid_time=slice(tstart,tend))
+    ds = ds.sel(time=slice(tstart,tend))
     
     
     dsvars_anom.append(ds)
@@ -125,7 +127,6 @@ for ccf in tqdm(ccf_vars):
 
 proc.makedir(outpath)
 
-vv    = 0
 nccf  = len(ccf_vars)
 dtday = 3600*60
 for vv in tqdm(range(nccf)):
@@ -134,7 +135,7 @@ for vv in tqdm(range(nccf)):
     ccfname        = ccf_vars[vv]
     varanom        = dsvars_anom[vv]
     
-    varanom_std     = varanom / varanom.std('valid_time') # Standardize Variable
+    varanom_std     = varanom / varanom.std('time') # Standardize Variable
     
     # Multiple by the Coefficient
     coeff_allmons  = dsall.coeffs.sel(ccf=ccfname)#/dtday
@@ -151,14 +152,14 @@ for vv in tqdm(range(nccf)):
             
             selmons    = selmons_loop[ss]
             
-            varmon     = proc.selmon_ds(varanom_std.rename({'valid_time':'time'}),selmons)
+            varmon     = proc.selmon_ds(varanom_std,selmons)
             varmon_out = varmon * coeff_seasonal[ss]
             R_component_seasonal.append(varmon_out)
             
         R_component_seasonal = xr.concat(R_component_seasonal,dim='time')
         R_component_seasonal = R_component_seasonal.sortby('time')
         R_component_seasonal = R_component_seasonal.rename(vname_new)
-        R_component_seasonal = R_component_seasonal.rename({'time':'valid_time'})
+        R_component_seasonal = R_component_seasonal#.rename({'time':'valid_time'})
         rname_out      = "%s%s_%s_component_seasonal.nc" % (outpath,flxname,vname_new,)
         R_component_seasonal.to_netcdf(rname_out)
 
