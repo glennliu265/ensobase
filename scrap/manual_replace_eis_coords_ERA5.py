@@ -12,8 +12,13 @@ Created on Tue Nov 18 10:57:41 2025
 import numpy as np
 import xarray as xr
 
-nc1 = "/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/oldfiles/eis_1979_2024.nc"
+
+#nc1 = #"/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/oldfiles/eis_1979_2024.nc"
+# nc1_out ="/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/eis_1979_2024.nc"
 nc2 = "/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/sst_1979_2024.nc"
+nc1 = "/home/niu4/gliu8/share/ERA5/processed/oldfiles/eis_1979_2024.nc"
+
+nc1_out = "/home/niu4/gliu8/share/ERA5/processed/eis_1979_2024.nc"
 
 
 ds1   = xr.open_dataset(nc1).load()
@@ -31,7 +36,7 @@ dsmerge = xr.merge([dsnew,ds1.eis.rename(dict(time='valid_time'))])
 
 dsmerge = dsmerge.drop_vars('sst')
 
-dsmerge.to_netcdf("/home/niu4/gliu8/projects/common_data/ERA5/anom_detrend1/eis_1979_2024.nc")
+dsmerge.to_netcdf(nc1_out)
 
 
 
