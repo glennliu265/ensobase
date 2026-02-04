@@ -42,11 +42,11 @@ import utils as ut
 #%% User Edits
 
 # Experiment Information
-expname      = "TCo319_ctl1950d"#"CERES_FBCT_ERA5" #"CERES_EBAF_ERA5"#"ERA5_1979_2024"
+expname      = "CERES_EBAF_ERA5_2001_2024" #"TCo319_ctl1950d"#"CERES_FBCT_ERA5" #"CERES_EBAF_ERA5"#"ERA5_1979_2024"
 flxname      = "cre"#"creln"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
-tstart       = '1950-01-01'#'2002-07-01'
-tend         = '2099-12-31'#'2023-02-01'
+tstart       = '2001-01-01'#'1950-01-01'#'2002-07-01'
+tend         = '2024-12-31'#'2099-12-31'#'2023-02-01'
 
 # Set Paths
 kernel_path  = '/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/%s/' % expname
@@ -138,7 +138,7 @@ for vv in tqdm(range(nccf)):
     varanom_std     = varanom / varanom.std('time') # Standardize Variable
     
     # Multiple by the Coefficient
-    coeff_allmons  = dsall.coeffs.sel(ccf=ccfname)#/dtday
+    coeff_allmons  = dsall.coeffs.sel(ccf=ccfname) #/dtday
     R_component    = coeff_allmons * varanom_std
     vname_new      = ccfname
     R_component    = R_component.rename(vname_new)
