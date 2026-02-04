@@ -113,8 +113,8 @@ tend            = '2024-12-31'
 
 # Variables
 flxname         = 'cre'#['allsky','clearsky','cre']  # Loop for fluxes
-#ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
-ccf_vars        = ["sst","eis","MeanAdvTanom","AnomAdvTmean","r700","w700","ws10",]
+ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
+#ccf_vars        = ["sst","eis","MeanAdvTanom","AnomAdvTmean","r700","w700","ws10",]
 selmons_loop    = [None,[12,1,2],[3,4,5],[6,7,8],[9,10,11]] #[[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [None,]# # Set to None to do 
 
 # MLR Calculation Options
