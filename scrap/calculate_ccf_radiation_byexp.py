@@ -42,11 +42,11 @@ import utils as ut
 #%% User Edits
 
 # Experiment Information
-expname      = "CERES_EBAF_ERA5_2001_2024" #"TCo319_ctl1950d"#"CERES_FBCT_ERA5" #"CERES_EBAF_ERA5"#"ERA5_1979_2024"
+expname      = "TCo319_ctl1950d"#"CERES_EBAF_ERA5_2001_2024" #"TCo319_ctl1950d"#"CERES_FBCT_ERA5" #"CERES_EBAF_ERA5"#"ERA5_1979_2024"
 flxname      = "cre"#"creln"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
-tstart       = '2001-01-01'#'1950-01-01'#'2002-07-01'
-tend         = '2024-12-31'#'2099-12-31'#'2023-02-01'
+tstart       = '1950-01-01'#'2002-07-01''2001-01-01'#
+tend         = '2099-12-31'#'2023-02-01''2024-12-31'#
 
 # Set Paths
 kernel_path  = '/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/%s/' % expname
