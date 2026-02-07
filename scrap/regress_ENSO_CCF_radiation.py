@@ -36,24 +36,24 @@ import utils as ut
 
 #%% Load Land Mask and set other paths
 
-figpath     = "/home/niu4/gliu8/figures/bydate/2025-11-25/"
-landmask    = ut.load_land_mask_awi("TCo319",regrid=True)
+figpath     = "/home/niu4/gliu8/figures/bydate/2026-02-11/"
+landmask    = ut.load_land_mask_awi("ERA5",regrid=True)
 
 #%% Load CCFs
 
 # Kernel Information
+expname      = "CERES_EBAR_ERA5_2001_2024"
 datpath      = "/home/niu4/gliu8/projects/ccfs/regrid_1x1/"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
-flxname      = "creln"
+flxname      = "cre"
 standardize  = True
 add_ucc      = False
 selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [[]]#.None
 regrid1x1    = True
-expname      = "ERA5_1979_2024"
 
+# Update
 outpath      = "/home/niu4/gliu8/projects/ccfs/regrid_1x1/%s_components/" % flxname
-
-figpath     = "/home/niu4/gliu8/figures/bydate/2025-11-25/"
+figpath      = "/home/niu4/gliu8/figures/bydate/2026-02-11/"
 proc.makedir(figpath)
 
 #%%
@@ -123,7 +123,12 @@ for cc in tqdm.tqdm(range(nccfs)):
 #dsenso       = xr.open_dataset(ncname).load()
 
 ensopath    = "/home/niu4/gliu8/projects/scrap/nino34/"
-ncname      = "%s%s_enso_eof_rotated.nc" % (ensopath,expname)
+if "ERA5" in expname:
+    print("Loading Rotated EOF for ERA5...")
+    expname_nino = "ERA5_1979_2024"
+else:
+    expname_nino = expname
+ncname      = "%s%s_enso_eof_rotated.nc" % (ensopath,expname_nino)
 dsenso      = xr.open_dataset(ncname).load()
 
 
