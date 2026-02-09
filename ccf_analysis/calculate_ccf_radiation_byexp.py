@@ -47,6 +47,16 @@ flxname       = "cre"#"creln"
 ccf_vars      = ["sst","eis","Tadv","r700","w700","ws10"]
 tstart        = None#'1950-01-01'#'2002-07-01''2001-01-01'#
 tend          = None#'2099-12-31'#'2023-02-01''2024-12-31'#
+customname    = None
+
+
+# CERES EBAF 2001-2024 with nino34
+expname       = "CERES_EBAF_ERA5_2001_2024"
+flxname       = "cre"#"creln"
+ccf_vars      = ["sst","eis","Tadv","r700","w700","ws10","nino34"]
+tstart        = None#'1950-01-01'#'2002-07-01''2001-01-01'#
+tend          = None#'2099-12-31'#'2023-02-01''2024-12-31'#
+customname    = "addNino34"
 
 # Set Paths
 kernel_path   = '/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/%s/' % expname
@@ -54,29 +64,28 @@ ccf_path      = '/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_de
 outpath       = "/home/niu4/gliu8/projects/ccfs/radiative_components/regrid_1x1/%s/" % expname
 proc.makedir(outpath)
 
+
+
 # Kernel Information
 standardize   = True
-
 calc_seasonal = True
 selmons_loop  = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # No Need to put None, All Months is loaded separately
 
-
 #add_ucc      = False
-
 #regrid1x1    = True
-
 
 figpath      = "/home/niu4/gliu8/figures/bydate/2025-12-02/"
 proc.makedir(figpath)
 
 #%% Load the all months case
 
-ncname_kernel   = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
+#ncname_kernel   = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
+
+if customname is not None:
+    ncname_kernel         = "%s%s_%s_kernels_standardize%i.nc" % (kernel_path,flxname,customname,standardize)
+else:
+    ncname_kernel         = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
 dsall           = xr.open_dataset(ncname_kernel).load()
-
-
-
-
 
 #%% Load each Month
 # Load the Kernels (Seasonal)
@@ -85,7 +94,12 @@ if calc_seasonal:
     ds_byseason = []
     for selmons in tqdm(selmons_loop):
         
-        ncname_kernel   = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
+        if customname is not None:
+            ncname_kernel         = "%s%s_%s_kernels_standardize%i.nc" % (kernel_path,flxname,customname,standardize)
+        else:
+            ncname_kernel         = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
+            
+        #ncname_kernel   = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
 
         if selmons is not None:
             selmonstr = proc.mon2str(np.array(selmons)-1)
@@ -142,7 +156,10 @@ for vv in tqdm(range(nccf)):
     R_component    = coeff_allmons * varanom_std
     vname_new      = ccfname
     R_component    = R_component.rename(vname_new)
-    rname_out      = "%s%s_%s_component.nc" % (outpath,flxname,vname_new,)
+    if customname is not None: # Add after Flux
+        rname_out      = "%s%s_%s_%s_component.nc" % (outpath,flxname,customname,vname_new,)
+    else:
+        rname_out      = "%s%s_%s_component.nc" % (outpath,flxname,vname_new,)
     R_component.to_netcdf(rname_out)
     
     if calc_seasonal:
@@ -160,7 +177,10 @@ for vv in tqdm(range(nccf)):
         R_component_seasonal = R_component_seasonal.sortby('time')
         R_component_seasonal = R_component_seasonal.rename(vname_new)
         R_component_seasonal = R_component_seasonal#.rename({'time':'valid_time'})
-        rname_out      = "%s%s_%s_component_seasonal.nc" % (outpath,flxname,vname_new,)
+        if customname is not None:
+            rname_out      = "%s%s_%s_%s_component_seasonal.nc" % (outpath,flxname,customname,vname_new,)
+        else:
+            rname_out      = "%s%s_%s_component_seasonal.nc" % (outpath,flxname,vname_new,)
         R_component_seasonal.to_netcdf(rname_out)
 
 
