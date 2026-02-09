@@ -42,20 +42,20 @@ import utils as ut
 #%% User Edits
 
 # Experiment Information
-expname      = "TCo1279-DART-1950"#"TCo319_ctl1950d"#"CERES_EBAF_ERA5_2001_2024" #"TCo319_ctl1950d"#"CERES_FBCT_ERA5" #"CERES_EBAF_ERA5"#"ERA5_1979_2024"
-flxname      = "cre"#"creln"
-ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
-tstart       = None#'1950-01-01'#'2002-07-01''2001-01-01'#
-tend         = None#'2099-12-31'#'2023-02-01''2024-12-31'#
+expname       = "TCo1279-DART-1950"#"TCo319_ctl1950d"#"CERES_EBAF_ERA5_2001_2024" #"TCo319_ctl1950d"#"CERES_FBCT_ERA5" #"CERES_EBAF_ERA5"#"ERA5_1979_2024"
+flxname       = "cre"#"creln"
+ccf_vars      = ["sst","eis","Tadv","r700","w700","ws10"]
+tstart        = None#'1950-01-01'#'2002-07-01''2001-01-01'#
+tend          = None#'2099-12-31'#'2023-02-01''2024-12-31'#
 
 # Set Paths
-kernel_path  = '/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/%s/' % expname
-ccf_path     = '/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/' % expname
-outpath      = "/home/niu4/gliu8/projects/ccfs/radiative_components/regrid_1x1/%s/" % expname
+kernel_path   = '/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/%s/' % expname
+ccf_path      = '/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/' % expname
+outpath       = "/home/niu4/gliu8/projects/ccfs/radiative_components/regrid_1x1/%s/" % expname
 proc.makedir(outpath)
 
 # Kernel Information
-standardize  = True
+standardize   = True
 
 calc_seasonal = True
 selmons_loop  = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # No Need to put None, All Months is loaded separately

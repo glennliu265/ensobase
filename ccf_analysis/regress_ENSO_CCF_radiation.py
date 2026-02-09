@@ -42,7 +42,7 @@ landmask    = ut.load_land_mask_awi("ERA5",regrid=True)
 #%% Load CCFs
 
 # Kernel Information
-expname      = "CERES_EBAR_ERA5_2001_2024"
+expname      = "CERES_EBAF_ERA5_2001_2024"
 datpath      = "/home/niu4/gliu8/projects/ccfs/regrid_1x1/"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
 flxname      = "cre"
@@ -52,11 +52,17 @@ selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # [[]]#.None
 regrid1x1    = True
 
 # Update
-outpath      = "/home/niu4/gliu8/projects/ccfs/regrid_1x1/%s_components/" % flxname
+#outpath     = "/home/niu4/gliu8/projects/ccfs/regrid_1x1/%s_components/" % flxname
+
 figpath      = "/home/niu4/gliu8/figures/bydate/2026-02-11/"
 proc.makedir(figpath)
 
-#%%
+#% Make Experiment Directories
+radpath      = "/home/niu4/gliu8/projects/ccfs/radiative_components/regrid_1x1/%s/" % expname
+outpath      = "/home/niu4/gliu8/projects/ccfs/enso_regression_patterns/by_ccf/regrid_1x1/%s/" % expname
+proc.makedir(outpath)
+
+#%% Additional Variables
 
 vnames_new = [flxname + "_" + ccfname for ccfname in ccf_vars]
 
@@ -71,19 +77,20 @@ dsallmon    = []
 for cc in tqdm.tqdm(range(nccfs)):
     
     vname_new      = vnames_new[cc]
+    ccf_name       = ccf_vars[cc]
     
     # Load All Months
-    rname_out      = "%s%s_component.nc" % (outpath,vname_new,)
-    ds = xr.open_dataset(rname_out)[vname_new].load()
+    rname_out      = "%s%s_component.nc" % (radpath,vname_new,)
+    ds             = xr.open_dataset(rname_out)[ccf_name].load()
     dsall.append(ds)
     
     # Load Seasonal Calculations
     try:
-        rname_out      = "%s%s_component_seasonal.nc" % (outpath,vname_new,)
-        ds = xr.open_dataset(rname_out)[vname_new].load()
+        rname_out      = "%s%s_component_seasonal.nc" % (radpath,vname_new,)
+        ds = xr.open_dataset(rname_out)[ccf_name].load()
         dsallmon.append(ds)
     except:
-        rname_out      = "%s%s_component_seasonal.nc" % (outpath,vname_new,)
+        rname_out      = "%s%s_component_seasonal.nc" % (radpath,vname_new,)
         ds = xr.open_dataset(rname_out).load()
         ds = ds.rename({'__xarray_dataarray_variable__': vname_new})
         print("Could not find variable name in %s" % vname_new)
@@ -131,13 +138,15 @@ else:
 ncname      = "%s%s_enso_eof_rotated.nc" % (ensopath,expname_nino)
 dsenso      = xr.open_dataset(ncname).load()
 
-
 cp          = dsenso.cp
 ep          = dsenso.ep
+
+# Check to make sure they are the same length as the inputs
+cp,_ = proc.match_time_month(cp,dsall[0])
+ep,_ = proc.match_time_month(ep,dsall[0])
+
 X           = np.array([ep,cp])
-
 X_std       = np.array([ep/np.std(ep), cp/np.std(cp)])
-
 
 # =========================
 #%% Perform MLR fit to ENSO
@@ -149,55 +158,65 @@ if standardize_nino:
 else:
     X_in = X
 
-for cc in range(nccfs):
-    rin         = dsall[cc].squeeze()
-    rin         = ut.standardize_names(rin)
-    rin,_       = proc.match_time_month(rin,ep)
+for ss in range(2):
     
-    ccfname     = ccf_vars[cc]
-    rin         = rin.transpose('lat','lon','time')
-    nlat,nlon,ntime = rin.shape
+    if ss == 0: # Do for all months
+        dsin   = dsall
+        monstr = "" 
+    else: # Do for seasonal estimates
+        dsin   = dsallmon
+        monstr = "_seasonal"
     
-    
-    beta_cp     = np.zeros((nlat,nlon)) * np.nan
-    beta_ep     = beta_cp.copy()
-    r2_ccf      = beta_cp.copy()
-    ypred       = np.zeros((nlat,nlon,ntime)) * np.nan
-    yerr        = ypred.copy()
-    for a in tqdm.tqdm(range(nlat)):
+    for cc in range(nccfs):
+        rin         = dsin[cc].squeeze()
+        rin         = ut.standardize_names(rin)
+        rin         = rin.sortby('time') # Temp Fix (will add this to ccf_radiation computation code)
+        rin,_       = proc.match_time_month(rin,ep)
         
-        for o in range(nlon):
+        ccfname     = ccf_vars[cc]
+        rin         = rin.transpose('lat','lon','time')
+        nlat,nlon,ntime = rin.shape
+        
+        beta_cp     = np.zeros((nlat,nlon)) * np.nan
+        beta_ep     = beta_cp.copy()
+        r2_ccf      = beta_cp.copy()
+        ypred       = np.zeros((nlat,nlon,ntime)) * np.nan
+        yerr        = ypred.copy()
+        for a in tqdm.tqdm(range(nlat)):
             
-            rpt = rin.isel(lat=a,lon=o)#.data[a,o,:]
-            
-            if np.any(np.isnan(rpt)):
-                continue
-            
-            mlr_out = ut.mlr_ccfs(X_in,rpt,standardize=False,fill_value=0)
-            
-            beta_ep[a,o] = mlr_out['coeffs'][0]
-            beta_cp[a,o] = mlr_out['coeffs'][1]
-            r2_ccf[a,o]  = mlr_out['r2'] 
-            ypred[a,o,:] = mlr_out['pred']
-            yerr[a,o,:]  = mlr_out['err']
-     
-    # %
-    lat = rin.lat
-    lon = rin.lon
-    times = rin.time
-            
-    coords_latlon   = dict(lat=lat,lon=lon)
-    coords_pred     = dict(lat=lat,lon=lon,time=times)
-    da_r2           = xr.DataArray(r2_ccf,coords=coords_latlon,dims=coords_latlon,name='r2')
-    da_ep           = xr.DataArray(beta_ep,coords=coords_latlon,dims=coords_latlon,name='beta_ep')
-    da_cp           = xr.DataArray(beta_cp,coords=coords_latlon,dims=coords_latlon,name='beta_cp')
-    da_ypred        = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='pred')
-    da_yerr         = xr.DataArray(yerr,coords=coords_pred,dims=coords_pred,name='err')
-    
-    ds_out          = xr.merge([da_r2,da_cp,da_ep,da_ypred,da_yerr])
-    edict           = proc.make_encoding_dict(ds_out)
-    outname         = "%s%s_%s_%s_ENSO_regression_stdnino%i.nc" % (outpath,expname,flxname,ccfname,standardize_nino)
-    ds_out.to_netcdf(outname,encoding=edict)
+            for o in range(nlon):
+                
+                rpt = rin.isel(lat=a,lon=o)#.data[a,o,:]
+                
+                if np.any(np.isnan(rpt)):
+                    continue
+                
+                mlr_out = ut.mlr_ccfs(X_in,rpt,standardize=False,fill_value=0)
+                
+                beta_ep[a,o] = mlr_out['coeffs'][0]
+                beta_cp[a,o] = mlr_out['coeffs'][1]
+                r2_ccf[a,o]  = mlr_out['r2'] 
+                ypred[a,o,:] = mlr_out['pred']
+                yerr[a,o,:]  = mlr_out['err']
+         
+        # %
+        lat = rin.lat
+        lon = rin.lon
+        times = rin.time
+                
+        coords_latlon   = dict(lat=lat,lon=lon)
+        coords_pred     = dict(lat=lat,lon=lon,time=times)
+        da_r2           = xr.DataArray(r2_ccf,coords=coords_latlon,dims=coords_latlon,name='r2')
+        da_ep           = xr.DataArray(beta_ep,coords=coords_latlon,dims=coords_latlon,name='beta_ep')
+        da_cp           = xr.DataArray(beta_cp,coords=coords_latlon,dims=coords_latlon,name='beta_cp')
+        da_ypred        = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='pred')
+        da_yerr         = xr.DataArray(yerr,coords=coords_pred,dims=coords_pred,name='err')
+        
+        ds_out          = xr.merge([da_r2,da_cp,da_ep,da_ypred,da_yerr])
+        edict           = proc.make_encoding_dict(ds_out)
+        #outname         = "%s%s_%s_%s_ENSO_regression_stdnino%i.nc" % (outpath,expname,flxname,ccfname,standardize_nino)
+        outname         = "%s%s_ccf_%s_ENSO_regression_stdnino%i%s.nc" % (outpath,flxname,ccfname,standardize_nino,monstr)
+        ds_out.to_netcdf(outname,encoding=edict)
     
 #%% Visualize CCF radiation (move to another script)
 # Note: Moved to python notebook
