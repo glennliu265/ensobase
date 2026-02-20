@@ -103,24 +103,24 @@ tend            = '2023-02-01'
 # customname      = None#"TadvSeparate"
 
 
-# # Redo CERES-EBAF, limit to 2001-2024
-# expname         = "CERES_EBAF_ERA5_2001_2024"
-# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
-# outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
-# anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
-# tstart          = '2001-01-01'
-# tend            = '2024-12-31'
-# customname      = None
-
-
-# CERES-FBCT with ERA5 ----- (calculate_unobscured_fluxes_CERES_FBCT)
-expname         = "CERES_FBCT_ERA5"
-datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_FBCT_ERA5/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+# Redo CERES-EBAF, limit to 2001-2024
+expname         = "CERES_EBAF_ERA5_2001_2024"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
 outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
 anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
-tstart          = '2002-07-01'
-tend            = '2023-02-01'
+tstart          = '2001-01-01'
+tend            = '2024-12-31'
 customname      = None
+
+
+# # CERES-FBCT with ERA5 ----- (calculate_unobscured_fluxes_CERES_FBCT)
+# expname         = "CERES_FBCT_ERA5"
+# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_FBCT_ERA5/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+# outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
+# anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+# tstart          = '2002-07-01'
+# tend            = '2023-02-01'
+# customname      = None
 
 # # CERES, limit to 2001-2024, add ENSO
 # expname         = "CERES_EBAF_ERA5_2001_2024"
@@ -134,7 +134,7 @@ customname      = None
 
 
 # Variables
-flxname         = 'creln'#['allsky','clearsky','cre']  # Loop for fluxes
+flxname         = 'tscre' #['allsky','clearsky','cre']  # Loop for fluxes
 ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 #ccf_vars        = ["sst","eis","MeanAdvTanom","AnomAdvTmean","r700","w700","ws10",]
 
