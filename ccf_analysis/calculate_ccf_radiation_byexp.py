@@ -52,11 +52,12 @@ customname    = None
 
 # CERES EBAF 2001-2024 with nino34
 expname       = "CERES_EBAF_ERA5_2001_2024"
-flxname       = "cre"#"creln"
-ccf_vars      = ["sst","eis","Tadv","r700","w700","ws10","nino34"]
+flxname       = "tscre"#"creln"
+#ccf_vars      = ["sst","eis","Tadv","r700","w700","ws10","nino34"]
 tstart        = None#'1950-01-01'#'2002-07-01''2001-01-01'#
 tend          = None#'2099-12-31'#'2023-02-01''2024-12-31'#
-customname    = "addNino34"
+customname     = None
+#customname    = "addNino34"
 
 # Set Paths
 kernel_path   = '/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/%s/' % expname
