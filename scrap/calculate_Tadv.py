@@ -161,7 +161,6 @@ elif calculate_components_Tadv:
     
     # Mean Advection of Anomalous Gradient
     meanadv_anomgrad = -u10_bar * ddx_prime.groupby('time.month') - v10_bar * ddy_prime.groupby('time.month') 
-    
     vname_out        = "MeanAdvTanom"
     meanadv_anomgrad = meanadv_anomgrad.rename(vname_out)
     ncname_out       = ncstr % vname_out #"%s%s_%s_regrid1x1.nc" % (datpath,expnames[ex],vnames_out[v])
@@ -175,6 +174,16 @@ elif calculate_components_Tadv:
     ncname_out       = ncstr % vname_out #"%s%s_%s_regrid1x1.nc" % (datpath,expnames[ex],vnames_out[v])
     print("Saving as %s" % ncname_out)
     anomadv_meangrad.to_netcdf(ncname_out)
+    
+    # Eddying Terms # (Decided not to perform the subtraction, I can do this later...)
+    anomadv_anomgrad = - u10_prime * ddx_prime - v10_prime * ddy_prime
+    #anomadv_anomgrad = anomadv_anomgrad.groupby('time.month') + anomadv_anomgrad.groupby('time.month').mean('time')
+    vname_out        = "AnomAdvTanom"
+    anomadv_anomgrad = anomadv_anomgrad.rename(vname_out)
+    ncname_out       = ncstr % vname_out #"%s%s_%s_regrid1x1.nc" % (datpath,expnames[ex],vnames_out[v])
+    print("Saving as %s" % ncname_out)
+    anomadv_anomgrad.to_netcdf(ncname_out)
+    
     
     
     
