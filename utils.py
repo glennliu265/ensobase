@@ -27,6 +27,7 @@ calc_grad_centered          : (g) Calculate centered-difference for spatial grad
 calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
 calc_leadlag_regression_2d  : (g) Compute lead lag regression for 2D timseries (modeled after enso_lag_regression)
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
+get_moving_segments         : (g) Subset timeseries into segments with a sliding window
 get_rawpath_awi             : (A) Get rawpath for AWI output on niu
 init_tp_map                 : (v) initialize tropical Pacific plot 
 init_global_map             : (v) Initialize a global map
@@ -59,7 +60,6 @@ import sys
 import time
 import glob
 import pandas as pd
-
 from sklearn.linear_model import LinearRegression
 import sklearn
 
@@ -277,7 +277,7 @@ def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     # Get Dimension Lengths
     dsvar           = dsvar.transpose('lon','lat','time')
     nlon,nlat,ntime = dsvar.shape
-
+    
     if sep_mon is False: # Do for all months
         # Do the Leads (variable leads)
         leads       = np.abs(leadlags[leadlags <=0])
@@ -316,7 +316,7 @@ def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
         da_out   = [ds.transpose('lag','lat','lon') for ds in [da_betas,da_sigs]]
         
     else: # Calculate Separately by Month
-        
+        print("Warning: This is currently not working properly...")
         # Reshape the variables
         nyr          = int(ntime/12)
         ints_yrmon   = ensoid.data.reshape(nyr,12)
@@ -328,7 +328,7 @@ def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
         beta_leads  = np.zeros((12,nlon,nlat,nleads)) * np.nan
         sig_leads   = beta_leads.copy()
         for ll in range(nleads):
-            lag                = leads[ll]
+            lag                = leads[ll]  # This approach is incorrect I think, need to carefully apply the lag
             if (lag >= nyr):
                 print("Cannot perform calculation since the lag (%i) exceeds the # of years %02i. Skipping" % (lag,nyr))
                 continue
@@ -372,6 +372,34 @@ def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     ds_out   = xr.merge(da_out)
     
     return ds_out
+
+
+def get_moving_segments(ts,winlen):
+    '''
+    Divide timeseries into segments using a sliding window of [winlen] months.
+    
+    Inputs
+        ts (xr.DataArray)      : Target timeseries, with time dimension
+        winlen (int)           : Number of months in sliding window
+    Outputs
+        ts_segments (np.array) : Sliding segments with dimensions  [segment_number,winlen]
+        center_time (np.array) : Center time of the sliding window [segment_number]
+
+    '''
+    # Get Timeseries length and compute maximum number of segments
+    ntime = len(ts)
+    nsegments = ntime - winlen + 1
+    
+    # Take Segments
+    ts_segments = np.zeros((nsegments,winlen))
+    center_time = []#np.zeros((nsegments))
+    for i in range(nsegments):
+        idseg = np.arange(i,i+winlen)
+        ts_segments[i,:] = ts[idseg]
+        center_time.append(ts.time.isel(time=int(i+ int(winlen/2))))
+    # Concatenate center timesteps
+    center_time = xr.concat(center_time,dim='time')
+    return ts_segments,center_time
 
 def get_rawpath_awi(expname,vname,ensnum=None):
     # TCo319_ctl1950d
