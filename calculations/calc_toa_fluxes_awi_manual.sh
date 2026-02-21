@@ -18,13 +18,27 @@ cdo chname,tsrc,clearsky ${outpath}/temp.nc ${outpath}/${expname}_clearsky.nc
 cdo -sub ${outpath}/${expname}_allsky.nc  ${outpath}/${expname}_clearsky.nc ${outpath}/temp.nc
 cdo chname,allsky,cre ${outpath}/temp.nc ${outpath}/${expname}_cre.nc
 
-# TTCRE 
+# TTCRE (This one seems to be fine!?)
 cdo -sub ${rawpath}/ctl1950d_atm_remapped_1m_ttr_1850-2134.nc  ${rawpath}/ctl1950d_atm_remapped_1m_ttrc_1850-2134.nc ${outpath}/temp.nc
 cdo chname,ttr,ttcre ${outpath}/temp.nc ${outpath}/${expname}_ttcre.nc
 
-# TSCRE
-cdo -sub ${rawpath}/ctl1950d_atm_remapped_1m_tsr_1850-2134.nc  ${rawpath}/ctl1950d_atm_remapped_1m_tsrc_1850-2134.nc ${outpath}/temp.nc
+# # TSCRE (This one had duplicate times see version below)
+# cdo -sub ${rawpath}/ctl1950d_atm_remapped_1m_tsr_1850-2134.nc  ${rawpath}/ctl1950d_atm_remapped_1m_tsrc_1850-2134.nc ${outpath}/temp.nc
+# cdo chname,tsr,tscre ${outpath}/temp.nc ${outpath}/${expname}_tscre.nc
+
+# REDO TSCRE (see below, used repair_duplicate_times.py to remove extra timesteps in tsr...)
+expname=TCo319_ctl1950d
+rawpath="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo319_control"
+outpath="/home/niu4/gliu8/projects/scrap/processed_global"
+cdo -sub ${outpath}/TCo319_ctl1950d_tsr.nc  ${rawpath}/ctl1950d_atm_remapped_1m_tsrc_1850-2134.nc ${outpath}/temp.nc
 cdo chname,tsr,tscre ${outpath}/temp.nc ${outpath}/${expname}_tscre.nc
+
+# CRE Update.. (2026.02.04): Something seemed wrong with the CRE here. I am recalculating by adding the ttcre and tscre
+expname="TCo319_ctl1950d"
+outpath="/home/niu4/gliu8/projects/scrap/processed_global"
+cdo -add ${outpath}/${expname}_tscre.nc ${outpath}/${expname}_ttcre.nc ${outpath}/temp.nc
+cdo chname,tscre,cre ${outpath}/temp.nc ${outpath}/${expname}_cre.nc
+
 
 # 1950 9km
 expname="TCo1279-DART-1950"
@@ -32,7 +46,6 @@ rawpath="/export/niu2/stuecker/MODELOUTPUT/awicm3_highres/TCo1279-DART-1950_9km/
 outpath="/home/niu4/gliu8/projects/scrap/processed_global"
 cdo -sub ${rawpath}/TCo1279-DART-1950_atm_remapped_1m_ttr_240months.nc ${rawpath}/TCo1279-DART-1950_atm_remapped_1m_ttrc_240months.nc ${outpath}/temp.nc
 cdo chname,ttr,ttcre ${outpath}/temp.nc ${outpath}/${expname}_ttcre.nc
-
 
 # ----- Runnning
 
@@ -170,7 +183,7 @@ cdo chname,tsr,tscre ${outpath}/temp.nc ${outpath}/tscre_1979_2024.nc
 
 # ==================================================================================
 
-# Calculate for CERES-EBAF =========================================================
+# Calculate for CERES-EBAF (OLD) =========================================================
 rawpath='/home/niu4/gliu8/share/CERES/processed'
 outpath='/home/niu4/gliu8/share/CERES/processed'
 # CRE
@@ -188,5 +201,38 @@ rawpath='/home/niu4/gliu8/share/CERES/processed'
 outpath='/home/niu4/gliu8/share/CERES/processed'
 cdo -sub ${rawpath}/CERES_EBAF_tsr_2000-03_to_2025-08.nc  ${rawpath}/CERES_EBAF_tsrc_2000-03_to_2025-08.nc ${outpath}/temp.nc
 cdo chname,tsr,tscre ${outpath}/temp.nc ${outpath}/CERES_EBAF_tscre_2000-03_to_2025-08.nc
+
+# ==================================================================================
+
+
+
+# ==================================================================================
+# Calculate for CERES-EBAF (NEW, based on compare_TOA_radiation_CERES_AWI) =========================================================
+
+# 2026.02.20
+
+# CRE
+# rawpath='/home/niu4/gliu8/share/CERES/processed'
+# outpath='/home/niu4/gliu8/share/CERES/processed'
+# cdo -sub ${rawpath}/CERES_EBAF_allsky_2000-03_to_2025-08.nc  ${rawpath}/CERES_EBAF_clearsky_2000-03_to_2025-08.nc ${outpath}/temp.nc
+# cdo chname,allsky,cre ${outpath}/temp.nc ${outpath}/CERES_EBAF_cre_2000-03_to_2025-08.nc
+
+# TTCRE
+rawpath='/home/niu4/gliu8/share/CERES/processed'
+outpath='/home/niu4/gliu8/share/CERES/processed'
+cdo -sub ${rawpath}/CERES_EBAF_ttrc_2000-03_to_2025-08.nc ${rawpath}/CERES_EBAF_ttr_2000-03_to_2025-08.nc ${outpath}/temp.nc  
+cdo chname,ttrc,ttcre ${outpath}/temp.nc ${outpath}/CERES_EBAF_ttcre_2000-03_to_2025-08.nc
+
+# TSCRE
+rawpath='/home/niu4/gliu8/share/CERES/processed'
+outpath='/home/niu4/gliu8/share/CERES/processed'
+cdo -sub ${rawpath}/CERES_EBAF_tsrc_2000-03_to_2025-08.nc ${rawpath}/CERES_EBAF_tsr_2000-03_to_2025-08.nc ${outpath}/temp.nc 
+cdo chname,tsrc,tscre ${outpath}/temp.nc ${outpath}/CERES_EBAF_tscre_2000-03_to_2025-08.nc
+
+# CRE (net), seems equivalent to the all sky case for the above approach
+rawpath='/home/niu4/gliu8/share/CERES/processed'
+outpath='/home/niu4/gliu8/share/CERES/processed'
+cdo -add ${rawpath}/CERES_EBAF_tscre_2000-03_to_2025-08.nc  ${rawpath}/CERES_EBAF_ttcre_2000-03_to_2025-08.nc ${outpath}/temp.nc
+cdo chname,tscre,cre ${outpath}/temp.nc ${outpath}/CERES_EBAF_cre_2000-03_to_2025-08.nc
 
 # ==================================================================================

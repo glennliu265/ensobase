@@ -83,6 +83,11 @@ for vname in ${vnames[@]}; do
 done
 
 
+
+
+
+
+
 # Crop/Process msl in ERA5
 cdo selyear,1979/2024 /home/niu4/gliu8/share/ERA5/downloaded/msl_1940_2024.nc /home/niu4/gliu8/share/ERA5/processed/msl_1979_2024.nc
 
@@ -131,3 +136,24 @@ for vname in ${vnames[@]}; do
     cdo detrend ${detrendpath}/temp1.nc ${outfile}
 
 done
+
+# ==================================================================
+# Update 2026.02.20 -- Crop EBAF data to selected range...
+# and place in the correct experiment folder
+# ==================================================================
+
+# CERES_EBAF_ERA5_2001_2024
+# Crop CRE Variables
+expname="CERES_EBAF_ERA5_2001_2024"
+vnames=("ttcre" "tscre" "cre")
+rawpath="/home/niu4/gliu8/share/CERES/processed"
+outpath="/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/${expname}/raw"
+for vname in ${vnames[@]}; do
+    infile="${rawpath}/CERES_EBAF_${vname}_2000-03_to_2025-08.nc"
+    outfile="${outpath}/${vname}.nc"
+    cdo selyear,2001/2024 ${infile} ${outfile}
+done
+
+#
+# Regrid data
+#

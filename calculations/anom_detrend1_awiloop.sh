@@ -73,16 +73,13 @@ done
 
 
 # 2026.02.02: Run for AWI-CM3, Regridded CCF Raw Output
-expnames=("TCo319_ctl1950d")
-vnames=("sst" "cre" "w700" "r700" "Tadv" "eis" "ws10")
-
+expnames=("CERES_EBAF_ERA5_2001_2024") #("TCo319_ctl1950d") #("CERES_EBAF_ERA5_2001_2024") #("TCo319_ctl1950d")
+vnames=("tscre" "ttcre") #("sst" "cre" "w700" "r700" "Tadv" "eis" "ws10")
 for exp in ${expnames[@]}; do # This loop format is for zsh. Use ${expes[@]} if you are using bash.
     dpath="/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/${exp}/raw"
     detrendpath="/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/${exp}/anom_detrend1"
     scyclepath="/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/${exp}/raw/scycle"
-
     for vname in ${vnames[@]}; do
-
         infile=${dpath}/${vname}.nc
         scyclefile=${scyclepath}/${vname}.nc
         outfile=${detrendpath}/${vname}.nc
