@@ -95,7 +95,7 @@ bbox     = [-90,40,20,80] # Assumes with degrees west #[-90+360, 40, 20, 80]
 vname    = "msl" # Name of the variable
 datpath  = "/home/niu4/gliu8/projects/scrap/processed_global/" # Input Path
 expname  = "TCo319-DART-ssp585d-gibbs-charn" # Name of the experiment (for naming)
-expnames = ["TCo319-DART-ctl1950d-gibbs-charn","TCo95-hi1950d","TCo95-ssp585d","TCo1279-DART-2060_msl"]
+expnames = ["TCo319_ctl1950d","TCo319_ssp585","TCo1279-DART-2060","TCo1279-DART-1950","TCo1279-DART-2090_msl"] # "TCo319-DART-ctl1950d-gibbs-charn","TCo95-hi1950d","TCo95-ssp585d",
 
 for expname in expnames:
     
