@@ -134,7 +134,7 @@ customname      = None
 
 
 # Variables
-flxname         = 'ttcre' #['allsky','clearsky','cre']  # Loop for fluxes
+flxname         = 'tscre' #['allsky','clearsky','cre']  # Loop for fluxes
 ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 #ccf_vars        = ["sst","eis","MeanAdvTanom","AnomAdvTmean","r700","w700","ws10",]
 
