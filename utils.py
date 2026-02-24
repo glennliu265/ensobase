@@ -162,7 +162,9 @@ def calc_lag_regression_1d(var1_lag,var2_base,lags,correlation=False): # CAn mak
     if np.any(np.isnan(var1_lag)) or np.any(np.isnan(var2_base)):
         #print("NaN detected. Returning NaN...")
         return np.nan * np.ones(len(lags*2))
-    
+    if np.any(var1_lag == 0.) or np.any(var2_base == 0.):
+        return np.nan * np.ones(len(lags*2))
+        
     ntime = len(var1_lag)
     betalag = []
     poslags = lags[lags >= 0]
