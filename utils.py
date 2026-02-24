@@ -25,6 +25,7 @@ Function                Description
 awi_mean_loader             : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
 calc_grad_centered          : (g) Calculate centered-difference for spatial gradients
 calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
+calc_leadlagreg_pointwise   : (g) Compute pointwise lead lag regression using ufunc
 calc_leadlag_regression_2d  : (g) Compute lead lag regression for 2D timseries (modeled after enso_lag_regression)
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
 get_moving_segments         : (g) Subset timeseries into segments with a sliding window
@@ -158,9 +159,9 @@ def calc_lag_regression_1d(var1_lag,var2_base,lags,correlation=False): # CAn mak
     # (+) lags indicate var1 lags  var2 (var 2 leads)
     # (-) lags indicate var1 leads var2 (var 1 leads)
     
-    if np.any(np.isnan(var1_lag)) or np.any(np.isnan(var2_lag)):
-        print("NaN detected. Returning NaN...")
-        return np.nan * np.ones(len(lags*2)-1)
+    if np.any(np.isnan(var1_lag)) or np.any(np.isnan(var2_base)):
+        #print("NaN detected. Returning NaN...")
+        return np.nan * np.ones(len(lags*2))
     
     ntime = len(var1_lag)
     betalag = []
@@ -192,6 +193,31 @@ def calc_lag_regression_1d(var1_lag,var2_base,lags,correlation=False): # CAn mak
     
     # Append Together
     return np.concatenate([np.flip(np.array(betalead)),np.array(betalag)])
+
+# Copied from xrfunc in amv (based on leadlagcorr.
+def calc_leadlagreg_pointwise(dslag,dsbase,leadlags):
+    # Computes lead lag regression between ds1 and ds2 over dimension ['time']
+    # over specified lead/lags [lags]. Loops over all other dimensions (lat,lon,depth,etc)
+    # Copied over from  calculate_pointwise_sw_feedback.py
+    # Might need to ensure there are no NaNs or everything is not Zero... 
+    def calc_leadlag_regr(varlag,varbase):
+        try:
+            llout = calc_lag_regression_1d(varlag,varbase,leadlags)
+            return llout
+        except:
+            return np.ones(len(leadlags)) * np.nan
+    
+    llreg = xr.apply_ufunc(
+        calc_leadlag_regr,
+        dslag,
+        dsbase,
+        input_core_dims=[['time'],['time']],
+        output_core_dims=[['lags']],
+        vectorize=True,
+        )
+    #leadlags     = np.concatenate([np.flip(-1*lags)[:-1],lags],) 
+    llreg['lags'] = leadlags
+    return llreg
 
 
 def combine_events(var_in,id_in,tol=1,verbose=True):
