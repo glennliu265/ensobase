@@ -153,17 +153,21 @@ def init_globalmap(nrow=1,ncol=1,figsize=(12,8)):
         ax = ax[0]
     return fig,ax
 
-def calc_lag_regression_1d(var1,var2,lags,correlation=False): # CAn make 2d by mirroring calc_lag_covar_annn
+def calc_lag_regression_1d(var1_lag,var2_base,lags,correlation=False): # CAn make 2d by mirroring calc_lag_covar_annn
     # Calculate the regression where
     # (+) lags indicate var1 lags  var2 (var 2 leads)
     # (-) lags indicate var1 leads var2 (var 1 leads)
     
-    ntime = len(var1)
+    if np.any(np.isnan(var1_lag)) or np.any(np.isnan(var2_lag)):
+        print("NaN detected. Returning NaN...")
+        return np.nan * np.ones(len(lags*2)-1)
+    
+    ntime = len(var1_lag)
     betalag = []
     poslags = lags[lags >= 0]
     for l,lag in enumerate(poslags):
-        varlag   = var1[lag:]
-        varbase  = var2[:(ntime-lag)]
+        varlag   = var1_lag[lag:]
+        varbase  = var2_base[:(ntime-lag)]
         
         # Calculate correlation
         if correlation:
@@ -177,8 +181,8 @@ def calc_lag_regression_1d(var1,var2,lags,correlation=False): # CAn make 2d by m
     betalead = []
     
     for l,lag in enumerate(neglags_sort):
-        varlag   = var2[lag:] # Now Varlag is the base...
-        varbase  = var1[:(ntime-lag)]
+        varlag   = var2_base[lag:] # Now Varlag is the base...
+        varbase  = var1_lag[:(ntime-lag)]
         # Calculate correlation
         if correlation:
             beta = np.corrcoef(varlag,varbase)[0,1]
