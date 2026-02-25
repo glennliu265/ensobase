@@ -18,7 +18,6 @@ Created on Wed Nov 26 11:22:49 2025
 
 """
 
-
 import sys
 import time
 import numpy as np
@@ -73,6 +72,10 @@ expname  = "TCo319_ctl1950d"
 datpath  = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
 ncstr    = datpath + expname + "_%s_regrid1x1.nc"
 
+# TCo1279-2090
+expname  = "TCo1279-DART-2090"
+datpath  = "/home/niu4/gliu8/projects/scrap/processed_global/"
+ncstr    = datpath + expname + "_%s.nc"
 
 # # TCo319 Control Full
 # expname  = "TCo319_ctl1950d"
@@ -81,8 +84,8 @@ ncstr    = datpath + expname + "_%s_regrid1x1.nc"
 
 
 # Calculation Options
-calculate_total_Tadv      = False
-calculate_components_Tadv = True # Compute ubar dot grad T' and uprime dot grad Tbar
+calculate_total_Tadv      = True
+calculate_components_Tadv = False # Compute ubar dot grad T' and uprime dot grad Tbar
 
 # Load Land Mask
 landmask = ut.load_land_mask_awi(expname,regrid=regrid)
@@ -184,26 +187,7 @@ elif calculate_components_Tadv:
     print("Saving as %s" % ncname_out)
     anomadv_anomgrad.to_netcdf(ncname_out)
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
-
-    
-    
 
 
 # #%% Debug Plot
