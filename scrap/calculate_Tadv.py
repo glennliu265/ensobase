@@ -107,7 +107,7 @@ for vv in tqdm.tqdm(range(3)): # 4min 30 for 2 variables, first one took 3 min, 
     vname  = vnames[vv]
     ncname = ncstr % vname
     ds     = xr.open_dataset(ncname)[vname]#
-    if tcrop is True
+    if tcrop is True:
         ds     = ds.sel(time_counter=(tstart,tend)).load()
     dsvars.append(ds)
  
