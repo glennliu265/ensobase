@@ -66,7 +66,6 @@ expname  = "ERA5_1979_2024"
 datpath  = "/home/niu4/gliu8/share/ERA5/processed/"
 ncstr    = datpath + "%s_1979_2024.nc"
 
-
 # TCo319 Control Regridded
 expname  = "TCo319_ctl1950d"
 datpath  = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
@@ -76,6 +75,15 @@ ncstr    = datpath + expname + "_%s_regrid1x1.nc"
 expname  = "TCo1279-DART-2090"
 datpath  = "/home/niu4/gliu8/projects/scrap/processed_global/"
 ncstr    = datpath + expname + "_%s.nc"
+
+# TCo2259-DART-1950
+expname  = "TCo2559-DART-1950C"
+datpath  = "/home/niu4/gliu8/projects/scrap/processed_global/"
+ncstr    = datpath + expname + "_%s.nc"
+tcrop    = True
+tstart   = '1950-01-01'
+tend     = '1960-12-31'
+
 
 # # TCo319 Control Full
 # expname  = "TCo319_ctl1950d"
@@ -98,7 +106,9 @@ dsvars = []
 for vv in tqdm.tqdm(range(3)): # 4min 30 for 2 variables, first one took 3 min, total 5min 16s
     vname  = vnames[vv]
     ncname = ncstr % vname
-    ds     = xr.open_dataset(ncname)[vname].load()
+    ds     = xr.open_dataset(ncname)[vname]#
+    if tcrop = True
+        ds     = ds.sel(time_counter=(tstart,tend)).load()
     dsvars.append(ds)
  
 dsall = xr.merge(dsvars)
