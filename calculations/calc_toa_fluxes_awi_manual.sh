@@ -236,3 +236,24 @@ cdo -add ${rawpath}/CERES_EBAF_tscre_2000-03_to_2025-08.nc  ${rawpath}/CERES_EBA
 cdo chname,tscre,cre ${outpath}/temp.nc ${outpath}/CERES_EBAF_cre_2000-03_to_2025-08.nc
 
 # ==================================================================================
+
+
+# Same as above, but compute for CERES-EBAF Surface Radiation (2026.02.23)
+
+# STCRE
+rawpath='/home/niu4/gliu8/share/CERES/processed'
+outpath='/home/niu4/gliu8/share/CERES/processed'
+cdo -sub ${rawpath}/CERES_EBAF_strc_2000-03_to_2025-09.nc ${rawpath}/CERES_EBAF_str_2000-03_to_2025-09.nc ${outpath}/temp.nc  
+cdo chname,strc,stcre ${outpath}/temp.nc ${outpath}/CERES_EBAF_stcre_2000-03_to_2025-09.nc
+
+# SSCRE
+rawpath='/home/niu4/gliu8/share/CERES/processed'
+outpath='/home/niu4/gliu8/share/CERES/processed'
+cdo -sub ${rawpath}/CERES_EBAF_ssrc_2000-03_to_2025-09.nc ${rawpath}/CERES_EBAF_ssr_2000-03_to_2025-09.nc ${outpath}/temp.nc  
+cdo chname,ssrc,sscre ${outpath}/temp.nc ${outpath}/CERES_EBAF_sscre_2000-03_to_2025-09.nc
+
+# SCRE (net), seems equivalent to the all sky case for the above approach
+rawpath='/home/niu4/gliu8/share/CERES/processed'
+outpath='/home/niu4/gliu8/share/CERES/processed'
+cdo -add ${rawpath}/CERES_EBAF_sscre_2000-03_to_2025-08.nc  ${rawpath}/CERES_EBAF_stcre_2000-03_to_2025-08.nc ${outpath}/temp.nc
+cdo chname,sscre,scre ${outpath}/temp.nc ${outpath}/CERES_EBAF_scre_2000-03_to_2025-08.nc
