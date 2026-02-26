@@ -149,8 +149,27 @@ tstart          = '1950-01-01'
 tend            = '2099-12-31'
 customname      = None
 
+# Do for TCo2559-DART-1950C
+expname         = "TCo2559-DART-1950C"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/" # Expname Added later
+anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+tstart          = '1950-01-01'
+tend            = '1959-12-31'
+customname      = None
+
+# Do for TCo1279-1950-gibbs_charn
+expname         = "TCo319-DART-ctl1950d-gibbs-charn"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/" # Expname Added later
+anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+tstart          = None
+tend            = None
+customname      = None
+
 # Variables
-flxname         = 'ttcre' #['allsky','clearsky','cre']  # Loop for fluxes
+flxname         = 'tscre' #['allsky','clearsky','cre']  # Loop for fluxes
+flxnames = ["cre","tscre","ttcre"]
 ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 #ccf_vars        = ["sst","eis","MeanAdvTanom","AnomAdvTmean","r700","w700","ws10",]
 
@@ -206,143 +225,146 @@ for v in range(nccfs):
         dsvars_anom.append(ds.squeeze())
     
     # SST is only 8 years, so reduce the time...
-    if expname == 'TCo2559-DART-1950C': 
-        dsvars_anom = [ut.reduce_time(ds,dsvars_anom[0]) for ds in dsvars_anom]
+    # Commented out this since it has changed
+    #if expname == 'TCo2559-DART-1950C': 
+        #dsvars_anom = [ut.reduce_time(ds,dsvars_anom[0]) for ds in dsvars_anom]
 
-# Load the fluxes
-dsflx   = xr.open_dataset("%s%s.nc" % (datpath,flxname))[flxname].load()
-if "TCo" in expname: # Convert Fluxes
-    print("Converting fluxes based on accumulation period for AWI-CM3")
-    dsflx   = ut.varcheck(dsflx,flxname,expname)
-elif expname == "ERA5_1979_2024":
-    print("Considering 1-day flux accumulation period for ERA_1979_2024")
-    dtday   = 3600*24
-    dsflx   = dsflx / dtday
-dsflx   = ut.standardize_names(dsflx)
-dsflx   = ut.remove_duplicate_times(dsflx)
-
-# Shift CERES data (move function to ut)
-import pandas as pd
-def shift_time_monthstart(dsin,timename='time'):
-    oldtime         = dsin[timename]
-    tstart          =  str(oldtime[0].data)[:7] + "-01"
-    tend            =  str(oldtime[-1].data)[:7] + "-01"
-    newtime         = pd.date_range(start=tstart,end=tend,freq="MS")
-    dsin[timename]    = newtime
-    print("New time dimension between %s and %s" % (dsin[timename][0].data,dsin[timename][-1].data))
-    return dsin
-if "CERES" in expname:
-    dsflx = ut.shift_time_monthstart(dsflx,timename='time')
+for flxname in flxnames:
     
-# Limit to time
-if tstart or tend is not None:
-    dsflx       = dsflx.sel(time=slice(tstart,tend))
-    dsvars_anom = [ds.sel(time=slice(tstart,tend)) for ds in dsvars_anom]
-else:
-    print("No time range will be applied")
+    # Load the fluxes
+    dsflx   = xr.open_dataset("%s%s.nc" % (datpath,flxname))[flxname].load()
+    if "TCo" in expname: # Convert Fluxes
+        print("Converting fluxes based on accumulation period for AWI-CM3")
+        dsflx   = ut.varcheck(dsflx,flxname,expname)
+    elif expname == "ERA5_1979_2024":
+        print("Considering 1-day flux accumulation period for ERA_1979_2024")
+        dtday   = 3600*24
+        dsflx   = dsflx / dtday
+    dsflx   = ut.standardize_names(dsflx)
+    dsflx   = ut.remove_duplicate_times(dsflx)
     
-# for ii in range(nccfs): (note match time month does not play nice with pd.date_range, need to figure it out)
-#     dsvars_anom[ii],_=proc.match_time_month(dsvars_anom[ii],dsflx)
-
-# Check Time Dimension
-ntimes_predictors = [len(ds.time) for ds in dsvars_anom]
-ntimes_flux       = len(dsflx.time)
-
-# =====================================
-#%% Part (2): Compute Radiative Kernels
-# =====================================
-
-st = time.time()
-
-# Subset months
-for selmons in selmons_loop:
-    
-    dsexp_sel  = dsvars_anom
-    dsexp_flx  = dsflx
-    
-    if selmons is not None:
-        dsexp_flx = proc.selmon_ds(dsexp_flx,selmons)
-        dsexp_sel = [proc.selmon_ds(ds,selmons) for ds in dsexp_sel]
-    else:
-        print("Calculating for all months!")
-    
-    # Pre-allocate
-    dsexp_flx       = dsexp_flx.transpose('lat','lon','time')
-    lon             = dsexp_flx.lon.data
-    lat             = dsexp_flx.lat.data
-    nlat,nlon,ntime = dsexp_flx.shape
-    nccfs           = len(dsexp_sel)
-    coeffs          = np.zeros((nlat,nlon,nccfs)) * np.nan # [ Lat x Lon x CCFs ]
-    ypred           = np.zeros(dsexp_flx.shape) * np.nan   # [ Lat x Lon x Time ]
-    r2              = np.zeros((nlat,nlon)) * np.nan       # [ Lat x Lon ]
-    yerr            = ypred.copy()
-    
-    # Do a silly loop (took 5 min 17 sec)
-    for o in tqdm.tqdm(range(nlon)):
-        lonf = lon[o]
+    # Shift CERES data (move function to ut)
+    import pandas as pd
+    def shift_time_monthstart(dsin,timename='time'):
+        oldtime         = dsin[timename]
+        tstart          =  str(oldtime[0].data)[:7] + "-01"
+        tend            =  str(oldtime[-1].data)[:7] + "-01"
+        newtime         = pd.date_range(start=tstart,end=tend,freq="MS")
+        dsin[timename]    = newtime
+        print("New time dimension between %s and %s" % (dsin[timename][0].data,dsin[timename][-1].data))
+        return dsin
+    if "CERES" in expname:
+        dsflx = ut.shift_time_monthstart(dsflx,timename='time')
         
-        for a in range(nlat):
-            latf = lat[a]
-            
-            chkland = proc.selpt_ds(landmask,lonf,latf).data
-            if np.isnan(chkland):
-                continue
-            
-            # Check for NaN in predictor
-            dspts  = [proc.selpt_ds(ds,lonf,latf) for ds in dsexp_sel]
-            chknan = [np.any(np.isnan(ds.data)) for ds in dspts]
-            if np.any(chknan):
-                iinan = np.where(chknan)[0][0]
-                #print("NaN detected for variables %s, lon (%.2f), lat (%.2f)... skipping." % (chknan,lonf,latf))
-                continue
-            # Check for NaN in target
-            flxpt  = proc.selpt_ds(dsexp_flx,lonf,latf)
-            if np.any(np.isnan(flxpt.data)):
-                #print("NaN detected for Flux, lon (%.2f), lat (%.2f)... skipping." % (lonf,latf))
-                continue
-            
-            
-            # Do calculations
-            mlr_out = ut.mlr_ccfs(dspts,flxpt,standardize=standardize,verbose=False)
-            
-            # Calculate error
-            yerr_pt = flxpt - mlr_out['pred']
-            
-            r2[a,o]       = mlr_out['r2']
-            ypred[a,o,:]  = mlr_out['pred']
-            coeffs[a,o,:] = mlr_out['coeffs']
-            yerr[a,o,:]   = yerr_pt 
-            
-            # if add_ucc:  
-            #     ccfnames = ccf_vars
-            
-            # else:
-            #     if "ucc" in ccf_vars:
-            #         ccfnames = ccf_vars[:-1]
-            #     ccfnames = ccf_vars
-            
-    ccfnames       = ccf_vars
-    
-    coords_r2       = dict(lat=lat,lon=lon)
-    coords_coeffs   = dict(lat=lat,lon=lon,ccf=ccfnames)
-    coords_pred     = dict(lat=lat,lon=lon,time=dsexp_flx.time)
-    
-    da_r2           = xr.DataArray(r2,coords=coords_r2,dims=coords_r2,name='r2')
-    da_coeffs       = xr.DataArray(coeffs,coords=coords_coeffs,dims=coords_coeffs,name='coeffs')
-    da_pred         = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='ypred')
-    da_yerr         = xr.DataArray(yerr,coords=coords_pred,dims=coords_pred,name='yerr')
-    ds_out          = xr.merge([da_r2,da_coeffs,da_pred,da_yerr])
-    edict           = proc.make_encoding_dict(ds_out)
-    
-    if customname is not None:
-        outname         = "%s%s_%s_kernels_standardize%i.nc" % (outpath_kernel,flxname,customname,standardize)
+    # Limit to time
+    if tstart or tend is not None:
+        dsflx       = dsflx.sel(time=slice(tstart,tend))
+        dsvars_anom = [ds.sel(time=slice(tstart,tend)) for ds in dsvars_anom]
     else:
-        outname         = "%s%s_kernels_standardize%i.nc" % (outpath_kernel,flxname,standardize)
-    if selmons is not None:
-        selmonstr    = proc.mon2str(np.array(selmons)-1)
-        outname      = proc.addstrtoext(outname,"_"+selmonstr,adjust=-1)
+        print("No time range will be applied")
+        
+    # for ii in range(nccfs): (note match time month does not play nice with pd.date_range, need to figure it out)
+    #     dsvars_anom[ii],_=proc.match_time_month(dsvars_anom[ii],dsflx)
     
-    ds_out.to_netcdf(outname,encoding=edict)
-    print("Completed CCF kernel calculation for %s (%s) in %.2fs" % (flxname,expname,time.time()-st))
+    # Check Time Dimension
+    ntimes_predictors = [len(ds.time) for ds in dsvars_anom]
+    ntimes_flux       = len(dsflx.time)
+    
+    # =====================================
+    #%% Part (2): Compute Radiative Kernels
+    # =====================================
+    
+    st = time.time()
+    
+    # Subset months
+    for selmons in selmons_loop:
+        
+        dsexp_sel  = dsvars_anom
+        dsexp_flx  = dsflx
+        
+        if selmons is not None:
+            dsexp_flx = proc.selmon_ds(dsexp_flx,selmons)
+            dsexp_sel = [proc.selmon_ds(ds,selmons) for ds in dsexp_sel]
+        else:
+            print("Calculating for all months!")
+        
+        # Pre-allocate
+        dsexp_flx       = dsexp_flx.transpose('lat','lon','time')
+        lon             = dsexp_flx.lon.data
+        lat             = dsexp_flx.lat.data
+        nlat,nlon,ntime = dsexp_flx.shape
+        nccfs           = len(dsexp_sel)
+        coeffs          = np.zeros((nlat,nlon,nccfs)) * np.nan # [ Lat x Lon x CCFs ]
+        ypred           = np.zeros(dsexp_flx.shape) * np.nan   # [ Lat x Lon x Time ]
+        r2              = np.zeros((nlat,nlon)) * np.nan       # [ Lat x Lon ]
+        yerr            = ypred.copy()
+        
+        # Do a silly loop (took 5 min 17 sec)
+        for o in tqdm.tqdm(range(nlon)):
+            lonf = lon[o]
+            
+            for a in range(nlat):
+                latf = lat[a]
+                
+                chkland = proc.selpt_ds(landmask,lonf,latf).data
+                if np.isnan(chkland):
+                    continue
+                
+                # Check for NaN in predictor
+                dspts  = [proc.selpt_ds(ds,lonf,latf) for ds in dsexp_sel]
+                chknan = [np.any(np.isnan(ds.data)) for ds in dspts]
+                if np.any(chknan):
+                    iinan = np.where(chknan)[0][0]
+                    #print("NaN detected for variables %s, lon (%.2f), lat (%.2f)... skipping." % (chknan,lonf,latf))
+                    continue
+                # Check for NaN in target
+                flxpt  = proc.selpt_ds(dsexp_flx,lonf,latf)
+                if np.any(np.isnan(flxpt.data)):
+                    #print("NaN detected for Flux, lon (%.2f), lat (%.2f)... skipping." % (lonf,latf))
+                    continue
+                
+                
+                # Do calculations
+                mlr_out = ut.mlr_ccfs(dspts,flxpt,standardize=standardize,verbose=False)
+                
+                # Calculate error
+                yerr_pt = flxpt - mlr_out['pred']
+                
+                r2[a,o]       = mlr_out['r2']
+                ypred[a,o,:]  = mlr_out['pred']
+                coeffs[a,o,:] = mlr_out['coeffs']
+                yerr[a,o,:]   = yerr_pt 
+                
+                # if add_ucc:  
+                #     ccfnames = ccf_vars
+                
+                # else:
+                #     if "ucc" in ccf_vars:
+                #         ccfnames = ccf_vars[:-1]
+                #     ccfnames = ccf_vars
+                
+        ccfnames       = ccf_vars
+        
+        coords_r2       = dict(lat=lat,lon=lon)
+        coords_coeffs   = dict(lat=lat,lon=lon,ccf=ccfnames)
+        coords_pred     = dict(lat=lat,lon=lon,time=dsexp_flx.time)
+        
+        da_r2           = xr.DataArray(r2,coords=coords_r2,dims=coords_r2,name='r2')
+        da_coeffs       = xr.DataArray(coeffs,coords=coords_coeffs,dims=coords_coeffs,name='coeffs')
+        da_pred         = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='ypred')
+        da_yerr         = xr.DataArray(yerr,coords=coords_pred,dims=coords_pred,name='yerr')
+        ds_out          = xr.merge([da_r2,da_coeffs,da_pred,da_yerr])
+        edict           = proc.make_encoding_dict(ds_out)
+        
+        if customname is not None:
+            outname         = "%s%s_%s_kernels_standardize%i.nc" % (outpath_kernel,flxname,customname,standardize)
+        else:
+            outname         = "%s%s_kernels_standardize%i.nc" % (outpath_kernel,flxname,standardize)
+        if selmons is not None:
+            selmonstr    = proc.mon2str(np.array(selmons)-1)
+            outname      = proc.addstrtoext(outname,"_"+selmonstr,adjust=-1)
+        
+        ds_out.to_netcdf(outname,encoding=edict)
+        print("Completed CCF kernel calculation for %s (%s) in %.2fs" % (flxname,expname,time.time()-st))
 
         
