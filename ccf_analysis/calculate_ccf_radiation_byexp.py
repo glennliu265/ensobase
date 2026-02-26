@@ -58,6 +58,16 @@ tend          = None#'2099-12-31'#'2023-02-01''2024-12-31'#
 customname     = None
 #customname    = "addNino34"
 
+
+# CERES EBAF 2001-2024 with nino34
+expname       = "TCo319_ctl1950d"
+flxname       = "tscre"#"creln"
+#ccf_vars      = ["sst","eis","Tadv","r700","w700","ws10","nino34"]
+tstart        = '1950-01-01'
+tend          = '2099-12-31'
+customname     = None
+
+
 # Set Paths
 kernel_path   = '/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/%s/' % expname
 ccf_path      = '/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/' % expname

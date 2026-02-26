@@ -52,7 +52,6 @@ landmask = ut.load_land_mask_awi("TCo319",regrid=True)
 
 # Path to Data and Experiments
 
-
 # CERES-FBCT with ERA5 ----- (calculate_unobscured_fluxes_CERES_FBCT)
 expname         = "CERES_FBCT_ERA5"
 datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_FBCT_ERA5/anom_detrend1/" #/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
@@ -141,6 +140,14 @@ tstart          = '1950-01-01'
 tend            = '1969-12-31'
 customname      = None
 
+# Do for TCo1279-1950
+expname         = "TCo319_ctl1950d"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/" # Expname Added later
+anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+tstart          = '1950-01-01'
+tend            = '2099-12-31'
+customname      = None
 
 # Variables
 flxname         = 'ttcre' #['allsky','clearsky','cre']  # Loop for fluxes
@@ -212,6 +219,7 @@ elif expname == "ERA5_1979_2024":
     dtday   = 3600*24
     dsflx   = dsflx / dtday
 dsflx   = ut.standardize_names(dsflx)
+dsflx   = ut.remove_duplicate_times(dsflx)
 
 # Shift CERES data (move function to ut)
 import pandas as pd
@@ -292,6 +300,7 @@ for selmons in selmons_loop:
             if np.any(np.isnan(flxpt.data)):
                 #print("NaN detected for Flux, lon (%.2f), lat (%.2f)... skipping." % (lonf,latf))
                 continue
+            
             
             # Do calculations
             mlr_out = ut.mlr_ccfs(dspts,flxpt,standardize=standardize,verbose=False)
