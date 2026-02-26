@@ -74,6 +74,9 @@ bbnames_long = ["Central Equatorial Pacific","$Ni\tilde{n}o3$","$Ni\tilde{n}o3.4
 bbnames      = ["CEO","nino3","nino34","EPac","WPac"]
 
 
-#%%
+#%% CCF Variables
+
+ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
+
 
 
