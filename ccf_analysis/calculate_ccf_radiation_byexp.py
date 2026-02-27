@@ -61,12 +61,52 @@ customname     = None
 
 # CERES EBAF 2001-2024 with nino34
 expname       = "TCo319_ctl1950d"
-flxname       = "tscre"#"creln"
+flxname       = "ttcre"#"creln"
 #ccf_vars      = ["sst","eis","Tadv","r700","w700","ws10","nino34"]
 tstart        = '1950-01-01'
 tend          = '2099-12-31'
 customname     = None
 
+# # 31km Control New
+# expname       = "TCo319-DART-ctl1950d-gibbs-charn"
+# #ccf_vars      = ["sst","eis","Tadv","r700","w700","ws10","nino34"]
+# tstart        = None
+# tend          = None
+# customname     = None
+
+# # 31km SSP New
+# expname        = "TCo319-DART-ssp585d-gibbs-charn"
+# tstart         = None
+# tend           = None
+# customname     = None
+
+# # Do for TCo2559-DART-1950C
+# expname         = "TCo2559-DART-1950C"
+# flxname         = "cre"#"creln"
+# tstart          = '1950-01-01'
+# tend            = '1959-12-31'
+# customname      = None
+
+# 9km 1950
+# expname         = "TCo1279-DART-1950"
+# flxname         = "ttcre"#"creln"
+# tstart          = '1950-01-01'
+# tend            = '1969-12-31'
+# customname      = None
+
+# # 9km 2090
+# expname         = "TCo1279-DART-2090"
+# tstart          = None
+# tend            = None
+# customname      = None
+
+# 9km 2060
+expname         = "TCo319_ctl1950d"
+tstart          = None
+tend            = '2015-01-01'
+customname      = '2100-12-31'
+
+flxnames      = ["cre","ttcre","tscre"]
 
 # Set Paths
 kernel_path   = '/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/%s/' % expname
@@ -87,112 +127,114 @@ selmons_loop  = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]] # No Need to put None, All 
 figpath      = "/home/niu4/gliu8/figures/bydate/2025-12-02/"
 proc.makedir(figpath)
 
-#%% Load the all months case
-
-#ncname_kernel   = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
-
-if customname is not None:
-    ncname_kernel         = "%s%s_%s_kernels_standardize%i.nc" % (kernel_path,flxname,customname,standardize)
-else:
-    ncname_kernel         = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
-dsall           = xr.open_dataset(ncname_kernel).load()
-
-#%% Load each Month
-# Load the Kernels (Seasonal)
-if calc_seasonal:
-        
-    ds_byseason = []
-    for selmons in tqdm(selmons_loop):
-        
-        if customname is not None:
-            ncname_kernel         = "%s%s_%s_kernels_standardize%i.nc" % (kernel_path,flxname,customname,standardize)
-        else:
-            ncname_kernel         = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
-            
-        #ncname_kernel   = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
-
-        if selmons is not None:
-            selmonstr = proc.mon2str(np.array(selmons)-1)
-            ncname_kernel   = proc.addstrtoext(ncname_kernel,"_"+selmonstr,adjust=-1)
-        
-        # Load Seasonal Outputs
-        ds = xr.open_dataset(ncname_kernel).load()
-        
-        
-        ds_byseason.append(ds)
- 
-#%% Load each variable
-
-
-dsvars_anom = []
-
-for ccf in tqdm(ccf_vars):
+for flxname in flxnames:
     
-    ncname = "%s%s.nc" % (ccf_path,ccf)
-    ds     = xr.open_dataset(ncname)[ccf].load()
-    ds     = ut.standardize_names(ds)
+    #%% Load the all months case
     
-
+    #ncname_kernel   = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
     
-    # Do some cropping (copied from calculate_radiative_kernels_byexp)
-    tstart = str(dsall.time[0].data)[:7]
-    tend   = str(dsall.time[-1].data)[:7]
-    ds = ds.sel(time=slice(tstart,tend))
-    
-    
-    dsvars_anom.append(ds)
-    
-    
-
-#%% For each variable, do the multiplication
-
-# save_files = False # Set to True to Output NetCDFs
-# print("Save Files is set to [%s]" % save_files)
-
-proc.makedir(outpath)
-
-nccf  = len(ccf_vars)
-dtday = 3600*60
-for vv in tqdm(range(nccf)):
-    
-    # Get Variable
-    ccfname        = ccf_vars[vv]
-    varanom        = dsvars_anom[vv]
-    
-    varanom_std     = varanom / varanom.std('time') # Standardize Variable
-    
-    # Multiple by the Coefficient
-    coeff_allmons  = dsall.coeffs.sel(ccf=ccfname) #/dtday
-    R_component    = coeff_allmons * varanom_std
-    vname_new      = ccfname
-    R_component    = R_component.rename(vname_new)
-    if customname is not None: # Add after Flux
-        rname_out      = "%s%s_%s_%s_component.nc" % (outpath,flxname,customname,vname_new,)
+    if customname is not None:
+        ncname_kernel         = "%s%s_%s_kernels_standardize%i.nc" % (kernel_path,flxname,customname,standardize)
     else:
-        rname_out      = "%s%s_%s_component.nc" % (outpath,flxname,vname_new,)
-    R_component.to_netcdf(rname_out)
+        ncname_kernel         = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
+    dsall           = xr.open_dataset(ncname_kernel).load()
     
+    #%% Load each Month
+    # Load the Kernels (Seasonal)
     if calc_seasonal:
-        coeff_seasonal = [ds.coeffs.sel(ccf=ccfname) for ds in ds_byseason] # /dtday
-        R_component_seasonal = []
-        for ss in range(4):
             
-            selmons    = selmons_loop[ss]
+        ds_byseason = []
+        for selmons in tqdm(selmons_loop):
             
-            varmon     = proc.selmon_ds(varanom_std,selmons)
-            varmon_out = varmon * coeff_seasonal[ss]
-            R_component_seasonal.append(varmon_out)
+            if customname is not None:
+                ncname_kernel         = "%s%s_%s_kernels_standardize%i.nc" % (kernel_path,flxname,customname,standardize)
+            else:
+                ncname_kernel         = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
+                
+            #ncname_kernel   = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
+    
+            if selmons is not None:
+                selmonstr = proc.mon2str(np.array(selmons)-1)
+                ncname_kernel   = proc.addstrtoext(ncname_kernel,"_"+selmonstr,adjust=-1)
             
-        R_component_seasonal = xr.concat(R_component_seasonal,dim='time')
-        R_component_seasonal = R_component_seasonal.sortby('time')
-        R_component_seasonal = R_component_seasonal.rename(vname_new)
-        R_component_seasonal = R_component_seasonal#.rename({'time':'valid_time'})
-        if customname is not None:
-            rname_out      = "%s%s_%s_%s_component_seasonal.nc" % (outpath,flxname,customname,vname_new,)
+            # Load Seasonal Outputs
+            ds = xr.open_dataset(ncname_kernel).load()
+            
+            
+            ds_byseason.append(ds)
+     
+    #%% Load each variable
+    
+    
+    dsvars_anom = []
+    
+    for ccf in tqdm(ccf_vars):
+        
+        ncname = "%s%s.nc" % (ccf_path,ccf)
+        ds     = xr.open_dataset(ncname)[ccf].load()
+        ds     = ut.standardize_names(ds)
+        
+    
+        
+        # Do some cropping (copied from calculate_radiative_kernels_byexp)
+        tstart = str(dsall.time[0].data)[:7]
+        tend   = str(dsall.time[-1].data)[:7]
+        ds = ds.sel(time=slice(tstart,tend))
+        
+        
+        dsvars_anom.append(ds)
+        
+        
+    
+    #%% For each variable, do the multiplication
+    
+    # save_files = False # Set to True to Output NetCDFs
+    # print("Save Files is set to [%s]" % save_files)
+    
+    proc.makedir(outpath)
+    
+    nccf  = len(ccf_vars)
+    dtday = 3600*60
+    for vv in tqdm(range(nccf)):
+        
+        # Get Variable
+        ccfname        = ccf_vars[vv]
+        varanom        = dsvars_anom[vv]
+        
+        varanom_std     = varanom / varanom.std('time') # Standardize Variable
+        
+        # Multiple by the Coefficient
+        coeff_allmons  = dsall.coeffs.sel(ccf=ccfname) #/dtday
+        R_component    = coeff_allmons * varanom_std
+        vname_new      = ccfname
+        R_component    = R_component.rename(vname_new)
+        if customname is not None: # Add after Flux
+            rname_out      = "%s%s_%s_%s_component.nc" % (outpath,flxname,customname,vname_new,)
         else:
-            rname_out      = "%s%s_%s_component_seasonal.nc" % (outpath,flxname,vname_new,)
-        R_component_seasonal.to_netcdf(rname_out)
-
+            rname_out      = "%s%s_%s_component.nc" % (outpath,flxname,vname_new,)
+        R_component.to_netcdf(rname_out)
+        
+        if calc_seasonal:
+            coeff_seasonal = [ds.coeffs.sel(ccf=ccfname) for ds in ds_byseason] # /dtday
+            R_component_seasonal = []
+            for ss in range(4):
+                
+                selmons    = selmons_loop[ss]
+                
+                varmon     = proc.selmon_ds(varanom_std,selmons)
+                varmon_out = varmon * coeff_seasonal[ss]
+                R_component_seasonal.append(varmon_out)
+                
+            R_component_seasonal = xr.concat(R_component_seasonal,dim='time')
+            R_component_seasonal = R_component_seasonal.sortby('time')
+            R_component_seasonal = R_component_seasonal.rename(vname_new)
+            R_component_seasonal = R_component_seasonal#.rename({'time':'valid_time'})
+            if customname is not None:
+                rname_out      = "%s%s_%s_%s_component_seasonal.nc" % (outpath,flxname,customname,vname_new,)
+            else:
+                rname_out      = "%s%s_%s_component_seasonal.nc" % (outpath,flxname,vname_new,)
+            R_component_seasonal.to_netcdf(rname_out)
+    
 
 # #%% More Debugging
 

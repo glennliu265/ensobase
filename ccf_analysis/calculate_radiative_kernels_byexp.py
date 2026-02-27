@@ -185,15 +185,33 @@ tstart          = None
 tend            = None
 customname      = None
 
-
-# Do for TCo1279-DART-2090
-expname         = "TCo1279-DART-2090"
+# Do for TCo319-1950-gibbs_charn
+expname         = "TCo319_ssp585"
 datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname
 outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/" # Expname Added later
 anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
-tstart          = '2090-01-01'
+tstart          = '2015-01-01'
+tend            = '2100-12-31'
+customname      = None
+
+
+# Do for TCo1279-1950
+expname         = "TCo319_ctl1950d"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/" # Expname Added later
+anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+tstart          = '1950-01-01'
 tend            = '2099-12-31'
 customname      = None
+
+# # Do for TCo1279-DART-2090
+# expname         = "TCo1279-DART-2090"
+# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname
+# outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/" # Expname Added later
+# anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+# tstart          = '2090-01-01'
+# tend            = '2099-12-31'
+# customname      = None
 
 # Variables
 flxname         = 'tscre' #['allsky','clearsky','cre']  # Loop for fluxes
