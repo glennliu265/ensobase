@@ -102,9 +102,9 @@ customname     = None
 
 # 9km 2060
 expname         = "TCo319_ssp585"
-tstart          = None
-tend            = '2015-01-01'
-customname      = '2100-12-31'
+tstart          = '2015-01-01'
+tend            = '2100-12-31' #
+customname      = None #
 
 flxnames      = ["cre","ttcre","tscre"]
 
