@@ -116,22 +116,22 @@ for expname in expnames:
 flxnames    = ["cre","tscre","ttcre"]
 
 
-flx_byexp = []
-for ex,expname in tqdm(enumerate(expnames)):
-    dsflxs = []
-    for flxname in flxnames:
-        dsvar = load_input(flxname,expname,anom=True,regrid=True).load()
-        dsvar = ut.standardize_names(dsvar)
-        if "TCo" in expname:
-            dsvar = ut.varcheck(dsvar,flxname,expname)
-        dsvar = ut.remove_duplicate_times(dsvar)
+# flx_byexp = []
+# for ex,expname in tqdm(enumerate(expnames)):
+#     dsflxs = []
+#     for flxname in flxnames:
+#         dsvar = load_input(flxname,expname,anom=True,regrid=True).load()
+#         dsvar = ut.standardize_names(dsvar)
+#         if "TCo" in expname:
+#             dsvar = ut.varcheck(dsvar,flxname,expname)
+#         dsvar = ut.remove_duplicate_times(dsvar)
         
-        dsvar,_ = proc.match_time_month(dsvar,ep_indices[ex])
-        dsflxs.append(dsvar)
+#         dsvar,_ = proc.match_time_month(dsvar,ep_indices[ex])
+#         dsflxs.append(dsvar)
 
         
-    #dsflxs = xr.merge(dsflxs)
-    flx_byexp.append(dsflxs)
+#     #dsflxs = xr.merge(dsflxs)
+#     flx_byexp.append(dsflxs)
         
 #%% Calculate Lead Lag regression with ENSO
 outpath = "/home/niu4/gliu8/projects/ccfs/metrics/regrid_1x1/scrap/"
@@ -139,46 +139,94 @@ outpath = "/home/niu4/gliu8/projects/ccfs/metrics/regrid_1x1/scrap/"
 nexp       = len(expnames)
 leadlags   = np.arange(-24,25,1)
 
-#flxts_in   = gmeans # [experiment][variable]
-#llbynino    = [] # [nino][experiment][variable]
+
 
 ninos_in    = [cp_indices,ep_indices]
 nino_names  = ["CP","EP"]
 
-#llpatbynino = []
-for nn in range(2):
+# #llpatbynino = []
+# for nn in range(2):
     
-    #llpatbyexp = []
-    for ex in range(nexp):
-        # Get Nino Index
-        ninoin = ninos_in[nn][ex]
+#     #llpatbyexp = []
+#     for ex in range(nexp):
+#         # Get Nino Index
+#         ninoin = ninos_in[nn][ex]
         
-        #llpatbyflx = []
-        for vv in tqdm(range(3)):
-            st = time.time()
-            # Get Flux
-            flxinpat = flx_byexp[ex][vv]
-            flxinpat,ninoin   = proc.match_time_month(flxinpat,ninoin)
+#         #llpatbyflx = []
+#         for vv in tqdm(range(3)):
+#             st = time.time()
+#             # Get Flux
+#             flxinpat = flx_byexp[ex][vv]
+#             flxinpat,ninoin   = proc.match_time_month(flxinpat,ninoin)
             
-            # Compute Lead Lag regression
-            lloutpat          = ut.calc_leadlag_regression_2d(ninoin,flxinpat,leadlags)
+#             # Compute Lead Lag regression
+#             lloutpat          = ut.calc_leadlag_regression_2d(ninoin,flxinpat,leadlags)
             
-            outname = "%sLag_Regression_%s_%s_%sENSO_Lags%02i.nc" % (outpath,expnames[ex],flxnames[vv],nino_names[nn],leadlags[-1])
+#             outname = "%sLag_Regression_%s_%s_%sENSO_Lags%02i.nc" % (outpath,expnames[ex],flxnames[vv],nino_names[nn],leadlags[-1])
             
-            lloutpat.to_netcdf(outname)
-            print("Completed %s ENSO, %s, %s in %.2fs" % (nino_names[nn],expnames[ex],flxnames[vv],time.time()-st))
+#             lloutpat.to_netcdf(outname)
+#             print("Completed %s ENSO, %s, %s in %.2fs" % (nino_names[nn],expnames[ex],flxnames[vv],time.time()-st))
             
-    #         llpatbyflx.append(lloutpat)
+#     #         llpatbyflx.append(lloutpat)
         
 
-    #     llpatbyexp.append(llpatbyflx)
-    # llpatbynino.append(llpatbyexp)
+#     #     llpatbyexp.append(llpatbyflx)
+#     # llpatbynino.append(llpatbyexp)
 
-    #         continue
-    #     continue
-    # continue
+#     #         continue
+#     #     continue
+#     # continue
 
+#%% Part 2: Compute for each CCF
 
+def load_ccf_radiation(expname,flxname,datpath=None,seasonal=False):
+    
+    if datpath is None:
+        datpath = "/home/niu4/gliu8/projects/ccfs/radiative_components/regrid_1x1/"
+    
+    ccfs = ["sst","eis","Tadv","r700","w700","ws10"]
+    
+    dscomps = []
+    for cc in range(6):
+        
+        ccf_var  = ccfs[cc]
+        if seasonal:
+            ncname = "%s%s/%s_%s_component_seasonal.nc" % (datpath,expname,flxname,ccf_var)
+        else:
+            ncname   = "%s%s/%s_%s_component.nc" % (datpath,expname,flxname,ccf_var)
+        dsccf    = xr.open_dataset(ncname)[ccf_var].load()
+
+        dscomps.append(dsccf)
+    return dscomps
+
+ccfs    = ["sst","eis","Tadv","r700","w700","ws10"]
+nccfs   = len(ccfs)
+# Loop for each experiment
+for ex in range(nexp):
+    expname = expnames[ex]
+    # Loop for each flux
+    for vv in range(len(flxnames)):
+        flxname = flxnames[vv]
+        dscomps = load_ccf_radiation(expname,flxname)
+        # Calculate the radiation
+        for nn in range(2):
+            ninoin = ninos_in[nn][ex]
+            for cc in tqdm(range(nccfs)):
+                
+                ccf_var       = ccfs[cc]
+                ccfrad        = dscomps[cc]
+                ccfrad,ninoin = proc.match_time_month(ccfrad,ninoin)
+                
+                # Compute Lead Lag regression
+                lloutpat          = ut.calc_leadlag_regression_2d(ninoin,ccfrad,leadlags)
+                
+                outname           = "%sLag_Regression_%s_%s_ccf_%s_%sENSO_Lags%02i.nc" % (outpath,expnames[ex],flxnames[vv],ccfs[cc],nino_names[nn],leadlags[-1])
+                
+                lloutpat.to_netcdf(outname)
+            
+        
+        
+        
 
 
 
