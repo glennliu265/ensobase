@@ -4,7 +4,8 @@
 
 Script to compute Nino3.4 Index
 
-copied upper section of 
+Works with output preprocessed by 
+- aleph_data_pull_consolidate.sh
 
 Created on Fri Sep 12 15:12:57 2025
 
@@ -38,7 +39,7 @@ import utils as ut
 
 #%% Indicate paths
 
-figpath         = "/home/niu4/gliu8/figures/bydate/2026-01-13/"
+figpath         = "/home/niu4/gliu8/figures/bydate/2026-03-09/"
 proc.makedir(figpath)
 
 outpath         = "/home/niu4/gliu8/projects/scrap/nino34/"
@@ -59,24 +60,39 @@ nclist            = None
 
 # Calculate for Updated AWI-CM3 Runs
 datpath           = "/home/niu4/gliu8/projects/scrap/processed_global/"
-expnames          = ["TCo1279-DART-2060",
-                     "TCo319-DART-ctl1950d-gibbs-charn",
-                     "TCo319-DART-ssp585d-gibbs-charn",]
+expnames          = [
+    "TCo319_ctl1950d",
+    "TCo319-DART-ctl1950d-gibbs-charn",
+    "TCo319_ssp585",
+    "TCo319-DART-ssp585d-gibbs-charn",
+    "TCo1279-DART-1950",
+    "TCo1279-DART-2060",
+    "TCo1279-DART-2090",
+    "TCo2559-DART-1950C",]
+    #"CERES_EBAF_ERA5_2001_2024",]
+#[]#["TCo95-hi1950d","TCo95-ssp585d"]
+
+                    #"TCo1279-DART-2060",
+                     #"TCo319-DART-ctl1950d-gibbs-charn",
+                     #"TCo319-DART-ssp585d-gibbs-charn",]
 vname             = "sst",
 nclist            = ["%s_sst.nc" % (ex) for ex in expnames ]
 
 
 nexps             = len(expnames)
 
-ninoid_name       = 'nino3'#'nino34' # 
+ninoid_name       = 'nino4'#'nino34' # 
 
 bbox_nino34       = [-170+360,-120+360,-5,5]
 bbox_nino3        = [-150+360, -90+360 , -5, 5]  # Nino 3 Box: For SST, <tau_x>
+bbox_nino4        = [160,-150+360,-5,5] # Nino 4 Box:
 
 if ninoid_name == "nino34":
     bbox = bbox_nino34
 elif ninoid_name == 'nino3':
     bbox = bbox_nino3
+elif ninoid_name == "nino4":
+    bbox = bbox_nino4
 
 #%%Functions
 
@@ -116,7 +132,6 @@ for dd,ds in enumerate(dsall):
 #%% Calculate ENSO Index
 
 apply_movmean = False
-
 
 # Take Area-weighted average
 dsall_reg     = [proc.sel_region_xr(ds,bbox_nino34) for ds in dsall]
