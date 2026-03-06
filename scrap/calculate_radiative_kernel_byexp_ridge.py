@@ -21,10 +21,7 @@ import tqdm
 import glob 
 import scipy as sp
 import cartopy.crs as ccrs
-import matplotlib.gridspec as gridspec
-from scipy.io import loadmat
 import matplotlib as mpl
-import climlab
 import importlib
 
 from sklearn.linear_model import LinearRegression
@@ -45,52 +42,55 @@ import utils as ut
 
 landmask = ut.load_land_mask_awi("TCo319",regrid=True)
 
-def correct_lon(lonval,verbose=True):
-    if lonval > 180:
-        if verbose:
-            print("Degrees East Detected (0 to 360)")
-        if lonval >= 360:
-            if verbose:
-                print("\tCrossing Prime Meridian")
-            lonval = lonval - 360        
-    else:
-        if verbose:
-            print("Degrees West Detected (-180 to 180)")
-        if lonval < -180:
-            if verbose:
-                print("Crossing Date Line E to W")
-            lonval = 360 + lonval
-        elif lonval > 180:
-            if verbose:
-                print("Crossing Date Line W to E")
-            lonval = lonval - 360
-    return lonval
+# def correct_lon(lonval,verbose=True):
+#     "Correct longitude values to between 0-360 or -180-180 (for get_box)"
+#     if lonval > 180:
+#         if verbose:
+#             print("Degrees East Detected (0 to 360)")
+#         if lonval >= 360:
+#             if verbose:
+#                 print("\tCrossing Prime Meridian")
+#             lonval = lonval - 360        
+#     else:
+#         if verbose:
+#             print("Degrees West Detected (-180 to 180)")
+#         if lonval < -180:
+#             if verbose:
+#                 print("Crossing Date Line E to W")
+#             lonval = 360 + lonval
+#         elif lonval > 180:
+#             if verbose:
+#                 print("Crossing Date Line W to E")
+#             lonval = lonval - 360
+#     return lonval
 
-def correct_lat(latval,verbose=True):
-    if latval < -90:
-        if verbose:
-            print("Warning! Box extends past the poles, cropping to -90")
-        latval = -90
-    if latval > 90:
-        if verbose:
-            print("Warning! Box extends past the poles, cropping to 90")
-        latval = 90
+# def correct_lat(latval,verbose=True):
+#     "Correct latitude values that go beyond -90 or 90 (for get_box)"
+#     if latval < -90:
+#         if verbose:
+#             print("Warning! Box extends past the poles, cropping to -90")
+#         latval = -90
+#     if latval > 90:
+#         if verbose:
+#             print("Warning! Box extends past the poles, cropping to 90")
+#         latval = 90
     
-    return latval
+#     return latval
 
-def get_box(lonc,latc,lonwin,latwin,verbose=False):
-    bbsel  = np.array([lonc-lonwin,lonc+lonwin,latc-latwin,latc+latwin])
-    for ii in [0,1]:
-        bbsel[ii] = correct_lon(bbsel[ii],verbose=verbose)
-    for ii in [2,3]:
-        bbsel[ii] = correct_lat(bbsel[ii],verbose=verbose)
-    return bbsel
+# def get_box(lonc,latc,lonwin,latwin,verbose=False):
+#     "Get box centered at lat/lon with specificed size"
+#     bbsel  = np.array([lonc-lonwin,lonc+lonwin,latc-latwin,latc+latwin])
+#     for ii in [0,1]:
+#         bbsel[ii] = correct_lon(bbsel[ii],verbose=verbose)
+#     for ii in [2,3]:
+#         bbsel[ii] = correct_lat(bbsel[ii],verbose=verbose)
+#     return bbsel
 
-def sel_box(ds,lonc,latc,lonwin,latwin,verbose=False,return_bbsel=False):
-    bbsel = get_box(lonc,latc,lonwin,latwin,verbose=verbose)
-    if return_bbsel:
-        return proc.sel_region_xr(ds,bbsel),bbsel
-    return proc.sel_region_xr(ds,bbsel,verbose=verbose)
+# def sel_box(ds,lonc,latc,lonwin,latwin,verbose=False,return_bbsel=False):
+#     bbsel = get_box(lonc,latc,lonwin,latwin,verbose=verbose)
+#     if return_bbsel:
+#         return proc.sel_region_xr(ds,bbsel),bbsel
+#     return proc.sel_region_xr(ds,bbsel,verbose=verbose)
 
 def ridge(X,y,alpha):
     # Ridge Regression Function fit using scipy 
@@ -110,7 +110,9 @@ def ridge(X,y,alpha):
     
     return ridge_out
 
-def ridge_ccfs_box(ccfs,flx,lonw,latw,alpha=1,standardize=True,verbose=False,fill_value=0):
+
+def ridge_ccfs_box(ccfs,flx,lonw,latw,alpha=1,standardize=True,verbose=False,
+                   fill_value=0,std_mon=False):
     #    ccfs : LIST of DataArrays [ccf][time x lat x lon]
     #    flx  :  DataArray [time x lat x lon]
     #    lonw : Degrees of Longitude to consider for box
@@ -124,27 +126,41 @@ def ridge_ccfs_box(ccfs,flx,lonw,latw,alpha=1,standardize=True,verbose=False,fil
     
     ntime,nlat,nlon = flx.shape # Get Shape
     nccfs           = len(ccfs)
-    nlatbox         = latw*2+1
-    nlonbox         = lonw*2+1
     
-    box_coords      = np.zeros((nlat,nlon,nlatbox,nlonbox)) * np.nan # Matrix of boxes
+    # Determine Lat/Lon Box
+    lon             = flx.lon
+    lat             = flx.lat
+    dx              = int(np.ceil(lon.data[1:] - lon.data[:(-1)]).mean().item())
+    dy              = int(np.ceil(lat.data[1:] - lat.data[:(-1)]).mean().item())
+    nlatbox         = int(np.ceil(latw/dy*2+1))
+    nlonbox         = int(np.ceil(lonw/dx*2+1))
+
+    
+    boxcoords_lon   = np.zeros((nlat,nlon,nlonbox))
+    boxcoords_lat   = np.zeros((nlat,nlon,nlatbox))
+    
+    #box_coords      = np.zeros((nlat,nlon,nlatbox,nlonbox)) * np.nan # Matrix of boxes
     coeffs          = np.zeros((nccfs,nlat,nlon,nlatbox,nlonbox))    # MLR fit values
     r2              = np.zeros((nlat,nlon))       # r2 Fit
     ypred           = np.zeros((ntime,nlat,nlon)) # Predicted values
     yerr            = np.zeros((ntime,nlat,nlon)) # Error
     
-    lon             = flx.lon
-    lat             = flx.lat
     
-    def std_mon(ds):
-        return ds.groupby('time.month') / ds.groupby('time.month').std('time')
+    if std_mon:
+        def std_mon(ds):
+            ds = ds - ds.mean() # Center
+            return ds.groupby('time.month') / ds.groupby('time.month').std('time') # Standardize
+    else:
+        def std_mon(ds): 
+            ds = ds - ds.mean() # Center
+            return ds / ds.std() # Standardize
     
     for o in tqdm.tqdm(range(nlon)):
         for a in range(nlat):
             lonf = lon[o]
             latf = lat[a]
             
-            ccf_boxes       = [sel_box(ds,lonf,latf,lonw,latw,verbose=False) for ds in ccfs]
+            ccf_boxes       = [proc.sel_box(ds,lonf,latf,lonw,latw,verbose=False) for ds in ccfs]
             ccf_boxes_std   = [std_mon(ds) for ds in ccf_boxes] # Standardize along time dimension
             _,nlatbox_loop,nlonbox_loop=ccf_boxes[0].shape
             
@@ -166,18 +182,20 @@ def ridge_ccfs_box(ccfs,flx,lonw,latw,alpha=1,standardize=True,verbose=False,fil
             ridge_out       = ridge(X,y,alpha)
             
             # Adjust lat box index
-            latboxidx = np.arange(nlatbox_loop)
-            lonboxidx = np.arange(nlonbox_loop)
+            latboxidx      = np.arange(nlatbox_loop)
+            lonboxidx      = np.arange(nlonbox_loop)
             
             
             # Read variables into arrays
-            r2[a,o]      = ridge_out['r2']
-            yerr[:,a,o]  = ridge_out['err']
-            ypred[:,a,o] = ridge_out['pred']
+            r2[a,o]        = ridge_out['r2']
+            yerr[:,a,o]    = ridge_out['err']
+            ypred[:,a,o]   = ridge_out['pred']
             coeffspt       = ridge_out['coeffs']
             coeffspt       = coeffspt.reshape(nccfs,nlatbox_loop,nlonbox_loop)
             #coeffs[:,a,o,latboxidx,lonboxidx] = coeffspt.copy()
             coeffs[:,a,o,:nlatbox_loop,:nlonbox_loop] = coeffspt.copy()
+            boxcoords_lat[a,o,:nlatbox_loop] = ccf_boxes[0].lat.data
+            boxcoords_lon[a,o,:nlonbox_loop] = ccf_boxes[0].lon.data
     
     
     coords_coeff = dict(ccf=ccf_vars,lat=lat,lon=lon,latbox=np.arange(nlatbox),lonbox=np.arange(nlonbox))
@@ -186,40 +204,47 @@ def ridge_ccfs_box(ccfs,flx,lonw,latw,alpha=1,standardize=True,verbose=False,fil
     
     coords_r2       = dict(lat=lat,lon=lon)
     coords_pred     = dict(time=flx.time,lat=lat,lon=lon)
-
+    coords_lonbox   = dict(lat=lat,lon=lon,lonbox=np.arange(nlonbox))
+    coords_latbox   = dict(lat=lat,lon=lon,latbox=np.arange(nlatbox))
+    
     da_r2           = xr.DataArray(r2,coords=coords_r2,dims=coords_r2,name='r2')
     da_pred         = xr.DataArray(ypred,coords=coords_pred,dims=coords_pred,name='ypred')
     da_yerr         = xr.DataArray(yerr,coords=coords_pred,dims=coords_pred,name='yerr')
-    ds_out          = xr.merge([da_r2,da_coeffs,da_pred,da_yerr])
     
-    outname = 'test_ridge.nc'
-    ds_out.to_netcdf(outname)
-    proc.printtime(st)
+    da_lonbox       = xr.DataArray(boxcoords_lon,coords=coords_lonbox,dims=coords_lonbox,
+                                   name="boxlon")
+    
+    da_latbox       = xr.DataArray(boxcoords_lat,coords=coords_latbox,dims=coords_latbox,
+                                   name="boxlat")
+    
+    ds_out          = xr.merge([da_r2,da_coeffs,da_pred,da_yerr,da_lonbox,da_latbox])
+    
     
     return ds_out
-
 
 # =================
 #%% User Selections
 # =================
 
-# # Redo CERES-EBAF, limit to 2001-2024
-# expname         = "CERES_EBAF_ERA5_2001_2024"
-# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
-# outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/ridge_kernels/"#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
-# anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
-# tstart          = '2001-01-01'
-# tend            = '2024-12-31'
-# customname      = None
+regrid_ver = "regrid_1x1"
 
-# Do for TCo319-1950-gibbs_charn
-expname         = "TCo319-DART-ctl1950d-gibbs-charn"
-datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname
-outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/ridge_kernels/" # Expname Added later
+# Redo CERES-EBAF, limit to 2001-2024
+expname         = "CERES_EBAF_ERA5_2001_2024"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/%s/%s/anom_detrend1/" % (regrid_ver,expname)#,#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/ridge_kernels/%s/" % regrid_ver#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
 anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
-tstart          = None
-tend            = None
+tstart          = '2001-01-01'
+tend            = '2024-12-31'
 customname      = None
+
+# # Do for TCo319-1950-gibbs_charn
+# expname         = "TCo319-DART-ctl1950d-gibbs-charn"
+# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname
+# outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/ridge_kernels/" # Expname Added later
+# anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+# tstart          = None
+# tend            = None
+# customname      = None
 
 
 # Variables
@@ -239,7 +264,7 @@ fill_value      = 0    # Replace NaN values with <fill_value>
 # Others were preprocessed using remapbil in cdo
 
 """
-Searches for datasets in 
+Searches for datasets in (or 5x5)
     .../ccfs/input_data/regrid_1x1/<expname>/anom_detrend1/
 
 Outputs computed kernels in
@@ -337,14 +362,15 @@ else:
 
 ccfs      = dsexp_sel
 flx       = dsexp_flx
-lonw      = 20
-latw      = 20   
+lonw      = 10*5#20
+latw      = 5*5#20   
+alpha     = 1e3
 
-ds_out          = ridge_ccfs_box(ccfs,flx,lonw,latw,alpha=1)
+ds_out          = ridge_ccfs_box(ccfs,flx,lonw,latw,alpha=alpha,std_mon=False)
 edict           = proc.make_encoding_dict(ds_out)
 outpath_exp     = "%s%s/" % (outpath,expname)
 proc.makedir(outpath_exp)
-outname         = "%s%s_ridge_kernels_regrid1x1_lonw%02i_latw%02i.nc" % (outpath_exp,flxname,lonw,latw,)
+outname         = "%s%s_ridge_kernels_lonw%02i_latw%02i_alpha%.0e.nc" % (outpath_exp,flxname,lonw,latw,alpha)
 ds_out.to_netcdf(outname)
             
             
