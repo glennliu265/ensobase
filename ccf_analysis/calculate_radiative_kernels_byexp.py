@@ -213,8 +213,18 @@ customname      = None
 # tend            = '2099-12-31'
 # customname      = None
 
+# Do for TCo1279-1950
+expname         = "TCo1279-DART-1950"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/" # Expname Added later
+anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+tstart          = '1950-01-01'
+tend            = '1969-12-31'
+customname      = None
+
+
 # Variables
-flxname         = 'tscre' #['allsky','clearsky','cre']  # Loop for fluxes
+#flxname         = 'tscre' #['allsky','clearsky','cre']  # Loop for fluxes
 flxnames        = ["cre","tscre","ttcre"]
 ccf_vars        = ["sst","eis","Tadv","r700","w700","ws10",]#"ucc"] 
 #ccf_vars        = ["sst","eis","MeanAdvTanom","AnomAdvTmean","r700","w700","ws10",]
