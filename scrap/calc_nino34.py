@@ -51,16 +51,18 @@ outpath         = "/home/niu4/gliu8/projects/scrap/nino34/"
 # vname           = "sst"
 nclist            = None
 
-# # Calculate for ERA5 as well
-# expnames        = ["ERA5_1979_2024",]
-# expnames_long   = ["ERA5 (1979-2024)",]
-# datpath         = "/home/niu4/gliu8/share/ERA5/processed/"
-# vname           = 'sst'
-# nclist          = ["sst_1979_2024.nc",]
+# -----------------------------------------------------------------------------
+# Calculate for ERA5 as well
+expnames        = ["ERA5_1979_2024",]
+expnames_long   = ["ERA5 (1979-2024)",]
+datpath         = "/home/niu4/gliu8/share/ERA5/processed/"
+vname           = 'sst'
+nclist          = ["sst_1979_2024.nc",]
+# -----------------------------------------------------------------------------
 
-# Calculate for Updated AWI-CM3 Runs
+# Calculate for Updated AWI-CM3 Runs ------------------------------------------
 datpath           = "/home/niu4/gliu8/projects/scrap/processed_global/"
-expnames          = [
+expnames = [
     "TCo319_ctl1950d",
     "TCo319-DART-ctl1950d-gibbs-charn",
     "TCo319_ssp585",
@@ -68,24 +70,20 @@ expnames          = [
     "TCo1279-DART-1950",
     "TCo1279-DART-2060",
     "TCo1279-DART-2090",
-    "TCo2559-DART-1950C",]
-    #"CERES_EBAF_ERA5_2001_2024",]
-#[]#["TCo95-hi1950d","TCo95-ssp585d"]
-
-                    #"TCo1279-DART-2060",
-                     #"TCo319-DART-ctl1950d-gibbs-charn",
-                     #"TCo319-DART-ssp585d-gibbs-charn",]
+    "TCo2559-DART-1950C",
+    ]
 vname             = "sst",
 nclist            = ["%s_sst.nc" % (ex) for ex in expnames ]
+# -----------------------------------------------------------------------------
 
 
 nexps             = len(expnames)
 
-ninoid_name       = 'nino4'#'nino34' # 
+ninoid_name       = 'nino3'#'nino34' # 
 
 bbox_nino34       = [-170+360,-120+360,-5,5]
 bbox_nino3        = [-150+360, -90+360 , -5, 5]  # Nino 3 Box: For SST, <tau_x>
-bbox_nino4        = [160,-150+360,-5,5] # Nino 4 Box:
+bbox_nino4        = [ 160    ,-150+360,-5,5] # Nino 4 Box:
 
 if ninoid_name == "nino34":
     bbox = bbox_nino34
@@ -134,7 +132,7 @@ for dd,ds in enumerate(dsall):
 apply_movmean = False
 
 # Take Area-weighted average
-dsall_reg     = [proc.sel_region_xr(ds,bbox_nino34) for ds in dsall]
+dsall_reg     = [proc.sel_region_xr(ds,bbox) for ds in dsall]
 nino_sim      = [proc.area_avg_cosweight(ds.sst) for ds in dsall_reg]
 
 # Rename the Time dimension
