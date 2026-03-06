@@ -226,25 +226,25 @@ def ridge_ccfs_box(ccfs,flx,lonw,latw,alpha=1,standardize=True,verbose=False,
 #%% User Selections
 # =================
 
-regrid_ver = "regrid_1x1"
+regrid_ver       = "regrid_1x1"
 
-# Redo CERES-EBAF, limit to 2001-2024
-expname         = "CERES_EBAF_ERA5_2001_2024"
-datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/%s/%s/anom_detrend1/" % (regrid_ver,expname)#,#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
-outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/ridge_kernels/%s/" % regrid_ver#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
-anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
-tstart          = '2001-01-01'
-tend            = '2024-12-31'
-customname      = None
-
-# # Do for TCo319-1950-gibbs_charn
-# expname         = "TCo319-DART-ctl1950d-gibbs-charn"
-# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/anom_detrend1/" % expname
-# outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/ridge_kernels/" # Expname Added later
+# # Redo CERES-EBAF, limit to 2001-2024
+# expname         = "CERES_EBAF_ERA5_2001_2024"
+# datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/%s/%s/anom_detrend1/" % (regrid_ver,expname)#,#/home/niu4/gliu8/projects/scrap/regrid_1x1/global_anom_detrend1/"#"/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+# outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/ridge_kernels/%s/" % regrid_ver#%s/" % expname #/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/"
 # anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
-# tstart          = None
-# tend            = None
+# tstart          = '2001-01-01'
+# tend            = '2024-12-31'
 # customname      = None
+
+# Do for TCo319-1950-gibbs_charn
+expname         = "TCo319-DART-ctl1950d-gibbs-charn"
+datpath         = "/home/niu4/gliu8/projects/ccfs/input_data/%s/%s/anom_detrend1/" % (regrid_ver,expname) #" % expname
+outpath         = "/home/niu4/gliu8/projects/ccfs/kernels/ridge_kernels/%s/" % regrid_ver #" # Expname Added later
+anomalize       = False # Kept for legacy. Input should be anomalized before using `anom_detrend1' shellscripts
+tstart          = None
+tend            = None
+customname      = None
 
 
 # Variables
