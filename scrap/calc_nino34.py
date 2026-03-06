@@ -76,14 +76,14 @@ vname             = "sst",
 nclist            = ["%s_sst.nc" % (ex) for ex in expnames ]
 # -----------------------------------------------------------------------------
 
-
 nexps             = len(expnames)
 
-ninoid_name       = 'nino3'#'nino34' # 
 
-bbox_nino34       = [-170+360,-120+360,-5,5]
+# Select Nino Index
+ninoid_name       = 'nino4'                      # Name of Index: [nino3,nino4,nino34]   
+bbox_nino34       = [-170+360,-120+360,-5,5]     # Nino3.4 Box
 bbox_nino3        = [-150+360, -90+360 , -5, 5]  # Nino 3 Box: For SST, <tau_x>
-bbox_nino4        = [ 160    ,-150+360,-5,5] # Nino 4 Box:
+bbox_nino4        = [ 160    ,-150+360,-5,5]     # Nino 4 Box:
 
 if ninoid_name == "nino34":
     bbox = bbox_nino34
@@ -154,7 +154,6 @@ nino34_ds   = [remake_da(nino34_norm[ii],dsall[ii]) for ii in range(len(expnames
 
 
 #%% Save Output
-
 
 for ex in range(nexps):
     
