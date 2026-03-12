@@ -175,7 +175,7 @@ def get_center_date(trange):
 #%% User Edits
 
 expnames   = [
-    "TCo319_ctl1950", # Target Experiment
+    "TCo319_ctl1950d","TCo319-DART-ssp585d-gibbs-charn", # Target Experiment
 ]
 
 # Selections for Window Calculations
@@ -215,123 +215,88 @@ proc.makedir(figpath)
 dsmask=ut.load_land_mask_awi("TCo319",regrid=True,)
 dsmask.plot()
 
-#%% Load ENSO
-
-ep_indices = []
-cp_indices = []
-for expname in expnames:
-    if expname == "CERES_EBAF_ERA5_2001_2024":
-        expname_in = "ERA5_1979_2024"
-        eraflag    = True # Need to Crop to Dataset Timeperiod Later
-    else:
-        expname_in = expname
-        eraflag    = False
-    ep,cp = load_enso_eof(expname_in)
-
-    ep_indices.append(ep)
-    cp_indices.append(cp)
-
-ninos_in    = [cp_indices,ep_indices]
-
-#%% Load CCFs by Flux
-
-if viz_ccf: # Load CCFs
-    ccf_byexp = [] # [exp][flx][ccf]
-    for ex in range(nexp):
-        expname = expnames[ex]
+for ex in range(len(expnames)):
+    #%% Load ENSO
+    
+    ep_indices = []
+    cp_indices = []
+    for expname in expnames:
+        if expname == "CERES_EBAF_ERA5_2001_2024":
+            expname_in = "ERA5_1979_2024"
+            eraflag    = True # Need to Crop to Dataset Timeperiod Later
+        else:
+            expname_in = expname
+            eraflag    = False
+        ep,cp = load_enso_eof(expname_in)
+    
+        ep_indices.append(ep)
+        cp_indices.append(cp)
+    
+    ninos_in    = [cp_indices,ep_indices]
+    
+    #%% Load CCFs by Flux
+    
+    if viz_ccf: # Load CCFs
+        ccf_byexp = [] # [exp][flx][ccf]
+        for ex in range(nexp):
+            expname = expnames[ex]
+            
+            byflx = []
+            for vv in tqdm(range(nvar)):
+                flxname = flxnames[vv]
+                
+                ccfrads = load_ccf_radiation(expname,flxname,seasonal=False)
+                byflx.append(ccfrads)
         
-        byflx = []
-        for vv in tqdm(range(nvar)):
-            flxname = flxnames[vv]
-            
-            ccfrads = load_ccf_radiation(expname,flxname,seasonal=False)
-            byflx.append(ccfrads)
-    
-        ccf_byexp.append(byflx)
-    
-#%% Load total fluxes
-
-# Load total TOA fluxes for both experiments
-# Copied from `awi_cm3_toa_leadlag_analysis_area_avg
-if viz_totalflx:
-    flx_byexp = [] # [exp][flx]
-    for ex,expname in tqdm(enumerate(expnames)):
-        dsflxs = []
-        for flxname in flxnames:
-            if deseason_byperiod:
-                load_anom=False
-            else:
-                load_anom=True
-            dsvar = load_input(flxname,expname,anom=load_anom,regrid=True).load()
-            dsvar = ut.standardize_names(dsvar)
-            if "TCo" in expname:
-                dsvar = ut.varcheck(dsvar,flxname,expname)
-            dsvar = ut.remove_duplicate_times(dsvar)
-            
-            dsvar,_ = proc.match_time_month(dsvar,ep_indices[ex])
-            dsflxs.append(dsvar)
-    
-            
-        #dsflxs = xr.merge(dsflxs)
-        flx_byexp.append(dsflxs)
-
-#%% Data Has Been Loaded past this point
-
-
-
+            ccf_byexp.append(byflx)
         
-
-#%% Loop and Calculate the values
-
-ex              = 0 # Set to Zero for the non-reference, can make this into an outer experiment loop eventually...
-
-for vv in tqdm(range(nvar)): # Loop by Flux
-
+    #%% Load total fluxes
     
-    # Start by Visualizing Total Fluxes
+    # Load total TOA fluxes for both experiments
+    # Copied from `awi_cm3_toa_leadlag_analysis_area_avg
     if viz_totalflx:
-        st = time.time()
-        print("Calc Regression by Total Fluxes for %s" % flxnames[vv])
+        flx_byexp = [] # [exp][flx]
+        for ex,expname in tqdm(enumerate(expnames)):
+            dsflxs = []
+            for flxname in flxnames:
+                if deseason_byperiod:
+                    load_anom=False
+                else:
+                    load_anom=True
+                dsvar = load_input(flxname,expname,anom=load_anom,regrid=True).load()
+                dsvar = ut.standardize_names(dsvar)
+                if "TCo" in expname:
+                    dsvar = ut.varcheck(dsvar,flxname,expname)
+                dsvar = ut.remove_duplicate_times(dsvar)
+                
+                dsvar,_ = proc.match_time_month(dsvar,ep_indices[ex])
+                dsflxs.append(dsvar)
         
-        # Get Flux and set output file
-        input_flux = flx_byexp[ex][vv].squeeze()
-
-        # Generate Periods
-        flxwindows,tranges = generate_periods(input_flux,winlen)
-        
-        # Detrend by Period
-        if deseason_byperiod:
-            st2 = time.time()
-            flxwindows = preprocess_byperiod(flxwindows)
-            print("\tCompleted period-wise detrend in %.2fs" % (time.time()-st2))
-        
-        for nn in range(2): # Loop by ENSO Mode
-        
-        # Get ENSO index
-            ninoin             = ninos_in[nn][ex]
-            outname            = "%sSliding_LeadLag_ByPeriod_%s_%sENSO_%s_winlen%02i_lagmax%02i.nc" % (outpath,expnames[ex],nino_names[nn],flxnames[vv],winlen,leadlags[-1])
-            
-            if proc.checkfile(outname):
-                continue
-            
-            # Perform Regression
-            ds_out = sliding_regr_nino_flx(flxwindows,ninoin,leadlags)
-            ds_out.to_netcdf(outname)
-            
-            print("\tCompleted %s in %.2fs" % (flxnames[vv],time.time()-st))
-        
+                
+            #dsflxs = xr.merge(dsflxs)
+            flx_byexp.append(dsflxs)
     
-    if viz_ccf:
-        print("Calc Regression by by CCFs for %s" % flxnames[vv])
+    #%% Data Has Been Loaded past this point
+    
+    
+    
+            
+    
+    #%% Loop and Calculate the values
+    
+    ex              = 0 # Set to Zero for the non-reference, can make this into an outer experiment loop eventually...
+    
+    for vv in tqdm(range(nvar)): # Loop by Flux
+    
         
-        for cc in tqdm(range(nccfs)):
+        # Start by Visualizing Total Fluxes
+        if viz_totalflx:
             st = time.time()
-            print("\tCCF: %s" % ccf_vars[cc])
+            print("Calc Regression by Total Fluxes for %s" % flxnames[vv])
             
             # Get Flux and set output file
-            input_flux = ccf_byexp[ex][vv][cc].squeeze()
-            #outname    = "%sSliding_LeadLag_ByPeriod_%s_%sENSO_%s_CCF%s_winlen%02i_lagmax%02i.nc" % (outpath,expnames[ex],nino_names[nn],flxnames[vv],ccf_vars[cc],winlen,leadlags[-1])
-            
+            input_flux = flx_byexp[ex][vv].squeeze()
+    
             # Generate Periods
             flxwindows,tranges = generate_periods(input_flux,winlen)
             
@@ -341,18 +306,54 @@ for vv in tqdm(range(nvar)): # Loop by Flux
                 flxwindows = preprocess_byperiod(flxwindows)
                 print("\tCompleted period-wise detrend in %.2fs" % (time.time()-st2))
             
-            # Loop for ENSO mode
-            for nn in range(2):
-                ninoin  = ninos_in[nn][ex]
-                outname = "%sSliding_LeadLag_ByPeriod_%s_%sENSO_%s_CCF%s_winlen%02i_lagmax%02i.nc" % (outpath,expnames[ex],nino_names[nn],flxnames[vv],ccf_vars[cc],winlen,leadlags[-1])
+            for nn in range(2): # Loop by ENSO Mode
+            
+            # Get ENSO index
+                ninoin             = ninos_in[nn][ex]
+                outname            = "%sSliding_LeadLag_ByPeriod_%s_%sENSO_%s_winlen%02i_lagmax%02i.nc" % (outpath,expnames[ex],nino_names[nn],flxnames[vv],winlen,leadlags[-1])
+                
                 if proc.checkfile(outname):
                     continue
                 
+                # Perform Regression
                 ds_out = sliding_regr_nino_flx(flxwindows,ninoin,leadlags)
                 ds_out.to_netcdf(outname)
-            
-            print("\tCompleted %s CCF %s in %.2fs" % (flxnames[vv],ccf_vars[cc],time.time()-st))
                 
-
+                print("\tCompleted %s in %.2fs" % (flxnames[vv],time.time()-st))
+            
+        
+        if viz_ccf:
+            print("Calc Regression by by CCFs for %s" % flxnames[vv])
+            
+            for cc in tqdm(range(nccfs)):
+                st = time.time()
+                print("\tCCF: %s" % ccf_vars[cc])
+                
+                # Get Flux and set output file
+                input_flux = ccf_byexp[ex][vv][cc].squeeze()
+                #outname    = "%sSliding_LeadLag_ByPeriod_%s_%sENSO_%s_CCF%s_winlen%02i_lagmax%02i.nc" % (outpath,expnames[ex],nino_names[nn],flxnames[vv],ccf_vars[cc],winlen,leadlags[-1])
+                
+                # Generate Periods
+                flxwindows,tranges = generate_periods(input_flux,winlen)
+                
+                # Detrend by Period
+                if deseason_byperiod:
+                    st2 = time.time()
+                    flxwindows = preprocess_byperiod(flxwindows)
+                    print("\tCompleted period-wise detrend in %.2fs" % (time.time()-st2))
+                
+                # Loop for ENSO mode
+                for nn in range(2):
+                    ninoin  = ninos_in[nn][ex]
+                    outname = "%sSliding_LeadLag_ByPeriod_%s_%sENSO_%s_CCF%s_winlen%02i_lagmax%02i.nc" % (outpath,expnames[ex],nino_names[nn],flxnames[vv],ccf_vars[cc],winlen,leadlags[-1])
+                    if proc.checkfile(outname):
+                        continue
+                    
+                    ds_out = sliding_regr_nino_flx(flxwindows,ninoin,leadlags)
+                    ds_out.to_netcdf(outname)
+                
+                print("\tCompleted %s CCF %s in %.2fs" % (flxnames[vv],ccf_vars[cc],time.time()-st))
+                    
+    
 
 
