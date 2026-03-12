@@ -175,7 +175,7 @@ def get_center_date(trange):
 #%% User Edits
 
 expnames   = [
-    "TCo319_ssp585", # Target Experiment
+    "TCo319_ctl1950", # Target Experiment
 ]
 
 # Selections for Window Calculations
