@@ -893,14 +893,19 @@ def varcheck(ds,vname,expname):
         # https://forum.ecmwf.int/t/surface-radiation-parameters-joule-m-2-to-watt-m-2/1588
         ds          = ds * conversion
     
-    if vname in ["cp","lsp"]: # Convert from [meters/accumulation period] to [mm/day]
+    if vname in ["cp","lsp","pr"]: # Convert from [meters/accumulation period] to [mm/day]
+        
         if "TCo319" in expname:
             print("Correction for accumulation over 6 hours for %s" % expname)
             accumulation_hr = 6 
         else:
             print("Correction for accumulation over 3 hours for %s" % expname )
             accumulation_hr = 3
-        conversion = (24/accumulation_hr) * 1000
+        # From Discussion with Sun-Seon
+        # the value is provided as the accumulated precipitation (in meters) over a N-hour period.
+        # To convert to mm/day, multiply by the number of seconds in a day (86400 s), and convert meters to millimeters (×1000):
+        nsec_perday = 86400 
+        conversion = (1/(accumulation_hr*60*60)) * nsec_perday * 1000#(24/accumulation_hr) * 1000
         ds         = ds * conversion
     return ds
 
