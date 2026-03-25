@@ -75,7 +75,7 @@ else:
 nvar    = len(vnames)
 nexp    = len(expnames)
 #for ex in tqdm.tqdm(range(nexp)):
-for ex in tqdm.tqdm(range(4,nexp+1)):
+for ex in tqdm.tqdm(range(nexp-1)): # Skipping last one, erase later
 
     
     expname = expnames[ex]
@@ -134,3 +134,4 @@ for ex in tqdm.tqdm(range(4,nexp+1)):
     outname = "%s/Lag_Regression_%s_vs_%s_%s_LagMax%02i%s.nc" % (outpath,vnames[0],vnames[1],expname,leadlags[-1],selmonstr)
     llreg.to_netcdf(outname)
     proc.printtime(st,"Saved")
+    
