@@ -33,7 +33,9 @@ get_rawpath_awi             : (A) Get rawpath for AWI output on niu
 init_tp_map                 : (v) initialize tropical Pacific plot 
 init_global_map             : (v) Initialize a global map
 load_ensoid                 : (l) load enso indices calculated by calc_nino34.py
+load_enso_eof               : (l) load ENSO indices from rotated EOF analysis (calc_EOF_enso<_sliding>.py)
 load_land_mask_awi          : (l) load land mask from AWI-CM3, where land points are np.nan
+make_ninotime               : (A) Get Center Time from time range
 mcsample                    : (g) Monte Carlo Sampler to repeat function
 mlr                         : (g) single point multiple linear regression using Scipy
 mlr_ccfs                    : (c) Multiple linear regrssion for cloud controlling factor analysis
@@ -566,6 +568,46 @@ def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
         return ds.sst
     return ds.sst * ds['std'].data.item()
 
+def load_enso_eof(expname,datpath=None,apply_smoothing=True,sep_mon=False,by_period=False,winlen=None):
+    # Load EOF-based ENSO computed via `calc_EOF_ENSO.py`
+    # by_period loads for sliding period [winlen], currently does not support [sep_mon] `calc_EOF_ENSO_sliding.py`
+    
+    if by_period:
+        print("Loading ENSO computed for sliding windows of %i-years" % winlen)
+        if datpath is None:
+            datpath       = "/home/niu4/gliu8/projects/ccfs/enso_eof/"
+        ninonc        = "%s%s_ENSO_EOF_slidingwinlen%02i.nc" % (datpath,expname,winlen)
+
+    else: # Load for calculation over whole timeseries
+        if datpath is None:
+            datpath = "/home/niu4/gliu8/projects/scrap/nino34/"
+        ninonc        = "%s%s_enso_eof_rotated.nc" % (datpath,expname)
+        if sep_mon:
+            ninonc    = proc.addstrtoext(ninonc,"_sepmon",adjust=-1)
+    dsnino        = xr.open_dataset(ninonc).load()
+    
+    # Apply 1-2-1 filter
+    if apply_smoothing:
+        if by_period:
+            filter_coeffs = [0.25,0.5,0.25]
+            smooth121 = lambda timeseries: np.convolve(timeseries,filter_coeffs,mode='same')
+            ep = xr.apply_ufunc(smooth121, dsnino.ep, input_core_dims=[["timeindex"]],output_core_dims=[["timeindex"]],vectorize=True)
+            cp = xr.apply_ufunc(smooth121, dsnino.cp, input_core_dims=[["timeindex"]],output_core_dims=[["timeindex"]],vectorize=True)
+            ninotimes = [make_ninotime(trange,dsnino.timeindex) for trange in dsnino.trange] 
+        else:
+            ep     = np.convolve(dsnino.ep,filter_coeffs,mode='same')
+            cp     = np.convolve(dsnino.cp,filter_coeffs,mode='same')
+            tcoord = dict(time=dsnino.time)
+            ep     = xr.DataArray(ep,coords=tcoord,dims=tcoord,name='ep')
+            cp     = xr.DataArray(cp,coords=tcoord,dims=tcoord,name='cp')
+        
+    else:
+        ep     = dsnino.ep
+        cp     = dsnino.cp
+    if by_period:
+        return ep,cp,ninotimes
+    return ep,cp
+
 def load_land_mask_awi(expname,regrid=False,outpath=None):
     if outpath is None:
         outpath = '/home/niu4/gliu8/projects/scrap/awi_common/'
@@ -591,6 +633,11 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
         print("Experiment not found")
         return np.nan
     return xr.open_dataset(outpath+dsmask).land_mask.load()
+
+def make_ninotime(trange,timeindex):
+    ntime = len(timeindex)
+    times = xr.date_range(start=trange[0].data.item(),end=trange[1].data.item(),periods=ntime)
+    return times # Note this does not return the exact middle of the month
 
 def mcsampler(ts_full,sample_len,mciter,preserve_month=True,scramble_year=False,target_timeseries=None):
     # Given a monthly timeseries [time] and sample length (int), take [mciter] # of random samples.
