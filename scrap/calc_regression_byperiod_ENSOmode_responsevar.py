@@ -208,7 +208,10 @@ def get_center_date(trange):
 #%% User Edits
 
 expnames   = [
-    "TCo319_ssp585",#"TCo319_ctl1950d","TCo319-DART-ssp585d-gibbs-charn", # Target Experiment
+    "EC-Earth3",
+    "E3SM-1-0",
+    "E3SM-1-1-ECA",
+    #"TCo319_ssp585",#"TCo319_ctl1950d","TCo319-DART-ssp585d-gibbs-charn", # Target Experiment
 ]
 
 # Selections for Window Calculations
@@ -223,7 +226,7 @@ overwrite         = True # Set to True to overwrite existing files
 
 # Get Lengths and set other variables
 nino_names   = ["CP","EP"]
-varnames     = ["lcc","sst","pr","ttcre","cre"]#"tscre",]# ["lcc","sst"]#"pr","lcc"] # "cre",
+varnames     = ["tscre","sst"]#"lcc","sst","pr","ttcre","cre"]#"tscre",]# ["lcc","sst"]#"pr","lcc"] # "cre",
 
 nexp         = len(expnames)
 nvar         = len(varnames)
