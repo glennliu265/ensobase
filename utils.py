@@ -28,6 +28,7 @@ calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
 calc_leadlagreg_pointwise   : (g) Compute pointwise lead lag regression using ufunc
 calc_leadlag_regression_2d  : (g) Compute lead lag regression for 2D timseries (modeled after enso_lag_regression)
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
+generate_periods            : (c) Generate Periods for a sliding window of a selected length
 get_moving_segments         : (g) Subset timeseries into segments with a sliding window
 get_rawpath_awi             : (A) Get rawpath for AWI output on niu
 init_tp_map                 : (v) initialize tropical Pacific plot 
@@ -39,6 +40,7 @@ make_ninotime               : (A) Get Center Time from time range
 mcsample                    : (g) Monte Carlo Sampler to repeat function
 mlr                         : (g) single point multiple linear regression using Scipy
 mlr_ccfs                    : (c) Multiple linear regrssion for cloud controlling factor analysis
+preprocess_byperiod         : (g) Remove mean seasonal cycle and linear detrend by period
 preprocess_enso             : (c) detrend (quadratic) and deseasonalize for ENSO calculations
 remove_duplicate_times      : (g) Remove duplicate times from a DataArray
 shift_time_monthstart       : (g) Shift times from center to start of month
@@ -407,6 +409,21 @@ def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     
     return ds_out
 
+def generate_periods(ds,winlen):
+    # Generate chunks of [winlen]-years along time dimension in ds
+    tstart = ds.time[0].dt.year.data.item()
+    tend   = ds.time[-1].dt.year.data.item()
+
+    nperiods = tend-tstart-winlen+1
+    #nperiods
+    tranges = []
+    subsets = []
+    for ii in range(nperiods):
+        trange = ["%i-01-01" % (tstart+ii), "%i-01-01" % (tstart+winlen+ii)]
+        subset = ds.sel(time=slice(trange[0],trange[1]))
+        tranges.append(trange)
+        subsets.append(subset)
+    return subsets,tranges
 
 def get_moving_segments(ts,winlen):
     '''
@@ -769,6 +786,17 @@ def mlr_ccfs(ccfs,flx,standardize=True,fill_value=0,verbose=False):
     # Use sklearn for now (can try LSE manual later...)
     mlr_out = mlr(X,y)
     return mlr_out
+
+def preprocess_byperiod(dswins,verbose=False):
+    # Input: List of Arrays where elements are DataArrays for each period
+    nwin    = len(dswins)
+    dsanoms = []
+    for nw in range(nwin):
+        dsin   = dswins[nw].squeeze()
+        dsanom = proc.xrdeseason(dsin,verbose=verbose)
+        dsanom = proc.xrdetrend_nd(dsanom,1,verbose=verbose)
+        dsanoms.append(dsanom)
+    return dsanoms
 
 def preprocess_enso(ds):
     # Remove Mean Seasonal Cycle and the Quadratic Trend

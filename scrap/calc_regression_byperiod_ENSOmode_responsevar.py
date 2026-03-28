@@ -108,21 +108,21 @@ def load_ccf_radiation(expname,flxname,datpath=None,seasonal=False):
 #         return ep,cp,ninotimes
 #     return ep,cp
 
-def generate_periods(ds,winlen):
+# def generate_periods(ds,winlen):
     
-    tstart = ds.time[0].dt.year.data.item()
-    tend   = ds.time[-1].dt.year.data.item()
+#     tstart = ds.time[0].dt.year.data.item()
+#     tend   = ds.time[-1].dt.year.data.item()
 
-    nperiods = tend-tstart-winlen+1
-    #nperiods
-    tranges = []
-    subsets = []
-    for ii in range(nperiods):
-        trange = ["%i-01-01" % (tstart+ii), "%i-01-01" % (tstart+winlen+ii)]
-        subset = ds.sel(time=slice(trange[0],trange[1]))
-        tranges.append(trange)
-        subsets.append(subset)
-    return subsets,tranges
+#     nperiods = tend-tstart-winlen+1
+#     #nperiods
+#     tranges = []
+#     subsets = []
+#     for ii in range(nperiods):
+#         trange = ["%i-01-01" % (tstart+ii), "%i-01-01" % (tstart+winlen+ii)]
+#         subset = ds.sel(time=slice(trange[0],trange[1]))
+#         tranges.append(trange)
+#         subsets.append(subset)
+#     return subsets,tranges
 
 # def make_ninotime(trange,timeindex):
 #     ntime = len(timeindex)
@@ -184,15 +184,15 @@ def sliding_regr_nino_flx(flxwindows,ninoid,leadlags,nino_byperiod=False,nino_ti
     
     return ds_winreg
 
-def preprocess_byperiod(dswins,verbose=False):
-    nwin    = len(dswins)
-    dsanoms = []
-    for nw in range(nwin):
-        dsin   = dswins[nw].squeeze()
-        dsanom = proc.xrdeseason(dsin,verbose=verbose)
-        dsanom = proc.xrdetrend_nd(dsanom,1,verbose=verbose)
-        dsanoms.append(dsanom)
-    return dsanoms
+# def preprocess_byperiod(dswins,verbose=False):
+#     nwin    = len(dswins)
+#     dsanoms = []
+#     for nw in range(nwin):
+#         dsin   = dswins[nw].squeeze()
+#         dsanom = proc.xrdeseason(dsin,verbose=verbose)
+#         dsanom = proc.xrdetrend_nd(dsanom,1,verbose=verbose)
+#         dsanoms.append(dsanom)
+#     return dsanoms
 
 def get_center_date(trange):
     # Gets Center date given YYYY-01-01 string for [ystart,yend]
@@ -297,12 +297,12 @@ for ex in range(len(expnames)): # Loop by Experiment
         
         
         # Generate Periods
-        varwindows,tranges = generate_periods(dsvar,winlen)
+        varwindows,tranges = ut.generate_periods(dsvar,winlen)
         
         # Detrend by Period
         if deseason_byperiod:
             st2 = time.time()
-            varwindows = preprocess_byperiod(varwindows)
+            varwindows = ut.preprocess_byperiod(varwindows)
             print("\tCompleted period-wise detrend in %.2fs" % (time.time()-st2))
         
         # Get ENSO index
