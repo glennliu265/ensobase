@@ -575,6 +575,28 @@ def get_rawpath_awi(expname,vname,ensnum=None):
     print(nclist)
     return nclist
 
+def load_ccf_radiation(expname,flxname,datpath=None,seasonal=False):
+    # Load CCF Radiation. Taken from 'awi_cm3_toa_leadlag_analysis_area_avg_ccf_sliding.ipynb'
+    
+    if datpath is None:
+        datpath = "/home/niu4/gliu8/projects/ccfs/radiative_components/regrid_1x1/"
+    
+    ccfs = ["sst","eis","Tadv","r700","w700","ws10"]
+    
+    dscomps = []
+    for cc in range(6):
+        
+        ccf_var  = ccfs[cc]
+        if seasonal:
+            ncname = "%s%s/%s_%s_component_seasonal.nc" % (datpath,expname,flxname,ccf_var)
+        else:
+            ncname   = "%s%s/%s_%s_component.nc" % (datpath,expname,flxname,ccf_var)
+        dsccf    = xr.open_dataset(ncname)[ccf_var].load()
+
+        dscomps.append(dsccf)
+    return dscomps
+
+
 def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
     # Load Enso indices calculated with calc_nino34.py
     if datpath is None:
