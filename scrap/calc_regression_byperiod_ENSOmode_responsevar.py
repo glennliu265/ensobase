@@ -128,7 +128,7 @@ def load_ccf_radiation(expname,flxname,datpath=None,seasonal=False):
 #     ntime = len(timeindex)
 #     times = xr.date_range(start=trange[0].data.item(),end=trange[1].data.item(),periods=ntime)
 #     return times # Note this does not return the exact middle of the month
-    
+
 def match_latlon(dstarget,dsref):
     dstarget['lon'] = dsref['lon']
     dstarget['lat'] = dsref['lat']
@@ -208,9 +208,10 @@ def get_center_date(trange):
 #%% User Edits
 
 expnames   = [
-    "EC-Earth3",
-    "E3SM-1-0",
-    "E3SM-1-1-ECA",
+    "TCo319_ssp585",
+    #"EC-Earth3",
+    #"E3SM-1-0",
+    #"E3SM-1-1-ECA",
     #"TCo319_ssp585",#"TCo319_ctl1950d","TCo319-DART-ssp585d-gibbs-charn", # Target Experiment
 ]
 
@@ -226,7 +227,7 @@ overwrite         = True # Set to True to overwrite existing files
 
 # Get Lengths and set other variables
 nino_names   = ["CP","EP"]
-varnames     = ["tscre","sst"]#"lcc","sst","pr","ttcre","cre"]#"tscre",]# ["lcc","sst"]#"pr","lcc"] # "cre",
+varnames     = ["ttcre","cre"]#"lcc","sst","pr","ttcre","cre"]#"tscre",]# ["lcc","sst"]#"pr","lcc"] # "cre",
 
 nexp         = len(expnames)
 nvar         = len(varnames)
