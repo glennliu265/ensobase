@@ -627,9 +627,12 @@ def load_enso_eof(expname,datpath=None,apply_smoothing=True,sep_mon=False,by_per
     
     # Apply 1-2-1 filter
     if apply_smoothing:
+        
+        filter_coeffs = [0.25,0.5,0.25]
+        smooth121     = lambda timeseries: np.convolve(timeseries,filter_coeffs,mode='same')
+        
         if by_period:
-            filter_coeffs = [0.25,0.5,0.25]
-            smooth121 = lambda timeseries: np.convolve(timeseries,filter_coeffs,mode='same')
+            
             ep = xr.apply_ufunc(smooth121, dsnino.ep, input_core_dims=[["timeindex"]],output_core_dims=[["timeindex"]],vectorize=True)
             cp = xr.apply_ufunc(smooth121, dsnino.cp, input_core_dims=[["timeindex"]],output_core_dims=[["timeindex"]],vectorize=True)
             ninotimes = [make_ninotime(trange,dsnino.timeindex) for trange in dsnino.trange] 
