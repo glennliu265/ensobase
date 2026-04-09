@@ -92,9 +92,8 @@ nexps             = len(expnames)
 
 
 # Select Nino Index
-ninoid_name       = 'nino34'                      # Name of Index: [nino3,nino4,nino34]   
+ninoid_name       = 'nino12'                      # Name of Index: [nino3,nino4,nino34]   
 bbox_nino34       = [-170+360,-120+360,-5,5]     # Nino3.4 Box
-
 bbox_nino12       = [-90+360,-80+360,-10,0]      # Nino 1+2
 bbox_nino3        = [-150+360, -90+360 , -5, 5]  # Nino 3 Box: For SST, <tau_x>
 bbox_nino4        = [ 160    ,-150+360,-5,5]     # Nino 4 Box:

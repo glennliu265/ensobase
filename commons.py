@@ -37,9 +37,9 @@ expnames_long   = ["31km Control","31km SSP585","9km 1950","9km 2090","5km 1950"
 timecrops       = [[1950,2100],None,None,None,None]
 
 
-expcols = ["cornflowerblue",'lightcoral',
-           "slateblue","firebrick",
-           "midnightblue","k"] # Includes Glorys and different shade based on resolution
+expcols         = ["cornflowerblue",'lightcoral',
+                   "slateblue","firebrick",
+                   "midnightblue","k"] # Includes Glorys and different shade based on resolution
  
 
 ## Add Glorys
@@ -61,18 +61,22 @@ ninoshort       = ['nino','nina']
 conversion      = 1/(3*3600) # 3 h accumulation time...? #1/(24*30*3600)
 # https://forum.ecmwf.int/t/surface-radiation-parameters-joule-m-2-to-watt-m-2/1588
 
+# Nino Indices Boxes
+# From UCAR Climate Data Guide: https://climatedataguide.ucar.edu/climate-data/nino-sst-indices-nino-12-3-34-4-oni-and-tni
+bbox_nino12       = [-90+360,-80+360,-10,0]      # Nino 1+2
+bbox_nino3        = [-150+360, -90+360 , -5, 5]  # Nino 3 Box: For SST, <tau_x>
+bbox_nino34       = [-170+360,-120+360,-5,5]     # Nino3.4 Box
+bbox_nino4        = [ 160    ,-150+360,-5,5]     # Nino 4 Box:
+
 # Bounding Boxes from Jin et al. 2020 Eqn. 6.6  -----
 bbox_cep        = [150      , -130+360 , -5, 5]   # Central Equatorial Pacific, for [tau_x], 
-bbox_nino3      = [-150+360 , -90+360  , -5, 5]  # Nino 3 Box: For SST, <tau_x>
-bbox_nino34     = [-170+360 , -120+360 , -5, 5]
 bbox_epac       = [-155+360 , -80+360  , -5, 5]  # Eastern Pacific (for h_e calculation)
 bbox_wpac       = [120      , -155+360 , -5, 5]  # Western Pacific (for h_w calculation)
 bbox_tropics    = [0        , 360      , -30,30] # Tropics (from Ceppi and Fueglistaler 2021)
 
-bboxes      = [bbox_cep,bbox_nino3,bbox_nino34,bbox_epac,bbox_wpac]
+bboxes       = [bbox_cep,bbox_nino3,bbox_nino34,bbox_epac,bbox_wpac]
 bbnames_long = ["Central Equatorial Pacific","$Ni\tilde{n}o3$","$Ni\tilde{n}o3.4$","Tropical Eastern Pacific","Tropical Western Pacific"]
 bbnames      = ["CEO","nino3","nino34","EPac","WPac"]
-
 
 #%% CCF Variables
 
