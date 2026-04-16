@@ -27,12 +27,14 @@ calc_grad_centered          : (g) Calculate centered-difference for spatial grad
 calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
 calc_leadlagreg_pointwise   : (g) Compute pointwise lead lag regression using ufunc
 calc_leadlag_regression_2d  : (g) Compute lead lag regression for 2D timseries (modeled after enso_lag_regression)
+convolve_kernel_ccf         : (c) Convolve radiative kernel with ccf variable 
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
 generate_periods            : (c) Generate Periods for a sliding window of a selected length
 get_moving_segments         : (g) Subset timeseries into segments with a sliding window
 get_rawpath_awi             : (A) Get rawpath for AWI output on niu
 init_tp_map                 : (v) initialize tropical Pacific plot 
 init_global_map             : (v) Initialize a global map
+load_ccf_kernel             : (l) load Kernels for each CCF (based on calc_ccf_radiation_byexp)
 load_ensoid                 : (l) load enso indices calculated by calc_nino34.py
 load_enso_eof               : (l) load ENSO indices from rotated EOF analysis (calc_EOF_enso<_sliding>.py)
 load_land_mask_awi          : (l) load land mask from AWI-CM3, where land points are np.nan
@@ -110,53 +112,6 @@ def calc_grad_centered(ds,latname='lat',lonname='lon'): # Copied from structure 
         ddx,ddy =  [ds.rename(lldict_reverse) for ds in [ddx,ddy]]
     
     return ddx,ddy
-
-def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
-    bbplot = [120, 290, -20, 20]
-    fix_lon = np.hstack([np.arange(120,190,10),np.arange(-180,-60,10)])
-    proj   = ccrs.PlateCarree(central_longitude=180)
-    projd  = ccrs.PlateCarree()
-    
-    if ax is None:
-        fig,axs = plt.subplots(nrow,ncol,figsize=figsize,subplot_kw={'projection':proj})
-        newfig = True
-    else:
-        newfig = False
-    if nrow != 1 or ncol != 1:
-        for ax in axs.flatten():
-            ax.set_extent(bbplot)
-            ax     = viz.add_coast_grid(ax,bbox=bbplot,fill_color='k',
-                                        proj=ccrs.PlateCarree(),fix_lon=fix_lon,ignore_error=True)
-        ax = axs
-    else:
-        ax = axs
-        ax.set_extent(bbplot)
-        ax     = viz.add_coast_grid(ax,bbox=bbplot,fill_color='k',
-                                    proj=ccrs.PlateCarree(),fix_lon=fix_lon,ignore_error=True)
-    
-    if newfig:
-        return fig,ax
-    return ax
-
-def init_globalmap(nrow=1,ncol=1,figsize=(12,8),centlon=200):
-    proj            = ccrs.Robinson(central_longitude=centlon)
-    #bbox            = [-180,180,-90,90]
-    fig,ax          = plt.subplots(nrow,ncol,subplot_kw={'projection':proj},figsize=figsize,constrained_layout=True)
-    
-    multiax = True
-    if (type(ax) == mpl.axes._axes.Axes) or (type(ax) == cartopy.mpl.geoaxes.GeoAxes):
-        ax = [ax,]
-        multiax = False
-    
-    if type(ax) == tuple or (ncol+nrow > 2):
-        ax = ax.flatten()
-    for a in ax:
-        a.coastlines(zorder=10,lw=0.75,transform=proj)
-        a.gridlines(ls ='dotted',draw_labels=True)
-        
-    if multiax is False:
-        ax = ax[0]
-    return fig,ax
 
 def calc_lag_regression_1d(var1_lag,var2_base,lags,correlation=False): # CAn make 2d by mirroring calc_lag_covar_annn
     # Calculate the regression where
@@ -294,6 +249,8 @@ def combine_events(var_in,id_in,tol=1,verbose=True):
                    eventmonths=months)
     return outdict
 
+
+
 def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     # Based on routine in enso_lag_regression and global_mean_nino_regressions
     # Compute lead/lag regression on timeseries [ensoid] and 3D lagged variable [dsvar]
@@ -408,6 +365,42 @@ def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     ds_out   = xr.merge(da_out)
     
     return ds_out
+
+def convolve_kernel_ccf(ccfvar,kernel,ccfname,seasonal=False):
+    # Convolve radiative kernel with ccf variable 
+    # Inputs
+    # ccfvar : anomalized CCF              xr.DataArray [time x lat x lon]
+    # kernel : coefficients                xr.DataArray [lat x lon], or 
+    #                                      LIST of xr.DataArray [seasonal][lat x lon]
+    # seasonal : True for seasonal Kernel  BOOL
+    # 
+    
+    selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]]
+    
+    # Standardize variable
+    ccfvar_std = ccfvar / ccfvar.std('time')
+    
+    if seasonal:
+        coeff_seasonal       = [ds.coeffs.sel(ccf=ccfname) for ds in kernel] # /dtday
+        R_component_seasonal = []
+        for ss in range(4):
+            
+            selmons    = selmons_loop[ss]
+            varmon     = proc.selmon_ds(ccfvar_std,selmons)
+            varmon_out = varmon * coeff_seasonal[ss]
+            R_component_seasonal.append(varmon_out)
+            
+        R_component_seasonal = xr.concat(R_component_seasonal,dim='time')
+        R_component_seasonal = R_component_seasonal.sortby('time')
+        R_component_seasonal = R_component_seasonal.rename(ccfname)
+        R_component_seasonal = R_component_seasonal
+        return R_component_seasonal
+    else:
+        
+        # Multiply by the Coefficient
+        coeff_allmons  = kernel.coeffs.sel(ccf=ccfname)
+        R_component    = coeff_allmons * ccfvar_std
+        return R_component.rename(ccfname)
 
 def generate_periods(ds,winlen):
     # Generate chunks of [winlen]-years along time dimension in ds
@@ -574,6 +567,90 @@ def get_rawpath_awi(expname,vname,ensnum=None):
         return None
     print(nclist)
     return nclist
+
+def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
+    bbplot = [120, 290, -20, 20]
+    fix_lon = np.hstack([np.arange(120,190,10),np.arange(-180,-60,10)])
+    proj   = ccrs.PlateCarree(central_longitude=180)
+    projd  = ccrs.PlateCarree()
+    
+    if ax is None:
+        fig,axs = plt.subplots(nrow,ncol,figsize=figsize,subplot_kw={'projection':proj})
+        newfig = True
+    else:
+        newfig = False
+    if nrow != 1 or ncol != 1:
+        for ax in axs.flatten():
+            ax.set_extent(bbplot)
+            ax     = viz.add_coast_grid(ax,bbox=bbplot,fill_color='k',
+                                        proj=ccrs.PlateCarree(),fix_lon=fix_lon,ignore_error=True)
+        ax = axs
+    else:
+        ax = axs
+        ax.set_extent(bbplot)
+        ax     = viz.add_coast_grid(ax,bbox=bbplot,fill_color='k',
+                                    proj=ccrs.PlateCarree(),fix_lon=fix_lon,ignore_error=True)
+    
+    if newfig:
+        return fig,ax
+    return ax
+
+def init_globalmap(nrow=1,ncol=1,figsize=(12,8),centlon=200):
+    proj            = ccrs.Robinson(central_longitude=centlon)
+    #bbox            = [-180,180,-90,90]
+    fig,ax          = plt.subplots(nrow,ncol,subplot_kw={'projection':proj},figsize=figsize,constrained_layout=True)
+    
+    multiax = True
+    if (type(ax) == mpl.axes._axes.Axes) or (type(ax) == cartopy.mpl.geoaxes.GeoAxes):
+        ax = [ax,]
+        multiax = False
+    
+    if type(ax) == tuple or (ncol+nrow > 2):
+        ax = ax.flatten()
+    for a in ax:
+        a.coastlines(zorder=10,lw=0.75,transform=proj)
+        a.gridlines(ls ='dotted',draw_labels=True)
+        
+    if multiax is False:
+        ax = ax[0]
+    return fig,ax
+
+
+def load_ccf_kernel(expname,flxname,customname=None,standardize=True,seasonal=False,kernel_path=None):
+    # load Kernels for each CCF (based on calc_ccf_radiation_byexp)
+    if kernel_path is None:
+        kernel_path  = '/home/niu4/gliu8/projects/ccfs/kernels/regrid_1x1/%s/' % expname
+    
+    selmons_loop = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]]
+    
+    if seasonal:
+        ds_byseason = []
+        for selmons in tqdm(selmons_loop):
+            
+            if customname is not None:
+                ncname_kernel         = "%s%s_%s_kernels_standardize%i.nc" % (kernel_path,flxname,customname,standardize)
+            else:
+                ncname_kernel         = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
+            if selmons is not None:
+                selmonstr       = proc.mon2str(np.array(selmons)-1)
+                ncname_kernel   = proc.addstrtoext(ncname_kernel,"_"+selmonstr,adjust=-1)
+            
+            # Load Seasonal Outputs
+            ds = xr.open_dataset(ncname_kernel).load()
+            ds_byseason.append(ds)
+        return ds_byseason
+        
+    else:
+        #% Load the all months case
+        if customname is not None:
+            ncname_kernel         = "%s%s_%s_kernels_standardize%i.nc" % (kernel_path,flxname,customname,standardize)
+        else:
+            ncname_kernel         = "%s%s_kernels_standardize%i.nc" % (kernel_path,flxname,standardize)
+        dsall                     = xr.open_dataset(ncname_kernel).load()
+        
+        return dsall
+    
+
 
 def load_ccf_radiation(expname,flxname,datpath=None,seasonal=False):
     # Load CCF Radiation. Taken from 'awi_cm3_toa_leadlag_analysis_area_avg_ccf_sliding.ipynb'
