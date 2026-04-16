@@ -138,9 +138,9 @@ def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
         return fig,ax
     return ax
 
-def init_globalmap(nrow=1,ncol=1,figsize=(12,8)):
-    proj            = ccrs.Robinson(central_longitude=-180)
-    bbox            = [-180,180,-90,90]
+def init_globalmap(nrow=1,ncol=1,figsize=(12,8),centlon=200):
+    proj            = ccrs.Robinson(central_longitude=centlon)
+    #bbox            = [-180,180,-90,90]
     fig,ax          = plt.subplots(nrow,ncol,subplot_kw={'projection':proj},figsize=figsize,constrained_layout=True)
     
     multiax = True
@@ -168,7 +168,7 @@ def calc_lag_regression_1d(var1_lag,var2_base,lags,correlation=False): # CAn mak
         return np.nan * np.ones(len(lags*2))
     if np.any(var1_lag == 0.) or np.any(var2_base == 0.):
         return np.nan * np.ones(len(lags*2))
-        
+    
     ntime = len(var1_lag)
     betalag = []
     poslags = lags[lags >= 0]
