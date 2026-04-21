@@ -625,7 +625,7 @@ def load_ccf_kernel(expname,flxname,customname=None,standardize=True,seasonal=Fa
     
     if seasonal:
         ds_byseason = []
-        for selmons in tqdm(selmons_loop):
+        for selmons in selmons_loop:
             
             if customname is not None:
                 ncname_kernel         = "%s%s_%s_kernels_standardize%i.nc" % (kernel_path,flxname,customname,standardize)
@@ -649,8 +649,6 @@ def load_ccf_kernel(expname,flxname,customname=None,standardize=True,seasonal=Fa
         dsall                     = xr.open_dataset(ncname_kernel).load()
         
         return dsall
-    
-
 
 def load_ccf_radiation(expname,flxname,datpath=None,seasonal=False):
     # Load CCF Radiation. Taken from 'awi_cm3_toa_leadlag_analysis_area_avg_ccf_sliding.ipynb'
@@ -672,7 +670,6 @@ def load_ccf_radiation(expname,flxname,datpath=None,seasonal=False):
 
         dscomps.append(dsccf)
     return dscomps
-
 
 def load_ensoid(expname,ninoid_name='nino34',datpath=None,standardize=True):
     # Load Enso indices calculated with calc_nino34.py
