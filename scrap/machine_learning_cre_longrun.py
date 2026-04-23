@@ -239,7 +239,7 @@ def train_ResNet_regression(model,loss_fn,optimizer,dataloaders,
 expname   = "FNN6_128_Pilot_LongRun"
 outpath   = "/home/niu4/gliu8/projects/ccfs/machine_learning/%s/" % expname
 proc.makedir(outpath)
-
+niter     = 1000
 
 eparams     = dict(
     
@@ -263,7 +263,7 @@ eparams     = dict(
     shuffle_trainsplit=False,  # Set to False to maintain same set for train/test/val split
     
     # Regularization and Training
-    early_stop      =50,       # # of epochs were validation loss increases before stopping
+    early_stop      =200,      # # of epochs were validation loss increases before stopping
     max_epochs      =1000,     # Maximnum number of Epochs to train for
     batch_size      =256,      # Number of batches for training
     unfreeze_all    =True      # Set to true to unfreeze all layers, false to only unfreeze last layer
@@ -286,54 +286,54 @@ nn_params=FNN6_dict
 #%%
 
 
-# Set Output Path
-expname   = "FNN2_test"
-outpath   = "/home/niu4/gliu8/projects/ccfs/machine_learning/%s/" % expname
-proc.makedir(outpath)
-niter     = 10
+# # Set Output Path
+# expname   = "FNN2_test"
+# outpath   = "/home/niu4/gliu8/projects/ccfs/machine_learning/%s/" % expname
+# proc.makedir(outpath)
+# niter     = 10
 
 
-eparams     = dict(
+# eparams     = dict(
     
-    # Cross-validation Parameters
-    cv_loop=False, # Repeat for cross-validation
-    cv_offset=0,   # Set cv option. Default is test size chunk
+#     # Cross-validation Parameters
+#     cv_loop=False, # Repeat for cross-validation
+#     cv_offset=0,   # Set cv option. Default is test size chunk
     
-    # Network Hyperparameters
-    netname="FNN4_128",       # Key for Architecture Hyperparameters
-    opt=['Adamax',1e-1,0],      # [Optimizer Name, Learning Rate, Weight Decay]
-    loss_fn=nn.MSELoss(),     # Loss Function
-    use_softmax=False,        # Set to true to change final layer to softmax
-    reduceLR=False,          # Set to true to use LR scheduler
-    LRpatience=False,        # Set patience for LR scheduler
+#     # Network Hyperparameters
+#     netname="FNN4_128",       # Key for Architecture Hyperparameters
+#     opt=['Adamax',1e-1,0],      # [Optimizer Name, Learning Rate, Weight Decay]
+#     loss_fn=nn.MSELoss(),     # Loss Function
+#     use_softmax=False,        # Set to true to change final layer to softmax
+#     reduceLR=False,          # Set to true to use LR scheduler
+#     LRpatience=False,        # Set patience for LR scheduler
     
-    # Test/Train/Validate and Sampling Splits
-    nsamples        =300   , # Number of samples of each class to train with (for classification)
-    percent_train   =0.80  , # Training Percentage
-    percent_val     =0.00  , # Validation Percentage
-    shuffle_class   =False , # Set to True to sample DIFFERENT subsets prior to class subsetting
-    shuffle_trainsplit=False,  # Set to False to maintain same set for train/test/val split
+#     # Test/Train/Validate and Sampling Splits
+#     nsamples        =300   , # Number of samples of each class to train with (for classification)
+#     percent_train   =0.80  , # Training Percentage
+#     percent_val     =0.00  , # Validation Percentage
+#     shuffle_class   =False , # Set to True to sample DIFFERENT subsets prior to class subsetting
+#     shuffle_trainsplit=False,  # Set to False to maintain same set for train/test/val split
     
-    # Regularization and Training
-    early_stop      =1,       # # of epochs were validation loss increases before stopping
-    max_epochs      =1,     # Maximnum number of Epochs to train for
-    batch_size      =256,      # Number of batches for training
-    unfreeze_all    =True      # Set to true to unfreeze all layers, false to only unfreeze last layer
+#     # Regularization and Training
+#     early_stop      =1,       # # of epochs were validation loss increases before stopping
+#     max_epochs      =1,     # Maximnum number of Epochs to train for
+#     batch_size      =256,      # Number of batches for training
+#     unfreeze_all    =True      # Set to true to unfreeze all layers, false to only unfreeze last layer
     
-    )
+#     )
 
-#% Model and Parameter Settings
+# #% Model and Parameter Settings
 
-verbose     = True
-checkgpu    = True
+# verbose     = True
+# checkgpu    = True
 
-FNN6_dict={
-    "nlayers"     : 6,
-    "nunits"      : [128,128,128,128,128,128],
-    "activations" : [nn.ReLU(),nn.ReLU(),nn.ReLU(),nn.ReLU(),nn.ReLU(),nn.ReLU()],
-    "dropout"     : 0.5}
-netname="FNN6_128"
-nn_params=FNN6_dict
+# FNN6_dict={
+#     "nlayers"     : 6,
+#     "nunits"      : [128,128,128,128,128,128],
+#     "activations" : [nn.ReLU(),nn.ReLU(),nn.ReLU(),nn.ReLU(),nn.ReLU(),nn.ReLU()],
+#     "dropout"     : 0.5}
+# netname="FNN6_128"
+# nn_params=FNN6_dict
 
 
 #%% Load Predictors and Target
@@ -342,6 +342,7 @@ nn_params=FNN6_dict
 tstart      = '2001-01-01'
 tend        = '2015-01-01'#'2015-12-31'
 region_crop = [0,360,-60,60]
+
 
 # Load Predictors
 predictor_path  = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/CERES_EBAF_ERA5_2001_2024/anom_detrend1/"
