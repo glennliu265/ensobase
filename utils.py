@@ -887,7 +887,7 @@ def mlr_ccfs(ccfs,flx,standardize=True,fill_value=0,verbose=False):
     mlr_out = mlr(X,y)
     return mlr_out
 
-def preprocess_byperiod(dswins,timedim=1,verbose=False),detrend=True:
+def preprocess_byperiod(dswins,timedim=1,verbose=False,detrend=True):
     # Input: List of Arrays where elements are DataArrays for each period
     nwin    = len(dswins)
     dsanoms = []
