@@ -237,7 +237,7 @@ expname   = 'TCo319_ssp585'
 mergefile = False
 infile    = '/home/niu4/gliu8/projects/scrap/regrid_1x1/TCo319_ssp585_sst_regrid1x1.nc'
 outpath   = '/home/niu4/gliu8/projects/ccfs/enso_eof/'
-winlen    = 30
+winlen    = 24
 savename  = "%s%s_ENSO_EOF_slidingwinlen%02i.nc" % (outpath,expname,winlen)
 
 # Dataset Information
@@ -278,8 +278,6 @@ for expname in ["E3SM-1-1-ECA","EC-Earth3"]:
     tstart = '2014-01-01'
     tend   = '2099-12-31'
     # -----------------
-    
-    
     
     #%% addiitonal settings
     
@@ -324,11 +322,11 @@ for expname in ["E3SM-1-1-ECA","EC-Earth3"]:
     #%%  Generate Periods (takes awhile... 10 sec?)
     
     # Generate Periods
-    varwindows,tranges = generate_periods(sstraw,winlen)
+    varwindows,tranges = ut.generate_periods(sstraw,winlen)
     
     # Detrend by Period
     st2        = time.time()
-    varwindows = preprocess_byperiod(varwindows)
+    varwindows = ut.preprocess_byperiod(varwindows)
     print("\tCompleted period-wise detrend in %.2fs" % (time.time()-st2))
     
     #%% Looping for each period, calculate the CP and EP ENSO indices
