@@ -887,7 +887,7 @@ def mlr_ccfs(ccfs,flx,standardize=True,fill_value=0,verbose=False):
     mlr_out = mlr(X,y)
     return mlr_out
 
-def preprocess_byperiod(dswins,timedim=1,verbose=False,detrend=True):
+def preprocess_byperiod(dswins,order=1,verbose=False,detrend=True):
     # Input: List of Arrays where elements are DataArrays for each period
     nwin    = len(dswins)
     dsanoms = []
@@ -895,7 +895,10 @@ def preprocess_byperiod(dswins,timedim=1,verbose=False,detrend=True):
         dsin   = dswins[nw].squeeze()
         dsanom = proc.xrdeseason(dsin,verbose=verbose)
         if detrend: # Optionally Detrend
-            dsanom = proc.xrdetrend_nd(dsanom,timedim,verbose=verbose)
+            if len(dsanom.shape) > 1:
+                dsanom = proc.xrdetrend_nd(dsanom,order,verbose=verbose)
+            else:
+                dsanom = proc.xrdetrend(dsanom)
         dsanoms.append(dsanom)
     return dsanoms
 
