@@ -898,7 +898,7 @@ def preprocess_byperiod(dswins,order=1,verbose=False,detrend=True):
             if len(dsanom.shape) > 1:
                 dsanom = proc.xrdetrend_nd(dsanom,order,verbose=verbose)
             else:
-                dsanom = proc.xrdetrend(dsanom)
+                dsanom = proc.xrdetrend(dsanom,verbose=verbose)
         dsanoms.append(dsanom)
     return dsanoms
 
