@@ -404,6 +404,7 @@ def convolve_kernel_ccf(ccfvar,kernel,ccfname,seasonal=False):
 
 def generate_periods(ds,winlen):
     # Generate chunks of [winlen]-years along time dimension in ds
+    # Note that winlen must be in YEARS
     tstart = ds.time[0].dt.year.data.item()
     tend   = ds.time[-1].dt.year.data.item()
 
@@ -886,14 +887,15 @@ def mlr_ccfs(ccfs,flx,standardize=True,fill_value=0,verbose=False):
     mlr_out = mlr(X,y)
     return mlr_out
 
-def preprocess_byperiod(dswins,verbose=False):
+def preprocess_byperiod(dswins,timedim=1,verbose=False),detrend=True:
     # Input: List of Arrays where elements are DataArrays for each period
     nwin    = len(dswins)
     dsanoms = []
     for nw in range(nwin):
         dsin   = dswins[nw].squeeze()
         dsanom = proc.xrdeseason(dsin,verbose=verbose)
-        dsanom = proc.xrdetrend_nd(dsanom,1,verbose=verbose)
+        if detrend: # Optionally Detrend
+            dsanom = proc.xrdetrend_nd(dsanom,timedim,verbose=verbose)
         dsanoms.append(dsanom)
     return dsanoms
 
