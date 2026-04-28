@@ -283,6 +283,61 @@ FNN6_dict={
 netname="FNN6_128"
 nn_params=FNN6_dict
 
+
+
+#%% Experiment and Training Settings
+
+# Set Output Path
+expname   = "FNN6_128_Pilot_Epoch5_EarlyStop2"
+outpath   = "/home/niu4/gliu8/projects/ccfs/machine_learning/%s/" % expname
+proc.makedir(outpath)
+niter     = 1000
+
+eparams     = dict(
+    
+    # Cross-validation Parameters
+    cv_loop=False, # Repeat for cross-validation
+    cv_offset=0,   # Set cv option. Default is test size chunk
+    
+    # Network Hyperparameters
+    netname="FNN4_128",       # Key for Architecture Hyperparameters
+    opt=['Adamax',1e-1,0],      # [Optimizer Name, Learning Rate, Weight Decay]
+    loss_fn=nn.MSELoss(),     # Loss Function
+    use_softmax=False,        # Set to true to change final layer to softmax
+    reduceLR=False,          # Set to true to use LR scheduler
+    LRpatience=False,        # Set patience for LR scheduler
+    
+    # Test/Train/Validate and Sampling Splits
+    nsamples        =300   , # Number of samples of each class to train with (for classification)
+    percent_train   =0.80  , # Training Percentage
+    percent_val     =0.00  , # Validation Percentage
+    shuffle_class   =False , # Set to True to sample DIFFERENT subsets prior to class subsetting
+    shuffle_trainsplit=False,  # Set to False to maintain same set for train/test/val split
+    
+    # Regularization and Training
+    early_stop      =2,      # # of epochs were validation loss increases before stopping
+    max_epochs      =5,     # Maximnum number of Epochs to train for
+    batch_size      =256,      # Number of batches for training
+    unfreeze_all    =True      # Set to true to unfreeze all layers, false to only unfreeze last layer
+    
+    )
+
+#% Model and Parameter Settings
+
+verbose     = True
+checkgpu    = True
+
+FNN6_dict={
+    "nlayers"     : 6,
+    "nunits"      : [128,128,128,128,128,128],
+    "activations" : [nn.ReLU(),nn.ReLU(),nn.ReLU(),nn.ReLU(),nn.ReLU(),nn.ReLU()],
+    "dropout"     : 0.5}
+netname="FNN6_128"
+nn_params=FNN6_dict
+
+
+
+
 #%%
 
 
