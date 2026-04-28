@@ -248,7 +248,10 @@ lonname  = 'lon'
 
 # Calculation Options
 tstart = '2015-01-01'
-tend   = '2024-12-31'
+#tend   = '2024-12-31'
+tend   = '2114-12-31'
+
+
 
 
 #%%
@@ -256,158 +259,160 @@ tend   = '2024-12-31'
 # Calculate for E3SM-1-0
 #expname   = 'E3SM-1-0'
 
-# Loop for CMIP6 Experiments (where merging is needed)
-for expname in ["E3SM-1-1-ECA","EC-Earth3"]:
+# # Loop for CMIP6 Experiments (where merging is needed)
+# for expname in ["E3SM-1-1-ECA","EC-Earth3"]:
     
-    mergefile = True
-    infile    = [
-        "/home/niu4/gliu8/projects/scrap/regrid_1x1/%s_historical_sst.nc" % expname, 
-        "/home/niu4/gliu8/projects/scrap/regrid_1x1/%s_ssp585_sst.nc" % expname,
-        ]
-    outpath   = '/home/niu4/gliu8/projects/ccfs/enso_eof/'
-    winlen    = 30
-    savename  = "%s%s_ENSO_EOF_slidingwinlen%02i.nc" % (outpath,expname,winlen)
+#     mergefile = True
+#     infile    = [
+#         "/home/niu4/gliu8/projects/scrap/regrid_1x1/%s_historical_sst.nc" % expname, 
+#         "/home/niu4/gliu8/projects/scrap/regrid_1x1/%s_ssp585_sst.nc" % expname,
+#         ]
+#     outpath   = '/home/niu4/gliu8/projects/ccfs/enso_eof/'
+#     winlen    = 30
+#     savename  = "%s%s_ENSO_EOF_slidingwinlen%02i.nc" % (outpath,expname,winlen)
     
-    # Dataset Information
-    vname    = 'sst'
-    timename = 'time'
-    latname  = 'lat'
-    lonname  = 'lon'
+#     # Dataset Information
+#     vname    = 'sst'
+#     timename = 'time'
+#     latname  = 'lat'
+#     lonname  = 'lon'
     
-    # Calculation Options
-    tstart = '2014-01-01'
-    tend   = '2099-12-31'
-    # -----------------
+#     # Calculation Options
+#     tstart = '2014-01-01'
+#     tend   = '2099-12-31'
+#     # -----------------
+
+# Add Tab to section below if you want to loop for other simulations
+
+#%% addiitonal settings
+
+
+bbox_takahashi = [120,360-70,-10,10]
+pcrem          = 3
+sep_mon        = False
+
+if sep_mon:
+    savename_in = proc.addstrtoext(savename,"_sepmon",adjust=-1)
+else:
+    savename_in = savename
+
+#%% Part 1: Load the file
+
+if mergefile is False:
+    dsraw  = xr.open_dataset(infile)
+    dsreg  = proc.sel_region_xr(dsraw,bbox_takahashi).load()
+    sstraw = ut.standardize_names(dsreg.sst)
+    sstraw = sstraw.transpose('time','lat','lon')
+else:
     
-    #%% addiitonal settings
-    
-    
-    bbox_takahashi = [120,360-70,-10,10]
-    pcrem          = 3
-    sep_mon        = False
-    
-    if sep_mon:
-        savename_in = proc.addstrtoext(savename,"_sepmon",adjust=-1)
-    else:
-        savename_in = savename
-    
-    #%% Part 1: Load the file
-    
-    if mergefile is False:
-        dsraw  = xr.open_dataset(infile)
-        dsreg  = proc.sel_region_xr(dsraw,bbox_takahashi).load()
-        sstraw = ut.standardize_names(dsreg.sst)
-        sstraw = sstraw.transpose('time','lat','lon')
-    else:
+    dsraws = []
+    for ii in range(len(infile)):
         
-        dsraws = []
-        for ii in range(len(infile)):
-            
-            dsraw  = xr.open_dataset(infile[ii])
-            
-            
-            dsraws.append(dsraw)
-        dsraw = xr.concat(dsraws,dim='time')
+        dsraw  = xr.open_dataset(infile[ii])
         
-        dsreg  = proc.sel_region_xr(dsraw,bbox_takahashi).load()
-        sstraw = ut.standardize_names(dsreg.sst)
-        sstraw = sstraw.transpose('time','lat','lon')
         
-            
+        dsraws.append(dsraw)
+    dsraw = xr.concat(dsraws,dim='time')
     
-    #%% Split into time periods
+    dsreg  = proc.sel_region_xr(dsraw,bbox_takahashi).load()
+    sstraw = ut.standardize_names(dsreg.sst)
+    sstraw = sstraw.transpose('time','lat','lon')
     
-    
-    
-    #%%  Generate Periods (takes awhile... 10 sec?)
-    
-    # Generate Periods
-    varwindows,tranges = ut.generate_periods(sstraw,winlen)
-    
-    # Detrend by Period
-    st2        = time.time()
-    varwindows = ut.preprocess_byperiod(varwindows)
-    print("\tCompleted period-wise detrend in %.2fs" % (time.time()-st2))
-    
-    #%% Looping for each period, calculate the CP and EP ENSO indices
-    
-    # Calculations ----------------------------------------------------------------
-    
-    nperiods      = len(varwindows)
-    lat           = sstraw.lat
-    lon           = sstraw.lon
-    
-    eof_byper     = []
-    pc_byper      = []
-    varexp_byper  = []
-    trange_byper  = []
-    tcenter_byper = []
-    
-    for pp in tqdm.tqdm(range(nperiods)):
         
-        sstper  = varwindows[pp]
-        sstper  = sstper.data
+
+#%% Split into time periods
+
+
+
+#%%  Generate Periods (takes awhile... 10 sec?)
+
+# Generate Periods
+varwindows,tranges = ut.generate_periods(sstraw,winlen)
+
+# Detrend by Period
+st2        = time.time()
+varwindows = ut.preprocess_byperiod(varwindows)
+print("\tCompleted period-wise detrend in %.2fs" % (time.time()-st2))
+
+#%% Looping for each period, calculate the CP and EP ENSO indices
+
+# Calculations ----------------------------------------------------------------
+
+nperiods      = len(varwindows)
+lat           = sstraw.lat
+lon           = sstraw.lon
+
+eof_byper     = []
+pc_byper      = []
+varexp_byper  = []
+trange_byper  = []
+tcenter_byper = []
+
+for pp in tqdm.tqdm(range(nperiods)):
     
-        invar   = sstper.data
-        times   = varwindows[pp].time#.data
+    sstper  = varwindows[pp]
+    sstper  = sstper.data
+
+    invar   = sstper.data
+    times   = varwindows[pp].time#.data
+
+    ensoout = calc_enso(invar,lon,lat,pcrem,bbox=bbox_takahashi,sep_mon=sep_mon)
+    eofall,pcall,varexpall = ensoout
     
-        ensoout = calc_enso(invar,lon,lat,pcrem,bbox=bbox_takahashi,sep_mon=sep_mon)
-        eofall,pcall,varexpall = ensoout
-        
-        # Append Variables and Store
-        eof_byper.append(eofall)
-        pc_byper.append(pcall)
-        varexp_byper.append(varexpall)
-        
-        # Get Additional Time Variables
-        trange  = [str(times[0].data)[:10],str(times[-1].data)[:10],]
-        tcenter = get_center_date(trange)
-        trange_byper.append(trange)
-        tcenter_byper.append(tcenter)
+    # Append Variables and Store
+    eof_byper.append(eofall)
+    pc_byper.append(pcall)
+    varexp_byper.append(varexpall)
     
+    # Get Additional Time Variables
+    trange  = [str(times[0].data)[:10],str(times[-1].data)[:10],]
+    tcenter = get_center_date(trange)
+    trange_byper.append(trange)
+    tcenter_byper.append(tcenter)
+
+
+toarr         = lambda x : np.array(x)
+eof_byper     = toarr(eof_byper)    # [Period x Lat x Lon x Mode]
+pc_byper      = toarr(pc_byper)     # [Period x Time x Mode]
+varexp_byper  = toarr(varexp_byper) # [Period x Mode]
+trange_byper  = toarr(trange_byper) # [Period x Bound]
+tcenter_byper = toarr(tcenter_byper) # [Period]
+
+# Calculate Rotated EOFs
+pc1           = pc_byper[:,:,0]
+pc2           = pc_byper[:,:,1]
+ep_byper      = (pc1 - pc2) / np.sqrt(2)
+cp_byper      = (pc1 + pc2) / np.sqrt(2)
+
+# Make into DataArrays/DataSet and Output -------------------------------------
+
+# Get Necessary Indices
+period    = np.arange(1,nperiods+1)
+pcnums    = np.arange(1,pcrem+1)
+timeindex = np.arange(len(times))
+
+# Make Coords
+coords_eofs   = dict(period=period,lat=lat,lon=lon,pc=pcnums) # 
+coords_pcs    = dict(period=period,timeindex=timeindex,pc=pcnums)
+coords_epcp   = dict(period=period,timeindex=timeindex)
+coords_varexp = dict(period=period,pc=pcnums)
+coords_trange  = dict(period=period,bounds=['start','end'])
+coords_tcenter = dict(period=period,)
     
-    toarr         = lambda x : np.array(x)
-    eof_byper     = toarr(eof_byper)    # [Period x Lat x Lon x Mode]
-    pc_byper      = toarr(pc_byper)     # [Period x Time x Mode]
-    varexp_byper  = toarr(varexp_byper) # [Period x Mode]
-    trange_byper  = toarr(trange_byper) # [Period x Bound]
-    tcenter_byper = toarr(tcenter_byper) # [Period]
-    
-    # Calculate Rotated EOFs
-    pc1           = pc_byper[:,:,0]
-    pc2           = pc_byper[:,:,1]
-    ep_byper      = (pc1 - pc2) / np.sqrt(2)
-    cp_byper      = (pc1 + pc2) / np.sqrt(2)
-    
-    # Make into DataArrays/DataSet and Output -------------------------------------
-    
-    # Get Necessary Indices
-    period    = np.arange(1,nperiods+1)
-    pcnums    = np.arange(1,pcrem+1)
-    timeindex = np.arange(len(times))
-    
-    # Make Coords
-    coords_eofs   = dict(period=period,lat=lat,lon=lon,pc=pcnums) # 
-    coords_pcs    = dict(period=period,timeindex=timeindex,pc=pcnums)
-    coords_epcp   = dict(period=period,timeindex=timeindex)
-    coords_varexp = dict(period=period,pc=pcnums)
-    coords_trange  = dict(period=period,bounds=['start','end'])
-    coords_tcenter = dict(period=period,)
-        
-    # Original Variables
-    da_eofs       = xr.DataArray(eof_byper,coords=coords_eofs,dims=coords_eofs,name='eofs')
-    da_pcs        = xr.DataArray(pc_byper,coords=coords_pcs,dims=coords_pcs,name='pcs')
-    da_varexp     = xr.DataArray(varexp_byper,coords=coords_varexp,dims=coords_varexp,name='varexp')
-    
-    # Rotated EOFs
-    da_ep         = xr.DataArray(ep_byper,coords=coords_epcp,dims=coords_epcp,name='ep')
-    da_cp         = xr.DataArray(cp_byper,coords=coords_epcp,dims=coords_epcp,name='cp')
-    
-    # Sliding Analysis DA
-    da_trange     = xr.DataArray(trange_byper,coords=coords_trange,dims=coords_trange,name='trange')
-    da_tcenter    = xr.DataArray(tcenter_byper,coords=coords_tcenter,dims=coords_tcenter,name='tcenter')
-    
-    ds_out = xr.merge([da_eofs,da_pcs,da_varexp,da_ep,da_cp,da_trange,da_tcenter])
-    
-    edict = proc.make_encoding_dict(ds_out)
-    ds_out.to_netcdf(savename,encoding=edict)
+# Original Variables
+da_eofs       = xr.DataArray(eof_byper,coords=coords_eofs,dims=coords_eofs,name='eofs')
+da_pcs        = xr.DataArray(pc_byper,coords=coords_pcs,dims=coords_pcs,name='pcs')
+da_varexp     = xr.DataArray(varexp_byper,coords=coords_varexp,dims=coords_varexp,name='varexp')
+
+# Rotated EOFs
+da_ep         = xr.DataArray(ep_byper,coords=coords_epcp,dims=coords_epcp,name='ep')
+da_cp         = xr.DataArray(cp_byper,coords=coords_epcp,dims=coords_epcp,name='cp')
+
+# Sliding Analysis DA
+da_trange     = xr.DataArray(trange_byper,coords=coords_trange,dims=coords_trange,name='trange')
+da_tcenter    = xr.DataArray(tcenter_byper,coords=coords_tcenter,dims=coords_tcenter,name='tcenter')
+
+ds_out = xr.merge([da_eofs,da_pcs,da_varexp,da_ep,da_cp,da_trange,da_tcenter])
+
+edict = proc.make_encoding_dict(ds_out)
+ds_out.to_netcdf(savename,encoding=edict)
