@@ -32,6 +32,7 @@ combine_events              : (g) Given identified events, combine similar event
 generate_periods            : (c) Generate Periods for a sliding window of a selected length
 get_moving_segments         : (g) Subset timeseries into segments with a sliding window
 get_rawpath_awi             : (A) Get rawpath for AWI output on niu
+get_center_time             : (g) Get Center Time given min and max of time range
 init_tp_map                 : (v) initialize tropical Pacific plot 
 init_global_map             : (v) Initialize a global map
 load_ccf_kernel             : (l) load Kernels for each CCF (based on calc_ccf_radiation_byexp)
@@ -569,6 +570,19 @@ def get_rawpath_awi(expname,vname,ensnum=None):
     print(nclist)
     return nclist
 
+def get_center_time(trange):
+    
+    # Return Jan-01 for the middle year inbetween two dates
+    
+    # for YYYY-MM-DD
+    ystart  = int(trange[0][:4])
+    yend    = int(trange[1][:4])
+    ymid    = int(np.round((ystart + yend) / 2))
+    tcenter = "%04i-01-01" % (ymid)
+    
+    return tcenter
+
+
 def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
     bbplot = [120, 290, -20, 20]
     fix_lon = np.hstack([np.arange(120,190,10),np.arange(-180,-60,10)])
@@ -962,7 +976,6 @@ def standardize_names(ds):
         if dropvar in ds:
             ds = ds.drop_vars(dropvar)
     return ds
-
 
 def stack_events(target_var,eventids,ibefore,iafter):
     # Stack events between -ibefore and +iafter months
