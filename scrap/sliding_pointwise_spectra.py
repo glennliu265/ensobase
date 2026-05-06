@@ -8,6 +8,9 @@ based on SEP_NEP Spectra Analysis
 Current works with regridded output 
 (need to do lazy evaluation and better memory management for higher resolution...)
 
+Can also rewrite to loop by # of periods, which may be faster
+
+
 Created on Mon May  4 09:56:30 2026
 
 @author: gliu
@@ -52,10 +55,9 @@ mons3   = proc.get_monstr()
 
 stall = time.time()
 
-
 # Indicate Experiment and Flux Name
 expname                = "TCo319_ssp585"
-flxname                = "tscre"
+flxname                = "cre"
 regrid                 = True 
 
 # Indicate Sliding Window Options
@@ -110,7 +112,7 @@ for o in tqdm(range(nlon)):
             st1 = time.time()
             spectra_all = np.zeros((nperiods,nfreq,nlat,nlon)) * np.nan    # [Period x Freq x Lat x Lon]
             CC_all      = np.zeros((nperiods,nfreq,nlat,nlon,2)) * np.nan  # [Period x Freq x Lat x Lon x Conf Level]
-            proc.printtime(st1,print_str="Preacllocated in...")
+            proc.printtime(st1,print_str="Preallocated in...")
         
         # Save to Array
         spectra_all[:,:,a,o] = spec_byperiod.spectra.data
@@ -151,5 +153,6 @@ ds_out.to_netcdf(outname,encoding=edict)
 
 proc.printtime(stall,"Completed Script in")
 
+# Completed Script in in 121184.41s (took ~33 hours...)
 
 
