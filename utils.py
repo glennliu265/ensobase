@@ -27,6 +27,7 @@ calc_grad_centered          : (g) Calculate centered-difference for spatial grad
 calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
 calc_leadlagreg_pointwise   : (g) Compute pointwise lead lag regression using ufunc
 calc_leadlag_regression_2d  : (g) Compute lead lag regression for 2D timseries (modeled after enso_lag_regression)
+center_events_ninodict      : (c) Center Identified Events around a particular month
 convolve_kernel_ccf         : (c) Convolve radiative kernel with ccf variable 
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
 generate_periods            : (c) Generate Periods for a sliding window of a selected length
@@ -366,6 +367,67 @@ def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     ds_out   = xr.merge(da_out)
     
     return ds_out
+
+def center_events_ninodict(ninodict_in,center_month,search_window,verbose=True):
+    # Subset events identified in "combine_events" to those peaking within [search_window] 
+    # and center on a particular month [center_month].
+    
+    # (1) Get Indices of Events within [search_window]  ----
+    # Indices are relative to the original event list.
+    eventmonths = ninodict_in['eventmonths']
+    keepevents  = np.where(np.isin(eventmonths,search_window),True,False)
+    keepid      = np.where(np.isin(eventmonths,search_window))[0]
+    
+    # (2) Center subsetted events on the [center_month]  ----
+    # (2.1) Get Closest Distance to Center
+    center_ids           = ninodict_in['center_ids']
+    dist_to_center_minus = (np.array(eventmonths)[keepid] - 12)
+    dist_to_center_plus  = dist_to_center_minus % 12
+    dist_to_center_min   = np.where(np.abs(dist_to_center_minus) < np.abs(dist_to_center_plus),dist_to_center_minus,dist_to_center_plus)
+    # (2.2) Get Index (from original timeseries) of new event centers, centered on [center_month]
+    new_center_ids       = np.array(center_ids)[keepid] 
+    corrected_center_ids = new_center_ids  + dist_to_center_min 
+    if verbose:
+        print("%i of %i events will be kept." % (len(new_center_ids),len(center_ids)))
+    
+    # (3) Subset original entries of ninodict_in ----
+    # (3.1) Subset Event Times
+    event_times        = ninodict_in['event_time']
+    event_times        = np.array([et.data for et in event_times]) # Extract and Convert to Array
+    event_times_subset = event_times[keepid]
+
+    # (3.2) Event Sequences (need to convert to object array due to uneven lengths)
+    event_combine_subset = np.array(ninodict_in['event_combine'],dtype='object')[keepid]
+
+    # (3.3) Build initial dictionary, including new center months + indices + information
+    ninodict_subset = dict(
+        event_time         = event_times_subset,
+        center_ids         = new_center_ids,
+        new_center_ids     = corrected_center_ids, # Corrected to index the center month
+        center_correction  = dist_to_center_min, # Distance of correction
+        event_combine      = event_combine_subset, # 
+        center_month       = center_month,
+        search_window      = search_window,
+        )
+    
+    # (3.4) Subset other Events (convert to array then subset, add to dict)
+    keyloop     = ["event_max","durations","eventmonths"]
+    #subset_arrs = []
+    for kk in range(len(keyloop)):
+        key        = keyloop[kk]
+        subset_arr = np.array(ninodict_in[key])[keepid]
+        #subset_arrs.append(subset_arr)
+        ninodict_subset[key] = subset_arr.copy()
+
+    # (3.5) Optional Print to check things
+    if verbose:
+        keynew = list(ninodict_subset)
+        for kk in keynew:
+            print(kk)
+            print(ninodict_subset[kk])
+            print("\n")
+            
+    return ninodict_subset
 
 def convolve_kernel_ccf(ccfvar,kernel,ccfname,seasonal=False):
     # Convolve radiative kernel with ccf variable 
