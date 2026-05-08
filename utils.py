@@ -724,6 +724,7 @@ def load_enso_eof(expname,datpath=None,apply_smoothing=True,sep_mon=False,by_per
             
             ep = xr.apply_ufunc(smooth121, dsnino.ep, input_core_dims=[["timeindex"]],output_core_dims=[["timeindex"]],vectorize=True)
             cp = xr.apply_ufunc(smooth121, dsnino.cp, input_core_dims=[["timeindex"]],output_core_dims=[["timeindex"]],vectorize=True)
+            ninotimes = [make_ninotime(trange,dsnino.timeindex) for trange in dsnino.trange] 
         else:
             ep     = np.convolve(dsnino.ep,filter_coeffs,mode='same')
             cp     = np.convolve(dsnino.cp,filter_coeffs,mode='same')
@@ -734,9 +735,9 @@ def load_enso_eof(expname,datpath=None,apply_smoothing=True,sep_mon=False,by_per
     else:
         ep        = dsnino.ep
         cp        = dsnino.cp
-    
-    ninotimes = [make_ninotime(trange,dsnino.timeindex) for trange in dsnino.trange] 
+        
     if by_period:
+        ninotimes = [make_ninotime(trange,dsnino.timeindex) for trange in dsnino.trange] 
         return ep,cp,ninotimes
     return ep,cp
 
