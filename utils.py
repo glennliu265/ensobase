@@ -230,7 +230,8 @@ def combine_events(var_in,id_in,tol=1,verbose=True):
         else:
             amplitudes = var_in.isel(time=idsin) #.argmax()
             idmax      = np.argmax(np.abs(amplitudes.data)).item()
-            event_max.append(np.nanmax(np.abs(amplitudes.data)).item())
+            maxval     = np.nanmax(np.abs(amplitudes.data)).item() * np.sign(amplitudes.data[idmax])
+            event_max.append(maxval)
             event_time.append(var_in.time.isel(time=idsin[idmax]))
             center_ids.append(idsin[idmax])
 
