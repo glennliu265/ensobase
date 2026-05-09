@@ -382,7 +382,7 @@ def center_events_ninodict(ninodict_in,center_month,search_window,verbose=True):
     # (2) Center subsetted events on the [center_month]  ----
     # (2.1) Get Closest Distance to Center
     center_ids           = ninodict_in['center_ids']
-    dist_to_center_minus = (np.array(eventmonths)[keepid] - 12)
+    dist_to_center_minus = (np.array(eventmonths)[keepid] - center_month)
     dist_to_center_plus  = dist_to_center_minus % 12
     dist_to_center_min   = np.where(np.abs(dist_to_center_minus) < np.abs(dist_to_center_plus),dist_to_center_minus,dist_to_center_plus)
     # (2.2) Get Index (from original timeseries) of new event centers, centered on [center_month]
