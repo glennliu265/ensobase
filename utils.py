@@ -386,7 +386,7 @@ def center_events_ninodict(ninodict_in,center_month,search_window,verbose=True):
     dist_to_center_min   = np.array([proc.shortest_distance_mod12(cc,center_month,verbose=False).item() for cc in eventmonths_keep])
     # (2.2) Get Index (from original timeseries) of new event centers, centered on [center_month]
     new_center_ids       = np.array(center_ids)[keepid] 
-    corrected_center_ids = new_center_ids + -1 * dist_to_center_min 
+    corrected_center_ids = new_center_ids + dist_to_center_min 
     if verbose:
         print("%i of %i events will be kept." % (len(new_center_ids),len(center_ids)))
     
