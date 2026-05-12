@@ -1057,7 +1057,7 @@ def stack_events(target_var,eventids,ibefore,iafter):
         if (istart >=0) and (iend < ntime):
             stacked_events[ie,:] = target_var[istart:(iend+1)]
             
-        elif iend >= ntime:
+        elif iend  >= ntime:
             filler = np.zeros( (iend-ntime+1)) * np.nan
             subset = np.hstack([target_var[istart:],filler])
             stacked_events[ie,:] = subset
@@ -1069,7 +1069,7 @@ def stack_events(target_var,eventids,ibefore,iafter):
 
 def stack_events_2d(invar,eventids,ibefore,iafter,times_da=None):
     
-    invar = invar.transpose('time','lat','lon')
+    invar           = invar.transpose('time','lat','lon')
     ntime,nlat,nlon = invar.shape
     nevents         = len(eventids)
     leadlags        = np.arange(-ibefore,iafter+1)
@@ -1093,9 +1093,9 @@ def stack_events_2d(invar,eventids,ibefore,iafter,times_da=None):
         else:
             insert_start = 0
         
-        if iend > ntime:
+        if iend >= ntime:
             print("iend is at %s" % (iend))
-            insert_end = nlags + (ntime-ievent) #(lags*2+1) - (iend - ntime)
+            insert_end = nlags + (ntime-iend) -1 #(lags*2+1) - (iend - ntime)
             iend       = ntime
         else:
             insert_end = nlags#lags*2+1
