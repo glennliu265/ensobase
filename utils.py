@@ -48,6 +48,7 @@ preprocess_byperiod         : (g) Remove mean seasonal cycle and linear detrend 
 preprocess_enso             : (c) detrend (quadratic) and deseasonalize for ENSO calculations
 remove_duplicate_times      : (g) Remove duplicate times from a DataArray
 shift_time_monthstart       : (g) Shift times from center to start of month
+sliding_spectra             : (g) Preprocess by period then compute sliding power spectra
 swap_rename                 : (g) check if variable exists and rename if so
 stack_events                : (g) For 1-d timeseries, stack events along specified leads/lags
 stack_events_2d             : (g) Stack Events, but applied to 2D case with time x lat x lon....
@@ -1021,6 +1022,39 @@ def shift_time_monthstart(dsin,timename='time'):
     dsin[timename]    = newtime
     print("New time dimension between %s and %s" % (dsin[timename][0].data,dsin[timename][-1].data))
     return dsin
+
+
+def sliding_spectra(dsraw,nyr_window,nsmooth,detrend=False):
+    # Adapted from sliding_pointwise_spectra
+    # Take in dsraw, subset into periods, detrend/deseason, then compute spectra
+    # [dsraw]           : raw 1-D data-array containing variable with dimenion 'time'
+    # [nyr_window]      : sliding window length in years
+    # [nsmooth]         : amount adjacent bands to smooth across 
+    # [detrend]         : set to true to apply detrend
+    # 
+    # Uses following funcs from utils: 
+    #   generate_periods, get_center_time,preprocess_byperiod
+    
+    subsets,tranges = generate_periods(dsraw,nyr_window)
+    nperiods        = len(subsets) # Get Number of Periods
+    tcenters        = [get_center_time(t) for t in tranges]
+    
+    # Preprocess by Period
+    subsets_anom   = preprocess_byperiod(subsets,verbose=False,detrend=detrend) # Don't Detrend...
+    
+    # Calculate Power Spectra for each period
+    spec_byperiod  = []
+    for nw in range(nperiods):
+        sample_in            = subsets_anom[nw].data
+        specout              = proc.point_spectra(sample_in,nsmooth=nsmooth,return_conf=True)
+        specout['tcenter']   = tcenters[nw]
+        spec_byperiod.append(specout)
+    
+    # Concatenate By period
+    spec_byperiod             = xr.concat(spec_byperiod,dim='period')
+    
+    return spec_byperiod
+
  
 def standardize_names(ds):
     
