@@ -370,7 +370,8 @@ def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     
     return ds_out
 
-def center_events_ninodict(ninodict_in,center_month,search_window,verbose=True):
+def center_events_ninodict(ensoin,ninodict_in,center_month,search_window,verbose=True,include_full_duration=True):
+    
     # Subset events identified in "combine_events" to those peaking within [search_window] 
     # and center on a particular month [center_month].
     
@@ -378,7 +379,28 @@ def center_events_ninodict(ninodict_in,center_month,search_window,verbose=True):
     # Indices are relative to the original event list.
     eventmonths = ninodict_in['eventmonths']
     keepevents  = np.where(np.isin(eventmonths,search_window),True,False)
-    keepid      = np.where(np.isin(eventmonths,search_window))[0]
+    if include_full_duration:
+        
+        combined_event_ids = ninodict_in['event_combine']
+        ensoidtimes        = ensoin.time
+        
+        running_count = 0 # Keep count of events
+        for ii in range(len(keepevents)):
+            keepevent = keepevents[ii] # Check if True or False
+            if keepevent == False: # Check if any months within the combined event is within the event
+                single_event_times = ensoidtimes[combined_event_ids[ii]].time.dt.month #  Get month of each step within event
+                if np.any(np.isin(single_event_times,search_window)):
+                    if verbose:
+                        print("Event @t=%i has times within search window (%s). Adding to list." % (ninodict_in['center_ids'][ii],search_window))
+                        print("\tEvent Times: %s" % single_event_times.data)
+                    keepevents[ii] = True
+                    running_count += 1
+            else:
+                if verbose:
+                    print("Event Month %i is within search window %s" % (eventmonths[ii],search_window))
+        
+        print("Kept %i additional events based on full event duration falling within search window" % running_count)
+    keepid      = np.where(keepevents)[0] #np.where(np.isin(eventmonths,search_window))[0]
     
     # (2) Center subsetted events on the [center_month]  ----
     # (2.1) Get Closest Distance to Center
@@ -396,10 +418,10 @@ def center_events_ninodict(ninodict_in,center_month,search_window,verbose=True):
     event_times        = ninodict_in['event_time']
     event_times        = np.array([et.data for et in event_times]) # Extract and Convert to Array
     event_times_subset = event_times[keepid]
-
+    
     # (3.2) Event Sequences (need to convert to object array due to uneven lengths)
     event_combine_subset = np.array(ninodict_in['event_combine'],dtype='object')[keepid]
-
+    
     # (3.3) Build initial dictionary, including new center months + indices + information
     ninodict_subset = dict(
         event_time         = event_times_subset,
@@ -419,7 +441,7 @@ def center_events_ninodict(ninodict_in,center_month,search_window,verbose=True):
         subset_arr = np.array(ninodict_in[key])[keepid]
         #subset_arrs.append(subset_arr)
         ninodict_subset[key] = subset_arr.copy()
-
+    
     # (3.5) Optional Print to check things
     if verbose:
         keynew = list(ninodict_subset)
@@ -427,7 +449,7 @@ def center_events_ninodict(ninodict_in,center_month,search_window,verbose=True):
             print(kk)
             print(ninodict_subset[kk])
             print("\n")
-            
+                
     return ninodict_subset
 
 def convolve_kernel_ccf(ccfvar,kernel,ccfname,seasonal=False):
