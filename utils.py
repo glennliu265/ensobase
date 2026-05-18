@@ -410,6 +410,12 @@ def center_events_ninodict(ensoin,ninodict_in,center_month,search_window,verbose
     # (2.2) Get Index (from original timeseries) of new event centers, centered on [center_month]
     new_center_ids       = np.array(center_ids)[keepid] 
     corrected_center_ids = new_center_ids + dist_to_center_min 
+    # Set to last timestep if it passes
+    corrected_center_ids = np.where(corrected_center_ids >= len(ensoin),
+                                    len(ensoin)-1,
+                                    corrected_center_ids)
+    # Set to first timestep if it passes
+    corrected_center_ids =  np.where(corrected_center_ids <= 0,0,corrected_center_ids)
     if verbose:
         print("%i of %i events will be kept." % (len(new_center_ids),len(center_ids)))
     
