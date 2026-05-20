@@ -71,7 +71,7 @@ load_global  = True
 
 
 nyr_sliding  = 30 # Select Sliding Window Length
-flxname      = "tscre"
+flxname      = "ttcre"
 
 # Output Options
 outpath = "/home/niu4/gliu8/projects/ccfs/metrics/regrid_1x1/scrap/sliding_kernels/"
