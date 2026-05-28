@@ -23,6 +23,7 @@ Function Types (will reorganize later):
 Function                Description
 --------                -----------
 awi_mean_loader             : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
+band_avg_spectra            : (g) Take Band-average around ENSO and Combination Mode Frequencies
 calc_grad_centered          : (g) Calculate centered-difference for spatial gradients
 calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
 calc_leadlagreg_pointwise   : (g) Compute pointwise lead lag regression using ufunc
@@ -36,10 +37,12 @@ get_rawpath_awi             : (A) Get rawpath for AWI output on niu
 get_center_time             : (g) Get Center Time given min and max of time range
 init_tp_map                 : (v) initialize tropical Pacific plot 
 init_global_map             : (v) Initialize a global map
+init_sep_map                : (v) Initializw SEP Map
 load_ccf_kernel             : (l) load Kernels for each CCF (based on calc_ccf_radiation_byexp)
 load_ensoid                 : (l) load enso indices calculated by calc_nino34.py
 load_enso_eof               : (l) load ENSO indices from rotated EOF analysis (calc_EOF_enso<_sliding>.py)
 load_land_mask_awi          : (l) load land mask from AWI-CM3, where land points are np.nan
+load_regrid                 : (l) load regridded 1x1 output
 make_ninotime               : (A) Get Center Time from time range
 mcsample                    : (g) Monte Carlo Sampler to repeat function
 mlr                         : (g) single point multiple linear regression using Scipy
@@ -87,6 +90,86 @@ def awi_mean_loader(expname,vname,calcname,outpath=None):
     ncname = "%s%s_%s_%s.nc" % (outpath,expname,vname,calcname)
     ds = xr.open_dataset(ncname).load()
     return ds
+
+def band_avg_spectra(spectra_in,cutoff_periods_month=None,
+                     debug=True,return_all=False,return_ds=True):
+    # Take Band-average around ENSO and Combination Mode Frequencies
+    # spectra_in is a Dataset with spectra and freq dimensions (in 1/sec)
+    # cutoff_periods is a list of bounds [[lower,upper]] in Months
+    # Note, Debug only works with ENSO Cutoffs
+    # Take from: sliding_spectra_ccf_region.ipynb
+    
+    dtmon           = 3600*24*30
+    bpnames         = ["Decadal to ENSO","ENSO Max Freq.","Difference Tone","Annual Band","Sum Tone","Sub-Annual"]
+    bbcolors        = ["gray","red","blue","k","yellow","cyan"]
+    
+    
+    if cutoff_periods_month == None:
+        cutoff_periods_month         = [[5.5*12,10*12,],[2*12,5.5*12],[15,2*12],[10,15],[8,10],[0,8]] # Period in Months
+    nthres = len(cutoff_periods_month)
+    
+    # Convert cutoffs to Seconds
+    cutoffs_sec     = np.array(cutoff_periods_month) * dtmon
+    # Convert cutoffs to Frequencies (1/sec)
+    cutoffs_freq    = 1/cutoffs_sec
+
+    # Select Frequencies
+    bbn             = len(cutoff_periods_month)
+    spec_bybb       = []
+    specmean_bybb   = []
+    for bb in range(nthres):
+        freqsel = cutoffs_freq[bb]
+        specsel = spectra_in.sel(freq=slice(freqsel[1],freqsel[0])).spectra
+        spec_bybb.append(specsel)
+        specmean_bybb.append(specsel.mean('freq'))
+        # Note: Can also add the sum at some point here...
+
+
+    if debug:
+        
+        fig,ax,ax2=viz.init_specplot_enso(1,1)
+    
+        #for pp in range(2):
+        specout = spectra_in
+        lab     = "Spectra, Tcenter=%s" % specout.tcenter.data.item() 
+        ax.loglog(specout.freq*dtmon,specout.spectra/dtmon,c="k",label=lab,lw=2)
+        ax.loglog(specout.freq*dtmon,specout.CC.isel(clvl=1)/dtmon,c="k",ls='dotted',lw=1)
+
+        
+        ax.set_ylabel("Power")
+        viz.add_ctones()
+        
+        # Plot the selected frequencies
+        for bb in range(nthres):
+        
+            freqplot = cutoffs_freq[bb]
+            spec2    = spec_bybb[bb]
+            avgval   = specmean_bybb[bb].data.item()
+        
+            
+            ax.loglog(spec2.freq*dtmon,spec2/dtmon,c=bbcolors[bb],ls='dashed',lw=4,alpha=0.8,label=lab)
+            
+        
+            
+            specm  = np.ones(len(spec2.freq)) * avgval
+            lab    = "%s = %.2e" % (bpnames[bb],avgval)
+            ax.plot(spec2.freq*dtmon,specm/dtmon,c='gray',ls='solid',lw=2,alpha=0.8,label="")
+            
+            
+
+        ax.legend()
+    
+    if return_ds:
+        coords    = dict(band=bpnames)
+        da_values = xr.DataArray(specmean_bybb,coords=coords,dims=coords,name='band_averages')
+        coords2   = dict(band=bpnames,bounds=['lower','upper'])
+        da_freqs  = xr.DataArray(cutoff_periods_month,coords=coords2,dims=coords2,name='cutoffs')
+        specmean_bybb = xr.merge([da_values,da_freqs])
+    
+    if return_all:
+        return specmean_bybb,spec_bybb
+    return specmean_bybb
+
 
 def calc_grad_centered(ds,latname='lat',lonname='lon'): # Copied from structure in calc_ekman_advection_htr
     
@@ -674,8 +757,8 @@ def get_center_time(trange):
     return tcenter
 
 
-def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None):
-    bbplot = [120, 290, -20, 20]
+def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None,latmax=20,lonbounds=[120,290],):
+    bbplot = [lonbounds[0], lonbounds[1], -latmax, latmax]
     fix_lon = np.hstack([np.arange(120,190,10),np.arange(-180,-60,10)])
     proj   = ccrs.PlateCarree(central_longitude=180)
     projd  = ccrs.PlateCarree()
@@ -721,6 +804,20 @@ def init_globalmap(nrow=1,ncol=1,figsize=(12,8),centlon=200):
         ax = ax[0]
     return fig,ax
 
+def init_sep_map(nrow=1,ncol=1,figsize=(6,8),expandx=10,expandy=10):
+    bbox_sep    = [-90+360,-75+360,-40,-15] # Southeast Tropical Pacific Box from Kang et al. 2026
+    bbox_plot   = proc.expand_bbox(bbox_sep,expandy,expandx)
+    fig,axs     = plt.subplots(nrow,ncol,subplot_kw={'projection':ccrs.PlateCarree()},constrained_layout=True,figsize=figsize)
+
+    # Set up the axes
+    if nrow == 1 and ncol == 1:
+        axs.set_extent(bbox_plot)
+        axs = viz.add_coast_grid(axs,bbox=bbox_plot,line_color='lightgray',grid_color="w",ignore_error=True)
+    else:
+        for ax in axs:
+            ax.set_extent(bbox_plot)
+            ax = viz.add_coast_grid(ax,bbox=bbox_plot,line_color='lightgray',grid_color="w",ignore_error=True)
+    return fig,axs
 
 def load_ccf_kernel(expname,flxname,customname=None,standardize=True,seasonal=False,kernel_path=None):
     # load Kernels for each CCF (based on calc_ccf_radiation_byexp)
@@ -857,6 +954,11 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
         print("Experiment not found")
         return np.nan
     return xr.open_dataset(outpath+dsmask).land_mask.load()
+
+def loadregrid(expname,vname):
+    datpath = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+    ncname  = "%s%s_%s_regrid1x1.nc" % (datpath,expname,vname)
+    return xr.open_dataset(ncname)[vname]
 
 def make_ninotime(trange,timeindex):
     ntime = len(timeindex)
@@ -1104,8 +1206,8 @@ def standardize_names(ds):
     return ds
 
 def stack_events(target_var,eventids,ibefore,iafter):
-    # Stack events between -ibefore and +iafter months
     
+    # Stack events between -ibefore and +iafter months
     nevents        = len(eventids)
     plotlags       = np.hstack([np.flip((np.arange(0,ibefore+1) * -1)),np.arange(1,iafter+1,1)])
     stacked_events = np.zeros((nevents,len(plotlags))) * np.nan
@@ -1186,6 +1288,13 @@ def swap_rename(ds,chkvar,newvar):
 
 def varcheck(ds,vname,expname):
     
+    # Performs the following conversions (for AWI-CM3 Output)
+    # all fluxes: Convert to w/m2 (considering accumulation period)
+    # sst: Convert to celsius
+    # pr,lsp,cp: Convert to mm/day
+    # msl: Convert to hPa
+    # w700,w500: Convert to hPa/day
+    
     if type(ds) == xr.Dataset:
         print("Converting to DataArray!")
         ds = ds[vname]
@@ -1221,10 +1330,22 @@ def varcheck(ds,vname,expname):
             accumulation_hr = 3
         # From Discussion with Sun-Seon
         # the value is provided as the accumulated precipitation (in meters) over a N-hour period.
-        # To convert to mm/day, multiply by the number of seconds in a day (86400 s), and convert meters to millimeters (×1000):
+        # To convert to mm/day.... 
+        # (1) Divide by accumulation period (nday * sec * min) to convert to precip rate (m/s)
+        # (2) Multiply by day (m/day)
+        # (3) Multiply to get milimeters (mm/day)
+        #multiply by the number of seconds in a day (86400 s), and convert meters to millimeters (×1000):
         nsec_perday = 86400 
         conversion = (1/(accumulation_hr*60*60)) * nsec_perday * 1000#(24/accumulation_hr) * 1000
         ds         = ds * conversion
+    
+    if vname in ['msl']:
+        print("Converting from Pa to hPa for %s" % vname)
+        ds = ds/100 # Convert from Pa to hPa
+    if vname in ['w700','w500']:
+        print("Converting from Pa/sec to hPa/day for %s" % vname)
+        ds = ds/100 * 3600*24 # Convert to hPa/day
+    
     return ds
 
 
