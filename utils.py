@@ -43,6 +43,7 @@ load_ensoid                 : (l) load enso indices calculated by calc_nino34.py
 load_enso_eof               : (l) load ENSO indices from rotated EOF analysis (calc_EOF_enso<_sliding>.py)
 load_land_mask_awi          : (l) load land mask from AWI-CM3, where land points are np.nan
 load_regrid                 : (l) load regridded 1x1 output
+load_scott2020_kernels      : (l) load radiative kernels from Scott et al. 2020 Paper
 make_ninotime               : (A) Get Center Time from time range
 mcsample                    : (g) Monte Carlo Sampler to repeat function
 mlr                         : (g) single point multiple linear regression using Scipy
@@ -960,6 +961,46 @@ def loadregrid(expname,vname):
     ncname  = "%s%s_%s_regrid1x1.nc" % (datpath,expname,vname)
     return xr.open_dataset(ncname)[vname]
 
+def load_scott2020_kernels(vname="dRdxi",reformat=True):
+    # Adapted from `visualize_kernels_ERA5_Scott_etal.ipynb`
+    # Loading Inputs
+    spath = "/home/niu4/gliu8/projects/ccfs/Scott_etal_2020/meteorological_cloud_radiative_kernels-main/obs/"
+    ncnames = [
+        "Scott_Myers_meteorological_kernels_CERES-FBCT_ERA5.nc",
+        "Scott_Myers_meteorological_kernels_ISCCP-H_ERA5.nc",
+        "Scott_Myers_meteorological_kernels_MODIS_ERA5.nc",
+        "Scott_Myers_meteorological_kernels_PATMOS-x_ERA5.nc",
+    ]
+    ds2020_names = [
+        "CERES-FBCT",
+        "ISCCP-H",
+        "MODIS",
+        "PATMOS-x",  
+    ]
+    
+    
+    # Load Datasets
+    ds2020 = [xr.open_dataset(spath+nc).load() for nc in ncnames]
+    
+    if reformat:
+        # Get the Kernels
+        ds2020_kernels = [ds[vname] for ds in ds2020] 
+        # Adjust formatting
+        def reformat_ds(ds):
+            # Assign CCFs to Dimensions, Standardize Lat/Lon Names
+            ccf_scott      = ["sst", "eis", "Tadv", "r700", "w700", "ws10"]
+            ds             = ds.rename(dict(i='ccf'))
+            ds['ccf']      = ccf_scott
+            ds             = ut.standardize_names(ds)
+            return ds
+        ds2020_kernels_rfmt = [reformat_ds(ds) for ds in ds2020_kernels]
+        # Concatenate by Dataset
+        ds2020_kernels_rfmt = xr.concat(ds2020_kernels_rfmt,dim='dataset')
+        ds2020_kernels_rfmt['dataset'] = ds2020_names
+        return ds2020_kernels_rfmt
+    else:
+        return ds2020,ds2020_names
+    
 def make_ninotime(trange,timeindex):
     ntime = len(timeindex)
     times = xr.date_range(start=trange[0].data.item(),end=trange[1].data.item(),periods=ntime)
