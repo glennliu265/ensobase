@@ -991,7 +991,7 @@ def load_scott2020_kernels(vname="dRdxi",reformat=True):
             ccf_scott      = ["sst", "eis", "Tadv", "r700", "w700", "ws10"]
             ds             = ds.rename(dict(i='ccf'))
             ds['ccf']      = ccf_scott
-            ds             = ut.standardize_names(ds)
+            ds             = standardize_names(ds)
             return ds
         ds2020_kernels_rfmt = [reformat_ds(ds) for ds in ds2020_kernels]
         # Concatenate by Dataset
