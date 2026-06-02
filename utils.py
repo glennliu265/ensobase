@@ -959,18 +959,21 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
 def loadregrid(expname,vname,reformat=False,bbox=None):
     
     # load regridded 1x1 product on niu (convenience function)
-    
-    # Get NetCDF Path and Name on Niu
+    # Check CERES First
+    not_in_ceres_flag = True # True if variable has not been found in ceres
     if "CERES" in expname:
         datpath = "/home/niu4/gliu8/share/CERES/processed/"
-        if "EBAF" in expname:
-            ncname = "%sCERES_EBAF_%s_2000-03_to_2025-09.nc" % (datpath,vname)
-        elif "FBCT" in expname:
+        if "EBAF" in expname and np.isin(vname,['allsky','clearsky','cre','tscre','ttcre','tsr','tsrc','ttr','ttrc']): # EBAF (Fluxes Only)
+            ncname = "%sCERES_EBAF_%s_2000-03_to_2025-08.nc" % (datpath,vname)
+            not_in_ceres_flag = False
+        elif "FBCT" in expname or vname in ['lcc','tcc','ucc']: # FBCT, includes cloud fraction
             ncname = "%sCERES_FBCT_%s_2002-07_to_2023-02.nc" % (datpath,vname)
-    elif "ERA5" in expname:
+            not_in_ceres_flag = False
+        
+    if "ERA5" in expname and not_in_ceres_flag:
         datpath = "/home/niu4/gliu8/projects/common_data/ERA5/regrid_1x1/"
         ncname  = "%s%s_1979_2024.nc" % (datpath,vname)
-    else:
+    elif not_in_ceres_flag:
         datpath = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
         ncname  = "%s%s_%s_regrid1x1.nc" % (datpath,expname,vname)
     
