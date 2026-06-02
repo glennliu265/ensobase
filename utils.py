@@ -956,10 +956,38 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
         return np.nan
     return xr.open_dataset(outpath+dsmask).land_mask.load()
 
-def loadregrid(expname,vname):
-    datpath = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
-    ncname  = "%s%s_%s_regrid1x1.nc" % (datpath,expname,vname)
-    return xr.open_dataset(ncname)[vname]
+def loadregrid(expname,vname,reformat=False,bbox=None):
+    
+    # load regridded 1x1 product on niu (convenience function)
+    
+    # Get NetCDF Path and Name on Niu
+    if "CERES" in expname:
+        datpath = "/home/niu4/gliu8/share/CERES/processed/"
+        if "EBAF" in expname:
+            ncname = "%sCERES_EBAF_%s_2000-03_to_2025-09.nc" % (datpath,vname)
+        elif "FBCT" in expname:
+            ncname = "%sCERES_FBCT_%s_2002-07_to_2023-02.nc" % (datpath,vname)
+    elif "ERA5" in expname:
+        datpath = "/home/niu4/gliu8/projects/common_data/ERA5/regrid_1x1/"
+        ncname  = "%s%s_1979_2024.nc" % (datpath,vname)
+    else:
+        datpath = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+        ncname  = "%s%s_%s_regrid1x1.nc" % (datpath,expname,vname)
+    
+    # Open view of dataset
+    ds      = xr.open_dataset(ncname)[vname]
+    
+    # Load and reformat, if option is set...
+    if reformat:
+        print("Loading and Reformatting DataSet...")
+        if bbox is not None:
+            ds = proc.sel_region_xr(ds,bbox) # Select a region
+        ds = ds.load()
+        ds = standardize_names(ds)
+        if "TCo" in expname: # Do additional unit conversions for AWI-CM3 Output
+            ds = varcheck(ds,vname,expname)
+        return ds
+    return ds
 
 def load_scott2020_kernels(vname="dRdxi",reformat=True):
     # Adapted from `visualize_kernels_ERA5_Scott_etal.ipynb`
