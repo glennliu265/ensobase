@@ -161,8 +161,8 @@ def band_avg_spectra(spectra_in,cutoff_periods_month=None,
         ax.legend()
     
     if return_ds:
-        coords    = dict(band=bpnames)
-        da_values = xr.DataArray(specmean_bybb,coords=coords,dims=coords,name='band_averages')
+        da_values = xr.concat(specmean_bybb,dim='band')
+        da_values['band'] = bpnames
         coords2   = dict(band=bpnames,bounds=['lower','upper'])
         da_freqs  = xr.DataArray(cutoff_periods_month,coords=coords2,dims=coords2,name='cutoffs')
         specmean_bybb = xr.merge([da_values,da_freqs])
