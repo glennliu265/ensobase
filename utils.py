@@ -24,6 +24,7 @@ Function                Description
 --------                -----------
 awi_mean_loader             : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
 band_avg_spectra            : (g) Take Band-average around ENSO and Combination Mode Frequencies
+calc_enso_index             : (g) Calculate ENSO Index
 calc_grad_centered          : (g) Calculate centered-difference for spatial gradients
 calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
 calc_leadlagreg_pointwise   : (g) Compute pointwise lead lag regression using ufunc
@@ -171,6 +172,44 @@ def band_avg_spectra(spectra_in,cutoff_periods_month=None,
         return specmean_bybb,spec_bybb
     return specmean_bybb
 
+def calc_enso_index(sstanom,ninoid_name='nino34',apply_movmean=False):
+    """
+    Calculate ENSO Index by taking area-weighted average of SST anomalies, with
+    optional running mean.
+
+    Inputs:
+        ninoid_name (str)           : Name of Index/Box (nino12,nino3,nino34,nino4)
+        sstanom     (xr.DataArray)  : Anomalized monthly SSTs with dimensions ('lat','lon','time')
+        apply_movmean (bool)        : True to apply 5-month running mean
+    Outputs:
+        ensoid      (xr.DataArray)  : ENSO Index
+    """
+    
+    # ENSO Index Boxes from UCAR's Climate Data Guide
+    bbox_nino12       = [-90+360,-80+360,-10,0]      # Nino 1+2
+    bbox_nino3        = [-150+360, -90+360 , -5, 5]  # Nino 3 Box
+    bbox_nino34       = [-170+360,-120+360,-5,5]     # Nino3.4 Box
+    bbox_nino4        = [ 160    ,-150+360,-5,5]     # Nino 4 Box
+    if ninoid_name == "nino34":
+        bbox = bbox_nino34
+    elif ninoid_name == 'nino3':
+        bbox = bbox_nino3
+    elif ninoid_name == "nino4":
+        bbox = bbox_nino4
+    elif ninoid_name == "nino12":
+        bbox = bbox_nino12
+    
+    # Restrict to box and take area average
+    sst_enso_box = proc.sel_region_xr(sstanom,bbox)
+    ensoid       = proc.area_avg_cosweight(sst_enso_box)
+    
+    # Optionally Take Moving Mean
+    if apply_movmean:
+        movmean = lambda ds,win: np.convolve(ds.data,np.ones(win)/win,mode='same')
+        ensoid  = movmean(ensoid,5)  # 5-month running mean
+        coords  = {'time':sstanom.time}
+        ensoid  = xr.DataArray(ensoid,coords=coords,dims=coords,name=ensoid.name)
+    return ensoid
 
 def calc_grad_centered(ds,latname='lat',lonname='lon'): # Copied from structure in calc_ekman_advection_htr
     
