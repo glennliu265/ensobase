@@ -97,7 +97,7 @@ def calc_enso(invar,lon,lat,pcrem,bbox=None,sep_mon=True):
         eofall = np.zeros((nlat*nlon,12,pcrem)) *np.nan# [space x month x pc]
         pcall  = np.zeros((nyr,12,pcrem)) *np.nan# [year x month x pc]
         varexpall  = np.zeros((12,pcrem)) * np.nan #[month x pc]
-    
+        
         # Compute EOF!!
         for m in range(12):
             
@@ -232,12 +232,21 @@ def generate_periods(ds,winlen):
 
 #%%
 
-# Calculate for AWI-CM3
-expname   = 'TCo319_ssp585'
+# # Calculate for AWI-CM3
+# expname   = 'TCo319_ssp585'
+# mergefile = False
+# infile    = '/home/niu4/gliu8/projects/scrap/regrid_1x1/TCo319_ssp585_sst_regrid1x1.nc'
+# outpath   = '/home/niu4/gliu8/projects/ccfs/enso_eof/'
+# winlen    = 24
+# savename  = "%s%s_ENSO_EOF_slidingwinlen%02i.nc" % (outpath,expname,winlen)
+
+
+# Calculate for Updated Gibbs Charn Run
+expname   = 'TCo319-DART-ssp585d-gibbs-charn'
 mergefile = False
-infile    = '/home/niu4/gliu8/projects/scrap/regrid_1x1/TCo319_ssp585_sst_regrid1x1.nc'
+infile    = '/home/niu4/gliu8/projects/scrap/regrid_1x1/TCo319-DART-ssp585d-gibbs-charn_sst_regrid1x1.nc'
 outpath   = '/home/niu4/gliu8/projects/ccfs/enso_eof/'
-winlen    = 24
+winlen    = 30
 savename  = "%s%s_ENSO_EOF_slidingwinlen%02i.nc" % (outpath,expname,winlen)
 
 # Dataset Information
