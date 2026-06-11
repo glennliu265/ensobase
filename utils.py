@@ -94,7 +94,7 @@ def awi_mean_loader(expname,vname,calcname,outpath=None):
     return ds
 
 def band_avg_spectra(spectra_in,cutoff_periods_month=None,
-                     debug=True,return_all=False,return_ds=True):
+                     debug=True,return_all=False,return_ds=True,band_sum=False):
     # Take Band-average around ENSO and Combination Mode Frequencies
     # spectra_in is a Dataset with spectra and freq dimensions (in 1/sec)
     # cutoff_periods is a list of bounds [[lower,upper]] in Months
@@ -114,7 +114,7 @@ def band_avg_spectra(spectra_in,cutoff_periods_month=None,
     cutoffs_sec     = np.array(cutoff_periods_month) * dtmon
     # Convert cutoffs to Frequencies (1/sec)
     cutoffs_freq    = 1/cutoffs_sec
-
+    
     # Select Frequencies
     bbn             = len(cutoff_periods_month)
     spec_bybb       = []
@@ -123,10 +123,12 @@ def band_avg_spectra(spectra_in,cutoff_periods_month=None,
         freqsel = cutoffs_freq[bb]
         specsel = spectra_in.sel(freq=slice(freqsel[1],freqsel[0])).spectra
         spec_bybb.append(specsel)
-        specmean_bybb.append(specsel.mean('freq'))
-        # Note: Can also add the sum at some point here...
-
-
+        if band_sum:
+            # Sum the Spectra (trapz)
+            specmean_bybb.append(specsel.integrate(coord='freq'))
+        else:
+            specmean_bybb.append(specsel.mean('freq'))
+    
     if debug:
         
         fig,ax,ax2=viz.init_specplot_enso(1,1)
