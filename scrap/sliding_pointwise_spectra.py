@@ -57,7 +57,7 @@ stall = time.time()
 
 # Indicate Experiment and Flux Name
 expname                = "TCo319_ssp585"
-flxname                = "lcc"
+flxname                = "eis"
 regrid                 = True 
 
 # Indicate Sliding Window Options
