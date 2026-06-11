@@ -81,11 +81,14 @@ dsflx_raw_awi      = ut.varcheck(dsflx_raw_awi,flxname,expname) # Correct for ac
 ntime,nlat,nlon    = dsflx_raw_awi.shape
 
 # ========================
+create_arr = 0 # To Ensure that the arrays are created on 1st loop
 for o in tqdm(range(nlon)):
     for a in range(nlat):
-    
+        
         # Get Point and Subset into Periods
         dspt            = dsflx_raw_awi.isel(lon=o,lat=a)
+        if np.any(np.isnan(dsflx_raw_awi)):
+            continue
         subsets,tranges = ut.generate_periods(dspt,nyr_window)
         nperiods        = len(subsets) # Get Number of Periods
         tcenters        = [ut.get_center_time(t) for t in tranges]
@@ -108,7 +111,9 @@ for o in tqdm(range(nlon)):
         
         # Preallocate on first loop (Takes ~5 min)
         
-        if (o == 0) and (a == 0):
+        if create_arr == 0: #(o == 0) and (a == 0): # Make the Arrays
+            create_arr += 1
+            print("Creating Array...")
             st1 = time.time()
             spectra_all = np.zeros((nperiods,nfreq,nlat,nlon)) * np.nan    # [Period x Freq x Lat x Lon]
             CC_all      = np.zeros((nperiods,nfreq,nlat,nlon,2)) * np.nan  # [Period x Freq x Lat x Lon x Conf Level]
@@ -117,7 +122,6 @@ for o in tqdm(range(nlon)):
         # Save to Array
         spectra_all[:,:,a,o] = spec_byperiod.spectra.data
         CC_all[:,:,a,o,:]    = spec_byperiod.CC.data
-        
         
         
         
