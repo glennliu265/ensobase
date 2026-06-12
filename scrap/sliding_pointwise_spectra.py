@@ -87,8 +87,10 @@ for o in tqdm(range(nlon)):
         
         # Get Point and Subset into Periods
         dspt            = dsflx_raw_awi.isel(lon=o,lat=a)
-        if np.any(np.isnan(dsflx_raw_awi)):
+        if np.any(np.isnan(dspt)):
+            #print("Skipping point a=%i,o=%i" % (o,a))
             continue
+        
         subsets,tranges = ut.generate_periods(dspt,nyr_window)
         nperiods        = len(subsets) # Get Number of Periods
         tcenters        = [ut.get_center_time(t) for t in tranges]
