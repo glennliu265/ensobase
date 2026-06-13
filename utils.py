@@ -33,12 +33,14 @@ center_events_ninodict      : (c) Center Identified Events around a particular m
 convolve_kernel_ccf         : (c) Convolve radiative kernel with ccf variable 
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
 generate_periods            : (c) Generate Periods for a sliding window of a selected length
+get_early_late_periods      : (c) Get N earliest/latest periods for a DataArray
 get_moving_segments         : (g) Subset timeseries into segments with a sliding window
 get_rawpath_awi             : (A) Get rawpath for AWI output on niu
 get_center_time             : (g) Get Center Time given min and max of time range
 init_tp_map                 : (v) initialize tropical Pacific plot 
 init_global_map             : (v) Initialize a global map
 init_sep_map                : (v) Initializw SEP Map
+init_sliding_spectra_plot   : (v) Initialize sliding spectra plot...
 load_ccf_kernel             : (l) load Kernels for each CCF (based on calc_ccf_radiation_byexp)
 load_ensoid                 : (l) load enso indices calculated by calc_nino34.py
 load_enso_eof               : (l) load ENSO indices from rotated EOF analysis (calc_EOF_enso<_sliding>.py)
@@ -100,6 +102,7 @@ def band_avg_spectra(spectra_in,cutoff_periods_month=None,
     # cutoff_periods is a list of bounds [[lower,upper]] in Months
     # Note, Debug only works with ENSO Cutoffs
     # Take from: sliding_spectra_ccf_region.ipynb
+    # For Debugging band_sum, see bottom of: check_spectra_estimate_ctone.ipynb
     
     dtmon           = 3600*24*30
     bpnames         = ["Decadal to ENSO","ENSO Max Freq.","Difference Tone","Annual Band","Sum Tone","Sub-Annual"]
@@ -636,6 +639,18 @@ def generate_periods(ds,winlen):
         subsets.append(subset)
     return subsets,tranges
 
+def get_early_late_periods(ds_byperiod,num_periods,avg=True):
+    # Taken from `sliding_spectra_ccf.py`
+    nper = len(ds_byperiod.period)
+    # Get Early
+    ds_early = ds_byperiod.isel(period=slice(0,num_periods))#.mean('period')
+    # Get Late
+    ds_late  = ds_byperiod.isel(period=slice(nper-num_periods,nper))#.mean('period')
+    if avg:
+        ds_early = ds_early.mean('period')
+        ds_late  = ds_late.mean('period')
+    return ds_early,ds_late
+
 def get_moving_segments(ts,winlen):
     '''
     Divide timeseries into segments using a sliding window of [winlen] months.
@@ -860,6 +875,52 @@ def init_sep_map(nrow=1,ncol=1,figsize=(6,8),expandx=10,expandy=10):
             ax.set_extent(bbox_plot)
             ax = viz.add_coast_grid(ax,bbox=bbox_plot,line_color='lightgray',grid_color="w",ignore_error=True)
     return fig,axs
+
+
+def init_sliding_spectra_plot(figsize=(8,6),xshift_text=0.9):
+    # Taken from `sliding_spectra_other_simulations`
+    # This version was copied from sliding_spectra_ccf_regional..ipynb
+    fsz_ticks = 12
+    fsz_axis  = 12
+    
+    fig,ax          = plt.subplots(1,1,constrained_layout=True,figsize=figsize)
+    
+    
+    # Setup Parameters ------------------------
+    
+    xper            = np.array([20,10,5,2,1,0.5])
+    xper_ticks      = 1 / (xper*12)
+    
+    # Plot Combination Tones (Sum/Difference)
+    x_min, x_max    = ax.get_xlim()
+    Mfreq_enso      = np.array([1/(2*12), 1/(5.5*12)])
+    Mfreq_fplus     = 1/12 + Mfreq_enso
+    Mfreq_fmins     = 1/12 - Mfreq_enso
+    
+    ax.axhline([1/(5.5*12)],label="",ls='dotted',c='lightgray')
+    ax.axhline([1/(2*12)],label="",ls='dotted',c='hotpink')
+    ax.axhline([1/(15)],label="",ls='dotted',c='hotpink')
+    ax.axhline([1/(8)],label="",ls='dotted',c='yellow')
+    ax.axhline([1/(10)],label="",ls='dotted',c='yellow')
+    
+    # Twin Y-Axis for Period Labels
+    ax.set_ylabel("Frequency ($month^{-1}$)")
+    #ax.set_yticks(1/xper_ticks)
+    ax.set_ylim([xper_ticks[0],0.5])
+    ax.set_yscale('log')
+    
+    ax2 = ax.twinx()
+    ax2.set_ylim([xper_ticks[0],0.5])
+    ax2.set_yscale('log')
+    ax2.set_yticks(xper_ticks,labels=xper)
+    ax2.set_ylabel("Period (Years)",fontsize=fsz_axis)
+    
+    #xshift_text = 12
+    ax.text(x_min+xshift_text,np.mean(Mfreq_enso)*0.9,'$f_{ENSO}=$ 2-5.5 yrs', ha='center', va='top',c='w')
+    ax.text(x_min+xshift_text,np.mean(Mfreq_fplus)+0.1/12, '$1+f_{ENSO}$ 8-10 mons', ha='center', va='top',c='yellow')
+    ax.text(x_min+xshift_text,np.mean(Mfreq_fmins), '$1-f_{ENSO}$ =  15-24 mons', ha='center', va='top',c='hotpink')
+    # ===========
+    return fig,ax,ax2
 
 def load_ccf_kernel(expname,flxname,customname=None,standardize=True,seasonal=False,kernel_path=None):
     # load Kernels for each CCF (based on calc_ccf_radiation_byexp)
