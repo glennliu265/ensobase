@@ -65,6 +65,7 @@ nsmooth                = 5  # Smoothing over Adjacent Bands
 nyr_window             = 24 # Length of Sliding Window
 
 #%%
+
 # Open/Load the files
 if regrid:
     rawpath            = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
@@ -73,6 +74,7 @@ else:
     rawpath            = "/home/niu4/gliu8/projects/scrap/processed_global/"
     ncname             = "%s_%s.nc" % (expname,flxname)
 dsflx_raw_awi      = xr.open_dataset(rawpath + ncname)[flxname].load()
+dsflx_raw_awi      = dsflx_raw_awi.squeeze()
 
 # Do some preprocessing, get dimension sizes
 dsflx_raw_awi      = ut.standardize_names(dsflx_raw_awi)        # Standardize Dimension Names
