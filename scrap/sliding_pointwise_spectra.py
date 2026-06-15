@@ -56,8 +56,8 @@ mons3   = proc.get_monstr()
 stall = time.time()
 
 # Indicate Experiment and Flux Name
-expname                = "TCo319-DART-ssp585d-gibbs-charn"#"TCo319_ssp585"
-flxname                = "tscre"#"eis"
+expname                ="TCo319_ssp585" #  "TCo319-DART-ssp585d-gibbs-charn"#
+flxname                = "r700"#"eis"
 regrid                 = True 
 
 # Indicate Sliding Window Options
