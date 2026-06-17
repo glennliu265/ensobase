@@ -57,7 +57,7 @@ stall = time.time()
 
 # Indicate Experiment and Flux Name
 expname                ="TCo319_ssp585" #  "TCo319-DART-ssp585d-gibbs-charn"#
-flxname                = "r700"#"eis"
+flxname                = "sst" #"eis"
 regrid                 = True 
 
 # Indicate Sliding Window Options
@@ -74,7 +74,7 @@ else:
     rawpath            = "/home/niu4/gliu8/projects/scrap/processed_global/"
     ncname             = "%s_%s.nc" % (expname,flxname)
 dsflx_raw_awi      = xr.open_dataset(rawpath + ncname)[flxname].load()
-dsflx_raw_awi      = dsflx_raw_awi.squeeze()
+dsflx_raw_awi      = dsflx_raw_awi.squeeze()    
 
 # Do some preprocessing, get dimension sizes
 dsflx_raw_awi      = ut.standardize_names(dsflx_raw_awi)        # Standardize Dimension Names
