@@ -29,6 +29,7 @@ calc_grad_centered          : (g) Calculate centered-difference for spatial grad
 calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
 calc_leadlagreg_pointwise   : (g) Compute pointwise lead lag regression using ufunc
 calc_leadlag_regression_2d  : (g) Compute lead lag regression for 2D timseries (modeled after enso_lag_regression)
+calc_spmm                   : (g) Calculate the South Pacific Meridional Mode
 center_events_ninodict      : (c) Center Identified Events around a particular month
 convolve_kernel_ccf         : (c) Convolve radiative kernel with ccf variable 
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
@@ -497,6 +498,190 @@ def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     ds_out   = xr.merge(da_out)
     
     return ds_out
+
+def calc_spmm(ds_sst,ds_u10,ds_v10,debug=False,regress_wind=False,verbose=True,standardize=True,ensoid=None,output_ds=True):
+    """
+    
+    Calculate the South Pacific Meridional Mode (SPMM) given 3 global DataArrays of SST, 10m Zonal Wind, and 10m Meridional Winds.
+    Input DataArrays must have matching [lat x lon x time] dimensions.
+    ENSO is removed via regression (EOF-based indices are automatically calculated if [ensoid] is not supplied)
+    Note that [verbose] triggers timing messages, while [debug] triggers verbose messages within functions as well
+    Uses the [xmca] package. 
+    
+    Inputs
+    ------
+        ds_sst         (xr.DataArray) - Global SST with [lat x lon x time] dimensions
+        ds_u10         (xr.DataArray) - Global 10m zonal winds with [lat x lon x time] dimensions
+        ds_v10         (xr.DataArray) - Global 10m meridional winds with [lat x lon x time] dimensions
+        debug          (Bool)         - True to make debugging plots and print verbose messages in internal functions. Default is False.
+        regress_wind   (Bool)         - True to also perform regression on Wind PCs for EOF1. Default is False.
+        verbose        (Bool)         - True to print steps and timing. Default is True.
+        standardize    (Bool)         - True to standardize PCs prior to regression. Default is True
+        ensoid         (xr.DataArray) - ENSO Index to remove via linear regression. Must be 1-D and have [time] dimension. Calculates EOF-based ENSO if not supplied.
+        output_ds      (Bool)         - True to output Dataset. False outputs dictionary, but more variables are included in regression such as r2, residual, etc.
+        
+    Output : outdict containing...
+    ------
+        If [output_ds] is True, following is a merged Dataset. Otherwise, it is a dictionary with the corresponding keys.
+        pc_sst   (xr.DataArray)  - SST Principle Components (Time x Mode)
+        pc_wind  (xr.DataArray)  - Wind Principle Components (Time x Mode)
+        eof_sst  (xr.DataArray)  - Regression of SST PC to variables. (Variable x Lat x Lon). 
+                                    If output_ds=False, eof_sst is a nested list of [variable][ds] where ds contains full pointwise_polyfit output...
+        eof_wind (xr.DataArray)  - (IF regress_wind is True) Regression of Wind PC to variables. (Variable x Lat x Lon)
+                                    If output_ds=False, eof_sst is a nested list of [variable][ds] where ds contains full pointwise_polyfit output...
+        varexp   (xr.DataArray)  - Variance Explained (Mode)
+
+    WIP:
+        Adding 3-month sliding window prior to EOF Analysis
+        Option to reshape and directly output EOF from MCA SVD
+        Monthly Implementation
+        More Flexible ENSO Index Removal (or option to bypass)
+        Support for large files (or providing non-global inputs)
+        Use non xMCA package (due to lack of updates)
+        See [niu:notebooks/ccfs/mca_test.ipynb] for debugging scrap...
+    
+    Last Updated 2026.06.17, by Glenn Liu
+    
+    """
+    # 
+    
+    st_all            = time.time()
+    # Bounding Boxs for Calculations
+    bbox_tropical     = [140,-90+360,-20,20]         # EOF Bounding Box
+    bbox_nino3        = [-150+360, -90+360 , -5, 5]  # Nino 3 Box for Checking Sign
+
+    # Step 1. Preprocess (Deseason and Linear Detrend) ------------------------------------
+    st      = time.time()
+    dsraws  = [ds_sst,ds_u10,ds_v10]
+    vnames  = ["sst","u10","v10"]
+    dsraws  = [ds.transpose('time','lat','lon') for ds in dsraws]
+    dsanoms = [proc.xrdeseason(ds,verbose=debug) for ds in dsraws]
+    dsanoms = [proc.xrdetrend(ds,verbose=debug) for ds in dsanoms]
+    if verbose:
+        proc.printtime(st,"(1/7) Deseason/Detrended")
+    
+    # Step 2. Calculate ENSO Index using EOF Analysis ------------------------------------
+    st                = time.time()
+    if ensoid is None: # Calculate ENSO using EOF analysis
+        N_mode            = 2
+        sst_tropical      = proc.sel_region_xr(dsanoms[0],bbox_tropical)
+        eofout            = proc.eof_time_ds(sst_tropical,N_mode,check_sign=[bbox_nino3,],flip_if_negative=True,verbose=debug)
+        ninoid            = eofout.pcs.isel(mode=0) # Get ENSO Index (First Mode)
+    else: # Check if ENSO Index matches the length of the anoms
+        ntime_enso        = len(ensoid)
+        for ii in range(3):
+            ntime_var = len(dsanoms[ii].time)
+            if ntime_enso != ntime_var:
+                if verbose:
+                    print("Warning, Time does not match between ENSO Index and %s" % (vnames[vv]))
+                ensoid,var_adjust=proc.match_time_month(ensoid,dsanoms[ii])
+                dsanoms[ii] = var_adjust
+        ninoid = ensoid 
+    if verbose:
+        proc.printtime(st,"(2/7) Performed ENSO EOF")
+    
+    # Step 3. Remove ENSO influence via linear regression --------------------------------
+    st                = time.time()
+    dtouts            = [proc.detrend_by_regression(ds,ninoid,verbose=debug) for ds in dsanoms]
+    if verbose:
+        proc.printtime(st,"(3/7) Performed ENSO EOF")
+    
+    # Step 4. Restrict to SPMM Region and do further preprocessing -----------------------
+    st           = time.time()
+    bbox_spmm    = [-180+360,-70+360,-35,-20]
+    dsanoms_reg  = [proc.sel_region_xr(dtouts[vv][vnames[vv]],bbox_spmm) for vv in range(3)]
+    
+    #         (add option to apply 3-month running mean here...)
+    
+    #         Convert to array
+    dsanoms_reg_arr     = [ds.data for ds in dsanoms_reg]
+    
+    #         Apply Sqrt Cosine Latitude Weight 
+    lon,lat             = dsanoms_reg[0].lon,dsanoms_reg[0].lat
+    xx,yy               = np.meshgrid(lon,lat)
+    dsanoms_weighted    = [ds * (np.cos(np.deg2rad(yy))**(0.5))[None,:,:] for ds in dsanoms_reg_arr]
+    
+    #         Reshape and merge surface wind arrays along space dimension
+    ntime,nlat,nlon     = dsanoms_reg[0].shape
+    dsanoms_reshaped    = [ds.reshape(ntime,nlat*nlon) for ds in dsanoms_weighted]
+    ds_in               = [dsanoms_reshaped[0],np.concatenate([dsanoms_reshaped[1],dsanoms_reshaped[2]],axis=1)]
+    if verbose:
+        proc.printtime(st,"(4/7) Reshaped + Formatted for MCA")
+    
+    # Step 5. Perform MCA using xMCA -----------------------------------------------------
+    st     = time.time()
+    mca    = MCA(ds_in[0],ds_in[1])
+    mca.solve()
+    expvar = mca.explained_variance()
+    eofs   = mca.eofs()
+    pcs    = mca.pcs()
+    
+    #         Post-process the output (Array --> DataArray)
+    sstpcs        = np.array(pcs['left'])  # [Time x Mode]
+    windpcs       = np.array(pcs['right']) # [Time x Mode]
+    coords_pc     = dict(time=dsanoms_reg[0].time,mode = np.arange(ntime))
+    da_sstpcs     = xr.DataArray(sstpcs,coords=coords_pc,dims=coords_pc)
+    da_windpcs    = xr.DataArray(windpcs,coords=coords_pc,dims=coords_pc)
+    coords_exp    = dict(mode=np.arange(ntime))
+    da_varexp     = xr.DataArray(expvar,coords=coords_exp,dims=coords_exp)
+    if verbose:
+        proc.printtime(st,"(5/7) Performed MCA + Postprocesed")
+    
+    # Step 6. Regress Standardized Values back to variables -----------------------------
+    st              = time.time()
+    spmm_index      = da_sstpcs.isel(mode=0)
+    if standardize:
+        spmm_index  = spmm_index / spmm_index.std('time')
+    spmm_regression = [proc.pointwise_polyfit(spmm_index,ds,1) for ds in dsanoms]
+    if regress_wind:
+        spmm_index_wind = da_windpcs.isel(mode=0)
+        if standardize:
+            spmm_index_wind  = spmm_index_wind / spmm_index_wind.std('time')
+            
+        spmm_regression_wind = [proc.pointwise_polyfit(spmm_index_wind,ds,1) for ds in dsanoms]
+    if verbose:
+        proc.printtime(st,"(6/7) Obtained EOF Patterns via regression")
+    
+    # Step 7. Combine the Output ----------------------------------------------------------
+    st = time.time()
+    if output_ds:
+        # Get SST Regression Patterns
+        sst_regression_patterns = xr.concat([spmm_regression[0].coefficients_by_degree.isel(coeff=1).rename("sst"),
+                                             spmm_regression[1].coefficients_by_degree.isel(coeff1).rename("u10"),
+                                             spmm_regression[2].coefficients_by_degree.isel(coeff=1).rename("v10")],
+                                             dim='variable') #compat='no_conflicts')
+        sst_regression_patterns['variable'] = vnames
+        outdict = xr.merge([sst_regression_patterns.rename("eof1_sst"),
+                            da_sstpcs.rename('pc_sst'),
+                            da_windpcs.rename('pc_wind'),
+                            da_varexp.rename('variance_explained'),
+                           ])
+        if regress_wind:
+            wind_regression_patterns             = xr.concat([spmm_regression_wind[0].coefficients_by_degree.isel(coeff=1).rename("sst"),
+                                                              spmm_regression_wind[1].coefficients_by_degree.isel(coeff=1).rename("u10"),
+                                                              spmm_regression_wind[2].coefficients_by_degree.isel(coeff=1).rename("v10")],
+                                                             dim='variable')
+            wind_regression_patterns['variable'] = vnames
+            outdict                              = xr.merge([outdict,wind_regression_patterns.rename("eof1_wind")],compat='no_conflicts') # Add to Dataset
+        
+            
+        
+        
+
+    else: # Just Output Dictionaey (note that regression output has more detail then)
+        outdict = dict(
+            pc_sst   = da_sstpcs,
+            pc_wind  = da_windpcs,
+            eof_sst  = spmm_regression,
+            varexp   = da_varexp,
+            vnames   = vnames,
+        )
+        if regress_wind:
+            outdict['eof_wind'] = spmm_regression_wind
+    if verbose:
+        proc.printtime(st,"(7/7) Prepared output")
+        print("SPMM Indices and Patterns calculated in %.2fs" % (time.time()-st_all))
+    return outdict
 
 def center_events_ninodict(ensoin,ninodict_in,center_month,search_window,verbose=True,include_full_duration=True):
     
