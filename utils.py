@@ -647,7 +647,7 @@ def calc_spmm(ds_sst,ds_u10,ds_v10,debug=False,regress_wind=False,verbose=True,s
     if output_ds:
         # Get SST Regression Patterns
         sst_regression_patterns = xr.concat([spmm_regression[0].coefficients_by_degree.isel(coeff=1).rename("sst"),
-                                             spmm_regression[1].coefficients_by_degree.isel(coeff1).rename("u10"),
+                                             spmm_regression[1].coefficients_by_degree.isel(coeff=1).rename("u10"),
                                              spmm_regression[2].coefficients_by_degree.isel(coeff=1).rename("v10")],
                                              dim='variable') #compat='no_conflicts')
         sst_regression_patterns['variable'] = vnames
