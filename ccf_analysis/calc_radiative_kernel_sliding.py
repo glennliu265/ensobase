@@ -16,8 +16,6 @@ In SSP5.85 Simulation, Estimate Radiative Kernels using a sliding window
 Scripts Copied from
     - sliding_spectra_ccf.py
     
-    
-
 Created on Tue May 19 13:57:06 2026
 
 @author: gliu
@@ -59,6 +57,7 @@ expname      = "TCo319_ssp585"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
 tstart       = '2015-01-01'
 tend         = '2100-12-31'
+seasonal     = True
 
 rawpath      = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/TCo319_ssp585/raw/"
 
@@ -69,14 +68,23 @@ bbsel        = bbox_sep
 bbname       = "SEP"
 load_global  = True
 
-
 nyr_sliding  = 30 # Select Sliding Window Length
-flxname      = "ttcre"
+flxname      = "tscre"
+
+
+# Seasonal calculations
+selmons_loop    = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]]  
+season_names    = [proc.mon2str(np.array(ss)-1) for ss in selmons_loop]
 
 # Output Options
 outpath = "/home/niu4/gliu8/projects/ccfs/metrics/regrid_1x1/scrap/sliding_kernels/"
 outname = "%sSlidingKernels_%s_%s_AllMonth_%02iyrwindow.nc" % (outpath,expname,flxname,nyr_sliding,)
+if seasonal:
+    outname = "%sSlidingKernels_%s_%s_Seasonal_%02iyrwindow.nc" % (outpath,expname,flxname,nyr_sliding,)
 
+# Set to True to Subset to Region and Do calculations
+debug    = False
+debugreg = [-90+360,-85+360,-40,-35]
 
 # ============================================
 #%% Part 1. Load (raw) CCFs for an experiment
@@ -139,7 +147,10 @@ flxin   = ds_flx[ffsel]
 # ============================================
 
 # Subset into periods and preprocess
-
+if debug:
+    print("Warning, Currently in Debug Mode (computing over smaller region")
+    ds_ccf = [proc.sel_region_xr(ds,debugreg) for ds in ds_ccf]
+    flxin  = proc.sel_region_xr(flxin,debugreg)
 
 # Generate Periods for CCFs, then preprocess
 st           = time.time()
@@ -168,6 +179,8 @@ for nw in tqdm(range(nperiods)):
     # Reassign Time to Make Sure they all match (honestly can do this before resampling..)
     match_flx_time   = lambda ds : proc.match_time_month(ds,flx_period)[0]
     ccf_period       = [match_flx_time(ds) for ds in ccf_period]
+    # Note: To see shift option, see calculate_radiatibe_kernels_byexp.py
+    
     # Replace time If Needed
     timeref    = flx_period.time
     for cc in range(nccfs):
@@ -183,11 +196,37 @@ for nw in tqdm(range(nperiods)):
     ccf_period_merge = ccf_period_merge.transpose('time','predictors','lat','lon')
     
     # Perform pointwise MLR
-    mlrout = proc.pointwise_mlr(ccf_period_merge,flx_period,
-                                fill_value=0,standardize=True,
-                                predictor_names=ccf_names)
-    
-    mlrout_byperiod.append(mlrout)
+    if seasonal is False: # Calculate for All months
+        
+        mlrout = proc.pointwise_mlr(ccf_period_merge,flx_period,
+                                    fill_value=0,standardize=True,
+                                    predictor_names=ccf_names)
+        
+        mlrout_byperiod.append(mlrout)
+    else: # Separate Calculation by Season
+        mlrout_byseason = []
+        for ss in range(4):
+            selmons = selmons_loop[ss]
+            
+            ccf_mon = proc.selmon_ds(ccf_period_merge,selmons)
+            flx_mon = proc.selmon_ds(flx_period,selmons)
+            mlrout  = proc.pointwise_mlr(ccf_mon,flx_mon,
+                                        fill_value=0,standardize=True,
+                                        predictor_names=ccf_names)
+            
+            mlrout_byseason.append(mlrout)
+            
+        
+        # Concatenate by season
+        mlrout_byseason = xr.concat(mlrout_byseason,dim='season')
+        mlrout_byperiod.append(mlrout_byseason) # Append to Periodwise Calculation
+            
+            
+
+            
+            
+        
+        
 
 #%% Before Appending, Need to fix the time dimension
 # Assign shared "Time Index" and store actual time ranges in another Window
@@ -205,83 +244,21 @@ coords_time      = dict(period=np.arange(nperiods),time=time_index)
 ds_time_byperiod = xr.DataArray(time_byperiod,name='timestamp',
                                 coords=coords_time,dims=coords_time)
 
-    
+
 # Now Concatenate By Period
 ds_out = xr.concat(mlrout_byperiod,dim='period')
 ds_out = xr.merge([ds_out,ds_time_byperiod])
 
-#%% Save Output
+# Add Season Names
+if seasonal:
+    ds_out['season'] = season_names
 
+#%% Save Output
 
 st = time.time()
 edict = proc.make_encoding_dict(ds_out)
-ds_out.to_netcdf(outname,encoding=edict)
-proc.printtime(st,"Saved output")
+if debug is False: # Only Save if not in Debug Mode
+    ds_out.to_netcdf(outname,encoding=edict)
+    proc.printtime(st,"Saved output")
 
-
-
-#%% Below is Scrap. I can Delete
-# #%% Perform period-wise estimate of radiative Kernels
-
-# # Subset CCFs
-# aavgs_ccfs   = [proc.area_avg_cosweight(ds) for ds in ds_ccf]
-# nyr_ceres    = 24
-# subsets_ccfs = [ut.generate_periods(ds,nyr_ceres)[0] for ds in aavgs_ccfs]
-# st = time.time()
-# ccf_anoms = [ut.preprocess_byperiod(ds) for ds in subsets_ccfs]
-
-# proc.printtime(st,"Preprocessed CCFs")
-
-# # Subset Fluxes
-# aavgs_flxs   = [proc.area_avg_cosweight(ds) for ds in ds_flx]
-# subsets_flxs = [ut.generate_periods(ds,nyr_ceres)[0] for ds in aavgs_flxs]
-# st = time.time()
-# flx_anoms    = [ut.preprocess_byperiod(ds) for ds in subsets_flxs]
-# proc.printtime(st,"Preprocessed Fluxes")
-
-# # Calculate the radiative kernels
-# nw     = 0
-# ff     = 1
-
-# # Need to change CCFs from [ccf][period][time] to [period][ccf x time]
-# ccf_anoms_arr = np.array(ccf_anoms)
-
-# def reshape_ccfs_predictor(ccf_anoms,nw):
-#     # ccf_anoms is [ccf][period][time]
-#     # nw is the index of the period
-#     # takes time dim of first ccf (note that xr.concat yielded non-matching times...)
-#     # Standardizes along the predictor dimension
-#     ccf_names        = [cc[nw].name for cc in ccf_anoms]
-#     ccf_window       = np.array([cc[nw].data for cc in ccf_anoms])
-#     coords           = dict(predictor=ccf_names,time=ccf_anoms[0][nw].time)
-#     ccf_window       = xr.DataArray(ccf_window,dims=coords,coords=coords)#xr.concat(ccf_window,dim='predictor')
-#     ccf_window       = ccf_window / ccf_window.std('time')
-#     return ccf_window
-
-# nperiods  = len(ccf_anoms[0])
-# coeffs    = []
-# r2s       = []
-# residuals = []
-
-# for nw in tqdm(range(nperiods)):
-    
-#     ccfanoms_in   = reshape_ccfs_predictor(ccf_anoms,nw).transpose('time','predictor')
-#     mlrout        = proc.mlr_point(ccfanoms_in,flx_anoms[ff][nw])
-    
-#     #[cc.time.isel(-1) for cc in ccf_anoms]
-#     coeffs.append(mlrout[0])
-#     r2s.append(mlrout[1])
-#     residuals.append(mlrout[2])
-
-# # Get Tcenters for plotting
-# _,tranges = ut.generate_periods(aavgs_ccfs[0],nyr_ceres)
-# tcenters  = [ut.get_center_time(tt) for tt in tranges]
-
-# # Calxulate RMSE
-# rmse_byperiod = []
-# for nw in range(nperiods):
-#     rmse = np.nanmean((flx_anoms[ff][nw] - residuals[nw])**2)**(0.5)
-#     rmse_byperiod.append(rmse.item())
-# rmse_byperiod = np.array(rmse_byperiod)
-    
 
