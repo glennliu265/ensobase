@@ -69,7 +69,7 @@ bbname       = "SEP"
 load_global  = True
 
 nyr_sliding  = 30 # Select Sliding Window Length
-flxname      = "tscre"
+flxname      = "cre"
 
 
 # Seasonal calculations
@@ -109,9 +109,10 @@ for cc in range(nccfs):
         dsreg   = proc.sel_region_xr(ds,bbsel).load()
     dsreg   = ut.standardize_names(dsreg)
     dsreg   = dsreg.sel(time=slice(tstart,tend))
-    print("%s" % vname)
-    print("\tStart time is %s" % dsreg.time.isel(time=0))
-    print("\tEnd time is %s" % dsreg.time.isel(time=-1))
+    if debug:
+        print("%s" % vname)
+        print("\tStart time is %s" % dsreg.time.isel(time=0))
+        print("\tEnd time is %s" % dsreg.time.isel(time=-1))
     
     ds_ccf.append(dsreg)
 
