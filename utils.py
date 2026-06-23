@@ -205,6 +205,8 @@ def calc_enso_index(sstanom,ninoid_name='nino34',apply_movmean=False):
         bbox = bbox_nino4
     elif ninoid_name == "nino12":
         bbox = bbox_nino12
+    elif ninoid_name == "cti":
+        bbox = bbox_cti
     
     # Restrict to box and take area average
     sst_enso_box = proc.sel_region_xr(sstanom,bbox)
