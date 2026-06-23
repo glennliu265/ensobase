@@ -196,6 +196,7 @@ def calc_enso_index(sstanom,ninoid_name='nino34',apply_movmean=False):
     bbox_nino3        = [-150+360, -90+360 , -5, 5]  # Nino 3 Box
     bbox_nino34       = [-170+360,-120+360,-5,5]     # Nino3.4 Box
     bbox_nino4        = [ 160    ,-150+360,-5,5]     # Nino 4 Box
+    bbox_cti        =   [-180+360,-90+360,-6 ,6]       # Cold Tongue Index
     if ninoid_name == "nino34":
         bbox = bbox_nino34
     elif ninoid_name == 'nino3':
@@ -998,6 +999,11 @@ def get_center_time(trange):
     
     return tcenter
 
+def get_tcenters(tranges):
+    # Given list of [tstart,tend], get center times and year string for plotting
+    tcenters = [get_center_time(tt) for tt in tranges]
+    years   = [tt[:4] for tt in tcenters]
+    return tcenters,years
 
 def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None,latmax=20,lonbounds=[120,290],):
     bbplot = [lonbounds[0], lonbounds[1], -latmax, latmax]
@@ -1547,18 +1553,26 @@ def sliding_spectra(dsraw,nyr_window,nsmooth,detrend=False):
  
 def standardize_names(ds):
     
+    # Time Names
     ds = swap_rename(ds,'valid_time','time')
-    ds = swap_rename(ds,'time_counter','time')
+    ds = swap_rename(ds,'time_counter','time') # ORAS5
     ds = swap_rename(ds,"TIME_COUNTER",'time')
-    ds = swap_rename(ds,"LON","lon")
-    ds = swap_rename(ds,"LAT","lat")
+    
+    # Longitude Names
     ds = swap_rename(ds,"longitude","lon")
+    ds = swap_rename(ds,"LON","lon")
+    ds = swap_rename(ds,"nav_lon","lon") # ORAS5
+    
+    # Latitude Names
     ds = swap_rename(ds,"latitude","lat")
-    ds = swap_rename (ds,"LAT232_409","lat")
+    ds = swap_rename(ds,"LAT","lat")
+    ds = swap_rename(ds,"LAT232_409","lat")
+    ds = swap_rename(ds,"nav_lat","lat") # ORAS5
     
     # Other preprocessing
     # drop LON_bnds, TIME_COUNTER_bnds
     dropvars = ["LON_bnds","TIME_COUNTER_bnds"]
+    
     for dropvar in dropvars:
         if dropvar in ds:
             ds = ds.drop_vars(dropvar)
