@@ -1282,7 +1282,7 @@ def loadregrid(expname,vname,reformat=False,bbox=None,varcheck=True):
             ds = proc.sel_region_xr(ds,bbox) # Select a region
         ds = ds.load()
         ds = standardize_names(ds)
-        if varcheck: # Do additional unit conversions for AWI-CM3/Other Output
+        if varcheck is True: # Do additional unit conversions for AWI-CM3/Other Output
             ds = varcheck(ds,vname,expname)
         
         return ds
