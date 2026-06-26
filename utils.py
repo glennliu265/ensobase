@@ -1251,7 +1251,7 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
         return np.nan
     return xr.open_dataset(outpath+dsmask).land_mask.load()
 
-def loadregrid(expname,vname,reformat=False,bbox=None,varcheck=True):
+def loadregrid(expname,vname,reformat=False,bbox=None,check_var=True):
     
     # load regridded 1x1 product on niu (convenience function)
     # Check CERES First
@@ -1282,7 +1282,7 @@ def loadregrid(expname,vname,reformat=False,bbox=None,varcheck=True):
             ds = proc.sel_region_xr(ds,bbox) # Select a region
         ds = ds.load()
         ds = standardize_names(ds)
-        if varcheck is True: # Do additional unit conversions for AWI-CM3/Other Output
+        if check_var is True: # Do additional unit conversions for AWI-CM3/Other Output
             ds = varcheck(ds,vname,expname)
         
         return ds
