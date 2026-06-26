@@ -1251,7 +1251,7 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
         return np.nan
     return xr.open_dataset(outpath+dsmask).land_mask.load()
 
-def loadregrid(expname,vname,reformat=False,bbox=None):
+def loadregrid(expname,vname,reformat=False,bbox=None,varcheck=True):
     
     # load regridded 1x1 product on niu (convenience function)
     # Check CERES First
@@ -1282,8 +1282,9 @@ def loadregrid(expname,vname,reformat=False,bbox=None):
             ds = proc.sel_region_xr(ds,bbox) # Select a region
         ds = ds.load()
         ds = standardize_names(ds)
-        if "TCo" in expname: # Do additional unit conversions for AWI-CM3 Output
+        if varcheck: # Do additional unit conversions for AWI-CM3/Other Output
             ds = varcheck(ds,vname,expname)
+        
         return ds
     return ds
 
@@ -1676,50 +1677,67 @@ def varcheck(ds,vname,expname):
     if np.any(ds > 273) and vname == "sst": # Convert to Celsius
         print("Converting from Kelvin to Celsius for %s" % expname)
         ds = ds - 273.15
+        
     
+    # For Heat Fluxes, convert to W/m2 for AWI simulations considering the
+    # accumulation time: 
+    # 6h for 31km (TCo319)
+    # 3h for 9km (TCo1279) and 5km (TCo2559)
     if vname in ['str','ssr',
                  'strc','ssrc',
                  'ttr','tsr',
                  'ttrc','tsrc',
                  'ttcre','tscre',
-                 'allsky','clearsky','cre',
+                 'allsky','clearsky','cre'
                  'sshf','slhf']: # Accumulation over 3h
-        # Conversion for STR and SSR considering 3h Accumulation
-        if "TCo319" in expname:
-            print("Correction for accumulation over 6 hours for %s" % expname)
-            accumulation_hr = 6
+        if "TCo" in expname:
+            # Conversion for STR and SSR considering 3h Accumulation
+            if "TCo319" in expname:
+                print("Correction for accumulation over 6 hours for %s" % expname)
+                accumulation_hr = 6
+            elif ("TCo1279" in expname) or ("TCo2559" in expname):
+                print("Correction for accumulation over 3 hours for %s" % expname )
+                accumulation_hr = 3
+            conversion  = 1/(3600 * accumulation_hr)  # 3 h accumulation time...? #1/(24*30*3600)
+            # https://forum.ecmwf.int/t/surface-radiation-parameters-joule-m-2-to-watt-m-2/1588
+            ds          = ds * conversion
         else:
-            print("Correction for accumulation over 3 hours for %s" % expname )
-            accumulation_hr = 3
-        conversion  = 1/(3600 * accumulation_hr)  # 3 h accumulation time...? #1/(24*30*3600)
-        # https://forum.ecmwf.int/t/surface-radiation-parameters-joule-m-2-to-watt-m-2/1588
-        ds          = ds * conversion
+            # No Conversion is Done
+            print("%s unchanged ([TCo] not detected in [expname])" % vname)
+            
     
-    if vname in ["cp","lsp","pr"]: # Convert from [meters/accumulation period] to [mm/day]
-        
-        if "TCo319" in expname:
-            print("Correction for accumulation over 6 hours for %s" % expname)
-            accumulation_hr = 6 
+    # Accounting for accumulation time as above in AWI-CM3
+    # Convert from [meters/accumulation period] to [mm/day]
+    if vname in ["cp","lsp","pr"]:
+        if "TCo" in expname:
+            if "TCo319" in expname:
+                print("Correction for accumulation over 6 hours for %s" % expname)
+                accumulation_hr = 6 
+            elif ("TCo1279" in expname) or ("TCo2559" in expname):
+                print("Correction for accumulation over 3 hours for %s" % expname )
+                accumulation_hr = 3
+            # From Discussion with Sun-Seon
+            # the value is provided as the accumulated precipitation (in meters) over a N-hour period.
+            # To convert to mm/day.... 
+            # (1) Divide by accumulation period (nday * sec * min) to convert to precip rate (m/s)
+            # (2) Multiply by day (m/day)
+            # (3) Multiply to get milimeters (mm/day)
+            #multiply by the number of seconds in a day (86400 s), and convert meters to millimeters (×1000):
+            nsec_perday = 86400 
+            conversion = (1/(accumulation_hr*60*60)) * nsec_perday * 1000#(24/accumulation_hr) * 1000
+            ds         = ds * conversion
         else:
-            print("Correction for accumulation over 3 hours for %s" % expname )
-            accumulation_hr = 3
-        # From Discussion with Sun-Seon
-        # the value is provided as the accumulated precipitation (in meters) over a N-hour period.
-        # To convert to mm/day.... 
-        # (1) Divide by accumulation period (nday * sec * min) to convert to precip rate (m/s)
-        # (2) Multiply by day (m/day)
-        # (3) Multiply to get milimeters (mm/day)
-        #multiply by the number of seconds in a day (86400 s), and convert meters to millimeters (×1000):
-        nsec_perday = 86400 
-        conversion = (1/(accumulation_hr*60*60)) * nsec_perday * 1000#(24/accumulation_hr) * 1000
-        ds         = ds * conversion
+            # No Conversion is Done
+            print("%s unchanged ([TCo] not detected in [expname])" % vname)
     
     if vname in ['msl']:
-        print("Converting from Pa to hPa for %s" % vname)
-        ds = ds/100 # Convert from Pa to hPa
+        if "TCo" in expname or np.isin(expname,["ERA5"]):
+            print("Converting from Pa to hPa for %s" % vname)
+            ds = ds/100 # Convert from Pa to hPa
     if vname in ['w700','w500']:
-        print("Converting from Pa/sec to hPa/day for %s" % vname)
-        ds = ds/100 * 3600*24 # Convert to hPa/day
+        if "TCo" in expname:
+            print("Converting from Pa/sec to hPa/day for %s" % vname)
+            ds = ds/100 * 3600*24 # Convert to hPa/day
     
     return ds
 
