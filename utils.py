@@ -440,7 +440,7 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,use_
     params, covariance = sp.optimize.curve_fit(sine_func_ctone, x, y, p0=initial_guess)
     
     amplitude, frequency, phase, offset = params
-    param_string                     = f"Fitted parameters: Amplitude={amplitude}, Frequency={frequency}, Phase={phase}, Offset={offset}"
+    param_string                     = r"Fitted parameters: Amplitude={amplitude}, Frequency={frequency}, Phase={phase}, Offset={offset}"
     print(param_string)
     
     # Create Model
@@ -467,7 +467,7 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,use_
         ax.legend(lns,labs,ncol=3)
         ax.set_xlabel("Time")
         ax.set_ylabel("Anomaly")
-        title = f"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}"
+        title = r"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}"
         ax.set_title(title)
         
     # Make Output Dictionary
