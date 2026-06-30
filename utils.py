@@ -487,6 +487,7 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,use_
     return outdict
 
 def fit_ctone_pointwise(ds,ensoid,return_ds=True):
+    
     # Pointwise application of fit_sinfunc
     def unpack_sinfit(target,ensoid,debug=False):
         t      = np.arange(len(target))
@@ -499,7 +500,7 @@ def fit_ctone_pointwise(ds,ensoid,return_ds=True):
             phase = np.nan
             offset = np.nan
             ypred   = t * np.nan
-        return amp,freq,phase,offset,ypred # Just retain some of the output
+        return amp,freq,phase,offset,ypred,r2 # Just retain some of the output
     
     stxr = time.time()
     dsout = xr.apply_ufunc(
@@ -507,18 +508,20 @@ def fit_ctone_pointwise(ds,ensoid,return_ds=True):
         ds,
         ensoid,
         input_core_dims=[['time'],['time']],
-        output_core_dims=[[],[],[],[],['time']],
+        output_core_dims=[[],[],[],[],['time'],[]],
         vectorize=True,
         )
     print("Completed fit in %.2fs" % (time.time()-stxr))
+    
     # Place in DataSet
     if return_ds:
-        amp,freq,phase,offset,ypred = dsout # dsout
+        amp,freq,phase,offset,ypred,r2 = dsout # dsout
         dsout = xr.merge([amp.rename('amplitude'),
                           freq.rename('frequency'),
                          phase.rename('phase'),
                          offset.rename('offset'),
-                         ypred.rename('ypred')])
+                         ypred.rename('ypred'),
+                         r2.rename('r2')])
     return dsout
 
 
