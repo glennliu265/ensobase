@@ -486,7 +486,7 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,use_
         )
     return outdict
 
-def fit_ctone_pointwise(ds,ensoid):
+def fit_ctone_pointwise(ds,ensoid,return_ds=True):
     # Pointwise application of fit_sinfunc
     def unpack_sinfit(target,ensoid,debug=False):
         t      = np.arange(len(target))
@@ -511,6 +511,14 @@ def fit_ctone_pointwise(ds,ensoid):
         vectorize=True,
         )
     print("Completed fit in %.2fs" % (time.time()-stxr))
+    # Place in DataSet
+    if return_ds:
+        amp,freq,phase,offset,ypred = dsout # dsout
+        dsout = xr.merge([amp.rename('amplitude'),
+                          freq.rename('frequency'),
+                         phase.rename('phase'),
+                         offset.rename('offset'),
+                         ypred.rename('ypred')])
     return dsout
 
 
