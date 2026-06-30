@@ -511,7 +511,7 @@ def fit_ctone_pointwise(ds,ensoid):
         vectorize=True,
         )
     print("Completed fit in %.2fs" % (time.time()-stxr))
-    return 
+    return dsout
 
 
 def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
