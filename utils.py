@@ -388,7 +388,7 @@ def combine_events(var_in,id_in,tol=1,verbose=True):
     return outdict
 
 
-def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,use_sine=False):
+def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,use_sine=False,verbose=False):
     # Fit Idealized Combination Tone Model to Anomalie Timeserise [anomalies]
     # Main difference from [proc.fit_sinfunc] above is that we multiple sine function
     # By ENSO Timeseries [ensoid] and allow for flexibility in the period
@@ -440,8 +440,9 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,use_
     params, covariance = sp.optimize.curve_fit(sine_func_ctone, x, y, p0=initial_guess)
     
     amplitude, frequency, phase, offset = params
-    param_string                     = r"Fitted parameters: Amplitude={amplitude}, Frequency={frequency}, Phase={phase}, Offset={offset}"
-    print(param_string)
+    param_string                     = f"Fitted parameters: Amplitude={amplitude}, Frequency={frequency}, Phase={phase}, Offset={offset}"
+    if verbose:
+        print(param_string)
     
     # Create Model
     model = lambda t: sine_func_ctone(t,amplitude,frequency,phase,offset)
@@ -459,7 +460,7 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,use_
         ax2 = ax.twinx()
         l3 = ax2.plot(plotx,ensoin,c='gray',lw=0.5,label="ENSO Index")
         ax2 = viz.change_axcol('right',c='gray',ax=ax2)
-        ax2.set_ylabel("ENSO Index ($\degree C)$")
+        ax2.set_ylabel(r"ENSO Index ($\degree C)$")
         #viz.add_axlines(xonly=True)
     
         lns  = [l1,]+l2+l3
@@ -484,6 +485,34 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,use_
         r2=r2,
         )
     return outdict
+
+def fit_ctone_pointwise(ds,ensoid):
+    # Pointwise application of fit_sinfunc
+    def unpack_sinfit(target,ensoid,debug=False):
+        t      = np.arange(len(target))
+        try:
+            fitout = fit_ctone_enso(target,ensoid,debug=False)
+            amp,freq,phase,offset,ypred,yfunc,period,corr,r2 = list(fitout.values())
+        except:
+            amp  = np.nan 
+            freq = np.nan
+            phase = np.nan
+            offset = np.nan
+            ypred   = t * np.nan
+        return amp,freq,phase,offset,ypred # Just retain some of the output
+    
+    stxr = time.time()
+    dsout = xr.apply_ufunc(
+        unpack_sinfit,
+        ds,
+        ensoid,
+        input_core_dims=[['time'],['time']],
+        output_core_dims=[[],[],[],[],['time']],
+        vectorize=True,
+        )
+    print("Completed fit in %.2fs" % (time.time()-stxr))
+    return 
+
 
 def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     # Based on routine in enso_lag_regression and global_mean_nino_regressions
