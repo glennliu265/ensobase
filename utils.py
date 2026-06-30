@@ -500,6 +500,7 @@ def fit_ctone_pointwise(ds,ensoid,return_ds=True):
             phase = np.nan
             offset = np.nan
             ypred   = t * np.nan
+            r2    = np.nan
         return amp,freq,phase,offset,ypred,r2 # Just retain some of the output
     
     stxr = time.time()
