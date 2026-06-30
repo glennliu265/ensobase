@@ -33,6 +33,7 @@ calc_spmm                   : (g) Calculate the South Pacific Meridional Mode
 center_events_ninodict      : (c) Center Identified Events around a particular month
 convolve_kernel_ccf         : (c) Convolve radiative kernel with ccf variable 
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
+fit_ctone_enso              : (g) Fit Combination Tone Model
 generate_periods            : (c) Generate Periods for a sliding window of a selected length
 get_early_late_periods      : (c) Get N earliest/latest periods for a DataArray
 get_moving_segments         : (g) Subset timeseries into segments with a sliding window
@@ -80,6 +81,7 @@ import glob
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 import sklearn
+import scipy as sp
 
 #%%
 
@@ -386,6 +388,102 @@ def combine_events(var_in,id_in,tol=1,verbose=True):
     return outdict
 
 
+def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,use_sine=False):
+    # Fit Idealized Combination Tone Model to Anomalie Timeserise [anomalies]
+    # Main difference from [proc.fit_sinfunc] above is that we multiple sine function
+    # By ENSO Timeseries [ensoid] and allow for flexibility in the period
+    # Inputs:
+    # [anomalies] (xr.DataArray) : 1-d anomaly timeseries to fit
+    # [ensoid] (xr.DataArray)    : 1-d ENSO Timeseries
+    # [tmax]  (int)              : max index of timeseries to subset...
+    # [Initial Guess] (array)    : Guess of initial parameter values. None to use default guess.
+    # [debug] (bool)             : True to Make Timeseries Plot
+    # [use_sine] (bool)          : True to assume sin(a+b), False to use cos(a+b) (yields same answer...)
+    #
+    # Outputs: Dict Containing:
+    # [Parameter Estimates] (int), (amplitude,frequency,phase,offset)
+    # [prediction] (xr.DataArray) : Modeled 1-D anomaly timeseries
+    # [fitfunc] (function)        : Function with parameters input
+    # [period] (numeric)          : 1/frequency, multiply by 2*np.pi to convert
+    # [corr] (numeric)            : Correlation between modeled + actual y
+    # [r2] (numeric)              : r2between modeled + actual y
+    # 
+    # For Debugging Script, see `simple_mode_ctone.ipynb`
+    
+    # Get Length of Time
+    if tmax is not None:
+        y      = anomalies[:tmax]
+        ensoin = ensoid[:tmax]
+    else:
+        y      = anomalies.copy()
+        ensoin = ensoid.copy()
+    ntime = len(y)
+    x     = np.arange(ntime)
+    
+    # Make the function (based on angle sum identities)
+    if use_sine: # Sin(a+b) = sin(a)cos(b) + cos(a)sin(b)
+        def sine_func_ctone(t,amplitude,frequency,phase,offset):
+            return ensoin * amplitude * ( (np.cos(phase) * np.sin(frequency*t)) + (np.sin(phase) * np.cos(frequency*t)) ) + offset
+    else:        # Cos(a+b) = cos(a)cos(b) - sin(a)sin(b)
+        def sine_func_ctone(t,amplitude,frequency,phase,offset): # Misnomer should be cos
+            return ensoin * amplitude * ( (np.cos(phase) * np.cos(frequency*t)) - (np.sin(phase) * np.sin(frequency*t)) ) + offset
+
+    # Make initial Guess
+    if initial_guess is None:
+        initial_guess = [2*np.nanstd(y), # Amplitude ~ 2*Standard Deviation
+                         np.pi*2/12    , # Frequency ~ Annual Cycle 
+                         0             , # Assume no phase shift
+                         np.nanmean(y) , # Offset = Mean of timeseries, ~0
+                        ]
+    
+    # Make the Fit
+    params, covariance = sp.optimize.curve_fit(sine_func_ctone, x, y, p0=initial_guess)
+    
+    amplitude, frequency, phase, offset = params
+    param_string                     = f"Fitted parameters: Amplitude={amplitude}, Frequency={frequency}, Phase={phase}, Offset={offset}"
+    print(param_string)
+    
+    # Create Model
+    model = lambda t: sine_func_ctone(t,amplitude,frequency,phase,offset)
+    y_fit  = model(x)
+    r2     = np.corrcoef(y,y_fit)[0,1]**2
+    
+    # Plot Output
+    if debug:
+        fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(12.5,4))
+        plotx  = y.time
+        l1 = ax.scatter(plotx,y,alpha=0.8,c='k',marker="o",s=5,label="Target Anomaly Timeseries")
+        #ax.plot(plotx,y,alpha=0.8,c="k",lw=0.25)
+        l2 = ax.plot(plotx,y_fit,c='red',lw=2.5,label="Combination Tone Fit, $r^2$=%.2f%%" % (r2*100),alpha=0.6)
+    
+        ax2 = ax.twinx()
+        l3 = ax2.plot(plotx,ensoin,c='gray',lw=0.5,label="ENSO Index")
+        ax2 = viz.change_axcol('right',c='gray',ax=ax2)
+        ax2.set_ylabel("ENSO Index ($\degree C)$")
+        #viz.add_axlines(xonly=True)
+    
+        lns  = [l1,]+l2+l3
+        labs = [l.get_label() for l in lns]
+        ax.legend(lns,labs,ncol=3)
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Anomaly")
+        title = f"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}"
+        ax.set_title(title)
+        
+    # Make Output Dictionary
+    # Prepare Output
+    outdict = dict(
+        amplitude   = amplitude,
+        frequency  = frequency,
+        phase = phase,
+        offset= offset,
+        prediction = y_fit,
+        fitfunc=model,
+        period= 1/frequency,
+        corr=np.corrcoef(y,y_fit),
+        r2=r2,
+        )
+    return outdict
 
 def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     # Based on routine in enso_lag_regression and global_mean_nino_regressions
