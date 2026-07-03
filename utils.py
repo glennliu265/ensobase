@@ -449,8 +449,8 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,
                          np.nanmean(y) , # Offset = Mean of timeseries, ~0
                         ]
         if linear_enso: # First Guess is the slope between the two
-            fitout     = proc.polyfit_1d(ensoin,anomalies,1)
-            guess_beta = fitout[0][0]
+            coeffs     = np.polyfit(ensoin.data,anomalies.data,1)
+            guess_beta = coeffs[0]
             initial_guess.append(guess_beta) # Relationship to ENSO
          
     
@@ -494,9 +494,9 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,
         ax.set_xlabel("Time")
         ax.set_ylabel("Anomaly")
         if linear_enso:
-            title = r"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}, Beta={beta:2f}"
+            title = f"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}, Beta={beta:2f}"
         else:
-            title = r"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}"
+            title = f"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}"
         ax.set_title(title)
         
     # Make Output Dictionary
