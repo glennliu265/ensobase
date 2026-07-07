@@ -566,43 +566,63 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,
         outdict['beta'] = beta
     return outdict
 
-def fit_ctone_pointwise(ds,ensoid,return_ds=True):
+def fit_ctone_pointwise(ds,ensoid,return_ds=True,
+                        linear_enso=False,fix_frequency_offset=False):
     
     # Pointwise application of fit_sinfunc
     def unpack_sinfit(target,ensoid,debug=False):
         t      = np.arange(len(target))
         try:
-            fitout = fit_ctone_enso(target,ensoid,debug=False)
-            amp,freq,phase,offset,ypred,yfunc,period,corr,r2 = list(fitout.values())
+            if linear_enso:
+                fitout = fit_ctone_enso(target,ensoid,debug=False,fix_frequency_offset=fix_frequency_offset,
+                                        linear_enso=True)
+                amp,freq,phase,offset,ypred,yfunc,period,corr,r2,beta = list(fitout.values())
+            else:
+            
+                fitout = fit_ctone_enso(target,ensoid,debug=False,fix_frequency_offset=fix_frequency_offset)
+                amp,freq,phase,offset,ypred,yfunc,period,corr,r2 = list(fitout.values())
         except:
             amp  = np.nan 
             freq = np.nan
             phase = np.nan
             offset = np.nan
-            ypred   = t * np.nan
+            ypred  = t * np.nan
             r2    = np.nan
+            beta = np.nan
+        
+        if linear_enso:
+            return amp,freq,phase,offset,ypred,r2,beta
         return amp,freq,phase,offset,ypred,r2 # Just retain some of the output
     
     stxr = time.time()
+    if linear_enso:
+        output_core_dims = [[],[],[],[],['time'],[],[]]
+    else:
+        output_core_dims = [[],[],[],[],['time'],[]]
     dsout = xr.apply_ufunc(
         unpack_sinfit,
         ds,
         ensoid,
         input_core_dims=[['time'],['time']],
-        output_core_dims=[[],[],[],[],['time'],[]],
+        output_core_dims=output_core_dims,
         vectorize=True,
         )
     print("Completed fit in %.2fs" % (time.time()-stxr))
     
     # Place in DataSet
     if return_ds:
-        amp,freq,phase,offset,ypred,r2 = dsout # dsout
+        if linear_enso:
+            amp,freq,phase,offset,ypred,r2,beta = dsout # dsout
+        else:
+            amp,freq,phase,offset,ypred,r2 = dsout # dsout
         dsout = xr.merge([amp.rename('amplitude'),
                           freq.rename('frequency'),
                          phase.rename('phase'),
                          offset.rename('offset'),
                          ypred.rename('ypred'),
                          r2.rename('r2')])
+        if linear_enso:
+            dsout['beta'] = beta.rename('beta')
     return dsout
 
 
