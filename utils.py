@@ -390,18 +390,20 @@ def combine_events(var_in,id_in,tol=1,verbose=True):
 
 
 def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,
-                   use_sine=False,linear_enso=False,verbose=False):
+                   use_sine=False,linear_enso=False,verbose=False,fixed_params=None,
+                   fix_frequency_offset=False):
     # Fit Idealized Combination Tone Model to Anomalie Timeserise [anomalies]
     # Main difference from [proc.fit_sinfunc] above is that we multiple sine function
     # By ENSO Timeseries [ensoid] and allow for flexibility in the period
     # Inputs:
-    # [anomalies] (xr.DataArray) : 1-d anomaly timeseries to fit
-    # [ensoid] (xr.DataArray)    : 1-d ENSO Timeseries
-    # [tmax]  (int)              : max index of timeseries to subset...
-    # [Initial Guess] (array)    : Guess of initial parameter values. None to use default guess.
-    # [debug] (bool)             : True to Make Timeseries Plot
-    # [linear_enso] (bool)       : True to add linear ENSO term (beta) Nino3.4
-    # [use_sine] (bool)          : True to assume sin(a+b), False to use cos(a+b) (yields same answer...)
+    # [anomalies] (xr.DataArray)    : 1-d anomaly timeseries to fit
+    # [ensoid] (xr.DataArray)       : 1-d ENSO Timeseries
+    # [tmax]  (int)                 : max index of timeseries to subset...
+    # [Initial Guess] (array)       : Guess of initial parameter values. None to use default guess.
+    # [debug] (bool)                : True to Make Timeseries Plot
+    # [linear_enso] (bool)          : True to add linear ENSO term (beta) Nino3.4
+    # [use_sine] (bool)             : True to assume sin(a+b), False to use cos(a+b) (yields same answer...)
+    # [fix_frequency_offset] (bool) : Use fixed annual cycle freq (2*pi/12) and fixed offset (0)
     #
     # Outputs: Dict Containing:
     # [Parameter Estimates] (int), (amplitude,frequency,phase,offset)
@@ -440,7 +442,7 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,
                         
             def sine_func_ctone(t,amplitude,frequency,phase,offset): # Misnomer should be cos
                 return ensoin * amplitude * ( (np.cos(phase) * np.cos(frequency*t)) - (np.sin(phase) * np.sin(frequency*t)) )
-
+    
     # Make initial Guess
     if initial_guess is None:
         initial_guess = [2*np.nanstd(y), # Amplitude ~ 2*Standard Deviation
@@ -452,25 +454,75 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,
             coeffs     = np.polyfit(ensoin.data,anomalies.data,1)
             guess_beta = coeffs[0]
             initial_guess.append(guess_beta) # Relationship to ENSO
-         
+
+    # Make Adjustments for Fixed Frequency
+    if fix_frequency_offset:
+        
+        # Set the Period and Offset
+        fix_frequency = 2*np.pi / 12 # Seasonal Cycle
+        fix_offset = 0            # Assume anomalies centered on 0
+        frequency = fix_frequency
+        offset    =   fix_offset
+        
+        # Update the Function 
+        if use_sine:
+            if linear_enso:
+                def sine_func_ctone(t,amplitude,phase,beta):
+                    return beta * ensoin + ensoin * amplitude * ( (np.cos(phase) * np.sin(fix_frequency*t)) + (np.sin(phase) * np.cos(dix_frequency*t)) ) + fix_offset
+            else:
+                def sine_func_ctone(t,amplitude,phase):
+                    return ensoin * amplitude * ( (np.cos(phase) * np.sin(fix_frequency*t)) + (np.sin(phase) * np.cos(dix_frequency*t)) ) + fix_offset
+        else:
+            if linear_enso:
+                def sine_func_ctone(t,amplitude,phase,beta): # Misnomer should be cos
+                    return beta*ensoin + ensoin * amplitude * ( (np.cos(phase) * np.cos(fix_frequency*t)) - (np.sin(phase) * np.sin(fix_frequency*t)) ) + fix_offset
+            else:
+                def sine_func_ctone(t,amplitude,phase): # Misnomer should be cos
+                    return ensoin * amplitude * ( (np.cos(phase) * np.cos(fix_frequency*t)) - (np.sin(phase) * np.sin(fix_frequency*t)) ) + fix_offset
+        
+        # Update Initial Guess
+        initial_guess.remove(fix_frequency)
+        initial_guess.remove(np.nanmean(y))
+    
     
     # Make the Fit
     params, covariance = sp.optimize.curve_fit(sine_func_ctone, x, y, p0=initial_guess)
-    
-    if linear_enso:
-        amplitude, frequency, phase, offset, beta = params
-        param_string                        = f"Fitted parameters: Amplitude={amplitude}, Frequency={frequency}, Phase={phase}, Offset={offset}, Beta={beta}"
+
+    # Extract Parameters
+    if fix_frequency_offset:
+        if linear_enso:
+            amplitude,phase,beta = params
+            param_string         = f"Fitted parameters: Amplitude={amplitude}, Phase={phase}, Beta={beta}"
+        else:
+            amplitude,phase      = params
+            param_string         = f"Fitted parameters: Amplitude={amplitude}, Phase={phase}"
     else:
-        amplitude, frequency, phase, offset = params
-        param_string                        = f"Fitted parameters: Amplitude={amplitude}, Frequency={frequency}, Phase={phase}, Offset={offset}"
+        if linear_enso:
+            amplitude, frequency, phase, offset, beta = params
+            #param_string                              = f"Fitted parameters: Amplitude={amplitude}, Frequency={frequency}, Phase={phase}, Offset={offset}, Beta={beta}"
+            #param_string_title                        = f"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}, Beta={beta:2f}"
+        else:
+            amplitude, frequency, phase, offset       = params
+            #param_string                              = f"Fitted parameters: Amplitude={amplitude}, Frequency={frequency}, Phase={phase}, Offset={offset}"
+            #param_string_title                        = f"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}"
+    if linear_enso:
+        param_string_title                        = f"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}, Beta={beta:2f}"
+    else:
+        param_string_title                        = f"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}"
     if verbose:
         print(param_string)
     
     # Create Model
-    if linear_enso:
-        model = lambda t: sine_func_ctone(t,amplitude,frequency,phase,offset,beta)
+    if fix_frequency_offset:
+        if linear_enso:
+            model = lambda t: sine_func_ctone(t,amplitude,phase,beta)
+        else:
+            model = lambda t: sine_func_ctone(t,amplitude,phase)
     else:
-        model = lambda t: sine_func_ctone(t,amplitude,frequency,phase,offset)
+        if linear_enso:
+            model = lambda t: sine_func_ctone(t,amplitude,frequency,phase,offset,beta)
+        else:
+            model = lambda t: sine_func_ctone(t,amplitude,frequency,phase,offset)
     y_fit  = model(x)
     r2     = np.corrcoef(y,y_fit)[0,1]**2
     
@@ -478,7 +530,8 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,
     if debug:
         fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(12.5,4))
         plotx  = y.time
-        l1 = ax.scatter(plotx,y,alpha=0.8,c='k',marker="o",s=5,label="Target Anomaly Timeseries")
+        #l1 = ax.scatter(plotx,y,alpha=0.8,c='k',marker="o",s=5,label="Target Anomaly Timeseries")
+        l1 = ax.plot(plotx,y,alpha=0.8,c='k',marker="o",markersize=1.5,linewidth=0.55,label="Target Anomaly Timeseries",ls='dashed')
         #ax.plot(plotx,y,alpha=0.8,c="k",lw=0.25)
         l2 = ax.plot(plotx,y_fit,c='red',lw=2.5,label="Combination Tone Fit, $r^2$=%.2f%%" % (r2*100),alpha=0.6)
     
@@ -488,16 +541,13 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,
         ax2.set_ylabel(r"ENSO Index ($\degree C)$")
         #viz.add_axlines(xonly=True)
     
-        lns  = [l1,]+l2+l3
+        #lns  = [l1,]+l2+l3 # For Scatter Case
+        lns  = l1+l2+l3
         labs = [l.get_label() for l in lns]
         ax.legend(lns,labs,ncol=3)
         ax.set_xlabel("Time")
         ax.set_ylabel("Anomaly")
-        if linear_enso:
-            title = f"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}, Beta={beta:2f}"
-        else:
-            title = f"Fitted parameters: Amplitude ($A_A$)={amplitude:.2f}, Period ($\omega_A$, months)={(2*np.pi)/frequency:.2f}, Phase ($\phi_A$, months)={(2*np.pi)/phase:.2f}, Offset ($C_A$)={offset:.2f}"
-        ax.set_title(title)
+        ax.set_title(param_string_title)
         
     # Make Output Dictionary
     # Prepare Output
