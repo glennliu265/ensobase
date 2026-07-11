@@ -1246,6 +1246,82 @@ def get_tcenters(tranges):
     years   = [tt[:4] for tt in tcenters]
     return tcenters,years
 
+def identify_stack_events(ensoin,tol,leadlags,thres,invar=None,center_month=None,search_window=None,include_full_duration=True):
+    # Copied version from `enso_event_id_climatology_test.ipynb` on [2026.07.10]
+    #
+    # First, if there is an input variable, fix the time limits
+    if invar is not None:
+        ensoin,invar = proc.match_time_month(ensoin,invar)
+
+        if np.any(ensoin.time != invar.time):
+            print("Warning! Time between ENSO Index and Input Variable does not match exactly")
+    
+    # Identify Events ---------------------------------------------------------------
+    sigma      = thres#ensoin.std('time')
+    id_nino    = ensoin >= sigma
+    id_nina    = ensoin <= -sigma
+    
+    # Combine Events based on tolerance  --------------------------------------------
+    ninodict   = combine_events(ensoin,id_nino,tol=tol,verbose=False)
+    ninadict   = combine_events(ensoin,id_nina,tol=tol,verbose=False)
+    
+    # Center around a particular month  ---------------------------------------------
+    if center_month is not None:
+        nevents_nino = len(ninodict['eventmonths'])
+        nevents_nina = len(ninadict['eventmonths'])
+        ninodict = center_events_ninodict(ensoin,ninodict,center_month,search_window,verbose=False,include_full_duration=include_full_duration)
+        print("Subset+shifted %i of %i events" % (len(ninodict['eventmonths']),nevents_nino,))
+        ninadict = center_events_ninodict(ensoin,ninadict,center_month,search_window,verbose=False,include_full_duration=include_full_duration)
+        print("Subset+shifted %i of %i events" % (len(ninadict['eventmonths']),nevents_nina,))
+
+        # Get Event ID after shift
+        eventid_nino = ninodict['new_center_ids']
+        eventid_nina = ninadict['new_center_ids']
+        
+
+    else:
+        # Change Event Times from xarray dataarray to np array
+        ninodict['event_time'] = [tt.data for tt in ninodict['event_time']]
+        ninadict['event_time'] = [tt.data for tt in ninadict['event_time']]
+        
+        # Get Event ID from original output
+        eventid_nino = ninodict['center_ids']
+        eventid_nina = ninadict['center_ids']
+    
+    # Stack Events   ---------------------------------------------
+    # Assumes first leadlag is largest lead (negative), last leadlag is largest lag (positive)
+    event_before        = np.abs(leadlags[0].item()) # Need to be positive...
+    event_after         = leadlags[-1].item()
+    stackevent_plusminus_Nmon = lambda ds,eventid: stack_events(ds,eventid,event_before,event_after)
+    stackevent_nino     = stackevent_plusminus_Nmon(ensoin,eventid_nino)
+    stackevent_nina     = stackevent_plusminus_Nmon(ensoin,eventid_nina)
+    
+    # Make Output   ---------------------------------------------
+    outdict = dict(
+        enso_index=ensoin,
+        nino_events=ninodict,
+        nina_events=ninadict,
+        nino_composites=stackevent_nino,
+        nina_composites=stackevent_nina,
+        nino_time=ensoin.time,
+    )
+
+    # Stack Events, if there is an input variable
+    if invar is not None:
+        # Make Composites
+        if len(invar.shape) > 1:
+            stackevent_plusminus_Nmon = lambda ds,eventid: stack_events_2d(ds,eventid,event_before,event_after)
+        else: # 1D
+            stackevent_plusminus_Nmon = lambda ds,eventid: stack_events(ds,eventid,event_before,event_after)
+        invar_composite_nino     = stackevent_plusminus_Nmon(invar,eventid_nino)
+        invar_composite_nina     = stackevent_plusminus_Nmon(invar,eventid_nina)
+        
+        outdict['nino_composites_invar'] = invar_composite_nino
+        outdict['nina_composites_invar'] = invar_composite_nina
+        outdict['invar_time']            = invar.time
+    return outdict
+
+
 def init_tp_map(nrow=1,ncol=1,figsize=(12.5,4.5),ax=None,latmax=20,lonbounds=[120,290],):
     bbplot = [lonbounds[0], lonbounds[1], -latmax, latmax]
     fix_lon = np.hstack([np.arange(120,190,10),np.arange(-180,-60,10)])
