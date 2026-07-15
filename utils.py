@@ -1923,13 +1923,17 @@ def stack_events(target_var,eventids,ibefore,iafter):
     return stacked_events
 
 def stack_events_2d(invar,eventids,ibefore,iafter,times_da=None):
+    # Move Time Dimension to the Front
+    invar           = invar.transpose('time',...) # Move time dimension to front
+    shape_otherdims = list(invar.shape[1:]) # Get Shape
+    ntime           = invar.shape[0]
     
-    invar           = invar.transpose('time','lat','lon')
-    ntime,nlat,nlon = invar.shape
+    # Create Temporary Holding Variable
     nevents         = len(eventids)
     leadlags        = np.arange(-ibefore,iafter+1)
     nlags           = len(leadlags)
-    temp_var        = np.zeros((nevents,nlags,nlat,nlon)) * np.nan
+    tempvar_shape   = [nevents,nlags,] + shape_otherdims
+    temp_var        = np.zeros(tempvar_shape) * np.nan
     
     if times_da is not None:
         event_times = np.zeros((nevents,nlags)) * np.nan
@@ -1956,13 +1960,18 @@ def stack_events_2d(invar,eventids,ibefore,iafter,times_da=None):
             insert_end = nlags#lags*2+1
             
         
-        indices_in = np.arange(insert_start,insert_end)
-        temp_var[ie,indices_in,:,:] = invar[istart:(iend+1),:,:]
+        indices_in                  = np.arange(insert_start,insert_end)
+        temp_var[ie,indices_in,...] = invar[istart:(iend+1),...]
         if times_da is not None:
             event_times[ie,indices_in]  = times_da[istart:(iend+1)]
-
     
-    coords             = dict(eventid=eventids,lag=leadlags,lat=invar.lat,lon=invar.lon)
+    # Combine with old coords
+    newcoords = dict(eventid=eventids,lags=leadlags)
+    oldcoords = proc.getcoords(invar,verbose=False)
+    oldcoords.pop('time')
+    coords    = {**newcoords,**oldcoords} # Insert New Coords to Front (eventid and lag)
+    
+    # Make into DataArray and Prepare Output
     invar_subset       = xr.DataArray(temp_var,coords=coords,dims=coords)
     if times_da is not None:
         coords_time        = dict(eventid=eventids,lag=leadlags)
