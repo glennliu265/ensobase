@@ -1567,7 +1567,7 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
             ncfile = "/home/niu4/gliu8/projects/common_data/ERA5/era5_landmask_fromsst_regrid1x1.nc"
         else:
             ncfile = "/home/niu4/gliu8/projects/common_data/ERA5/era5_landmask_fromsst.nc"
-            dsmask = xr.open_dataset(ncfile).mask.load()
+        dsmask = xr.open_dataset(ncfile).mask.load()
         return standardize_names(dsmask)
     else:
         print("Experiment not found")
