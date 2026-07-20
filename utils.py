@@ -1561,6 +1561,14 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
             dsmask = "TCo2559-DART-1950C_ocn_r3600x1800_landmask.nc"
         else:
             dsmask = "TCo2559_atmgrid_original_landmask.nc"
+    elif "ERA5" in expname:
+        # Regrided file using bilinear interp/cdo from regrid_era5_1deg.sh 
+        if regrid:
+            ncfile = "/home/niu4/gliu8/projects/common_data/ERA5/era5_landmask_fromsst_regrid1x1.nc"
+        else:
+            ncfile = "/home/niu4/gliu8/projects/common_data/ERA5/era5_landmask_fromsst.nc"
+            dsmask = xr.open_dataset(ncfile).mask.load()
+        return standardize_names(dsmask)
     else:
         print("Experiment not found")
         return np.nan
