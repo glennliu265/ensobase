@@ -33,12 +33,14 @@ def cftime2str(times): # Copied from amv.proc
 #%% User Edits
 
 # Number of Ensembles To Loop
-ensall  = np.arange(1,23,1)
+ensall  = np.arange(1,11,1)
 
 # Input File, variable, and Search String
 vname     = "TS"
-rawpath   = "/home/niu4/gliu8/share/CESM1/MESACLIP/RDA/lores/BHIST/day_1/regrid_1x1"
-searchstr = "%s_*_regrid1x1.nc" % (vname)
+rawpath   = "/home/niu4/gliu8/share/CESM1/MESACLIP/RDA/hires/BHIST/day_1/regrid_1x1"
+ncsearch = "%s_*_regrid1x1.nc" % (vname)
+
+
 
 #%% Start Loop
 st = time.time()
@@ -46,7 +48,7 @@ nens  = len(ensall)
 for e in tqdm.tqdm((range(nens))): # Loop by Ensemble
     
     ens       = ensall[e]
-    searchstr = "%s/ens%03i/%s" % (rawpath,ens,searchstr)
+    searchstr = "%s/ens%03i/%s" % (rawpath,ens,ncsearch)
     nclist    = glob.glob(searchstr)
     nclist.sort()
     nfiles    = len(nclist)
@@ -63,7 +65,7 @@ for e in tqdm.tqdm((range(nens))): # Loop by Ensemble
         dssum = dsday.sum('time')
         
         # Delete to save memory
-        times_byfile.append(ds.time)
+        times_byfile.append(ds.time.copy())
         del ds
         
 
