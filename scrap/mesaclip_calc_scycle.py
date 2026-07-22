@@ -37,7 +37,8 @@ ensall  = np.arange(1,11,1)
 
 # Input File, variable, and Search String
 vname     = "TS"
-rawpath   = "/home/niu4/gliu8/share/CESM1/MESACLIP/RDA/hires/BHIST/day_1/regrid_1x1"
+expname   = "lores"
+rawpath   = "/home/niu4/gliu8/share/CESM1/MESACLIP/RDA/%s/BHIST/day_1/regrid_1x1" % expname
 ncsearch = "%s_*_regrid1x1.nc" % (vname)
 
 

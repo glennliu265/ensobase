@@ -62,7 +62,7 @@ def generate_file_datestr(ystart=1920,yend=2006):
 
 # Number of Ensembles To Loop
 vname   = "TS"
-expname = 'hires'
+expname = 'lores'
 if expname == 'hires':
     ensall  = np.arange(1,11,1)
 else:
@@ -74,7 +74,7 @@ datestrings = generate_file_datestr(ystart=1920,yend=2006)
 nfiles      = len(datestrings)
 
 # Get Paths
-rawpath   = "/home/niu4/gliu8/share/CESM1/MESACLIP/RDA/hires/BHIST/day_1/regrid_1x1"
+rawpath   = "/home/niu4/gliu8/share/CESM1/MESACLIP/RDA/%s/BHIST/day_1/regrid_1x1" % expname
 
 #%% Part (1), Get File Lists for each Ensemble Member
 
@@ -91,9 +91,18 @@ for e in range(nens):
 [print(nc[-1]) for nc in nclist_byens]
 [print(len(nc)) for nc in nclist_byens]
 
-nfiles = len(nclist_byens[0])
 
+nfiles_all = [len(nc) for nc in nclist_byens]
+nfiles = len(nclist_byens[1]) # Take second one 
 
+# Correct for Ens 1 to start from 1920
+# Note that you are still removing the whole period scycle 1850-2005
+while nfiles_all[0] != nfiles_all[1]:
+    print("Warning! Ens 1 has more files (%i vs %i)" % (nfiles_all[0],nfiles_all[1]))
+    nstart = np.where(['1920' in nc for nc in nclist_byens[0]])[0].item() #np.isin('1920',nfiles_all[0])
+    nclist_byens[0] = nclist_byens[0][nstart:]
+    nfiles_all[0] = len(nclist_byens[0])
+    print("Cropping to start at 1920...")
 
 #%% Load Seaspal Cycle for each File
 
