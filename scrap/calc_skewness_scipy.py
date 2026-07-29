@@ -80,7 +80,7 @@ nanskew        = lambda x,axis: sp.stats.skew(x,axis=axis,nan_policy='omit')
 
 # User Edits
 scenario      ="BHIST"
-expname       = "lores"
+expname       = "hires"
 freq          = "day_1"
 outpath       = "/home/niu4/gliu8/projects/mesaclip/skewness"
 detrend_order = 2
@@ -135,7 +135,7 @@ for ens in ensnum:
     
     # Compute Skewness using SciPy ============================================
     # LoRes time (~257.55s 1980-2005)
-    st  = time.time()
+    st       = time.time()
     dsa_skew = dsa.reduce(func=nanskew,dim='time')
     print("Computed Skewness in %.2fs" % (time.time()-st))
     
