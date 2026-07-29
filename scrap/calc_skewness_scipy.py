@@ -87,6 +87,7 @@ detrend_order = 2
 vname         = "TS"
 ystart        = '1980'
 yend          = '2005'
+seasonal      = True
 
 # Set Number of Ensembles based on experiment
 if expname == "lores":
@@ -134,16 +135,25 @@ for ens in ensnum:
     print("Anomalized in %.2fs" % (time.time()-st))
     
     # Compute Skewness using SciPy ============================================
-    # LoRes time (~257.55s 1980-2005)
-    st       = time.time()
-    dsa_skew = dsa.reduce(func=nanskew,dim='time')
-    print("Computed Skewness in %.2fs" % (time.time()-st))
+    if seasonal:
+        # LoRes time (~257.55s 1980-2005)
+        st       = time.time()
+        dsa_skew = dsa.groupby('time.season').reduce(func=nanskew,dim='time')
+        print("Computed Skewness in %.2fs" % (time.time()-st))
+        
+    else:
+        # LoRes time (~257.55s 1980-2005)
+        st       = time.time()
+        dsa_skew = dsa.reduce(func=nanskew,dim='time')
+        print("Computed Skewness in %.2fs" % (time.time()-st))
     
     # Save Output =============================================================
     
     # Set Output Name
     st  = time.time()
     outname="%s/%s/%s_ens%03i.nc" %(outpath,process_name,vname,ens)
+    if seasonal:
+        outname = proc.addstrtoext(outname,"_seasonal")
     dsa_skew.to_netcdf(outname)
     print("Saved in %.2fs" % (time.time()-st))
     print(outname)
