@@ -80,7 +80,7 @@ nanskew        = lambda x,axis: sp.stats.skew(x,axis=axis,nan_policy='omit')
 
 # User Edits
 scenario      ="BHIST"
-expname       = "hires"
+expname       = "lores"
 freq          = "day_1"
 outpath       = "/home/niu4/gliu8/projects/mesaclip/skewness"
 detrend_order = 2
@@ -98,6 +98,8 @@ elif expname == 'hires':
 # Set path to Ensemble Member
 rawpath_to_ens = "/home/niu4/gliu8/share/CESM1/MESACLIP/RDA/%s/%s/%s/regrid_1x1" % (expname,scenario,freq)
 process_name   = "CESM1_MESACLIP_%s_%s_%s_Crop_%s-%s_detrend%i" % (expname,scenario,freq,ystart,yend,detrend_order)
+if seasonal:
+    process_name = process_name + "_seasonal"
 proc.makedir("%s/%s/" % (outpath,process_name))
 
 # Loop by Ensemble Mmeber
@@ -152,8 +154,8 @@ for ens in ensnum:
     # Set Output Name
     st  = time.time()
     outname="%s/%s/%s_ens%03i.nc" %(outpath,process_name,vname,ens)
-    if seasonal:
-        outname = proc.addstrtoext(outname,"_seasonal")
+    # if seasonal:
+    #     outname = proc.addstrtoext(outname,"_seasonal")
     dsa_skew.to_netcdf(outname)
     print("Saved in %.2fs" % (time.time()-st))
     print(outname)
