@@ -179,12 +179,9 @@ def get_rolling_threshold(timeseries,quantiles=[0.10,0.90],monthly=True):
     #     if 'dayofyear' in list(times_and_values[dd].coords.keys()):
     #         times_and_values[dd] = times_and_values[dd].drop_vars('dayofyear')
     
-    
-    
 def pad_nan(indata,nmax):
     ndata = len(indata)
     return np.pad(indata,(0,nmax-ndata),'constant',constant_values=np.nan)
-
 
 def id_extremes_arr(timeseries,thres,positive,eventid_max=None,tol=1,verbose=False,tname='max'):
     if eventid_max is None:
@@ -312,8 +309,9 @@ print("\tThreshold Calculated in %.2fs" % (time.time()-st))
 st         = time.time()
 thresin    = thresholds_global.isel(quantile=1)
 positive   = True
+func_in     = lambda ds,thres,sign : id_extremes_arr(ds,thres,sign,tol=tol)
 events_pos = xr.apply_ufunc(
-    id_extremes_arr,
+    func_in,
     dsload,
     thresin,
     positive,
@@ -348,7 +346,7 @@ st         = time.time()
 thresin    = thresholds_global.isel(quantile=0)
 positive   = False
 events_neg = xr.apply_ufunc(
-    id_extremes_arr,
+    func_in,
     dsload,
     thresin,
     positive,
