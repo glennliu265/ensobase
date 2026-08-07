@@ -2067,7 +2067,7 @@ def varcheck(ds,vname,expname):
             print("Converting from Pa to hPa for %s" % vname)
             ds = ds/100 # Convert from Pa to hPa
     if vname in ['w700','w500']:
-        if "TCo" in expname:
+        if "TCo" in expname or "ERA5" in expname:
             print("Converting from Pa/sec to hPa/day for %s" % vname)
             ds = ds/100 * 3600*24 # Convert to hPa/day
     
