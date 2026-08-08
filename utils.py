@@ -2020,7 +2020,7 @@ def varcheck(ds,vname,expname):
                  'ttr','tsr',
                  'ttrc','tsrc',
                  'ttcre','tscre',
-                 'allsky','clearsky','cre'
+                 'allsky','clearsky','cre',
                  'sshf','slhf']: # Accumulation over 3h
         if "TCo" in expname:
             # Conversion for STR and SSR considering 3h Accumulation
