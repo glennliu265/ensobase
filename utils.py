@@ -1795,10 +1795,11 @@ def preprocess_byperiod(dswins,order=1,verbose=False,detrend=True):
         dsin   = dswins[nw].squeeze()
         dsanom = proc.xrdeseason(dsin,verbose=verbose)
         if detrend: # Optionally Detrend
-            if len(dsanom.shape) > 1:
-                dsanom = proc.xrdetrend_nd(dsanom,order,verbose=verbose)
-            else:
-                dsanom = proc.xrdetrend(dsanom,verbose=verbose)
+            # if len(dsanom.shape) > 1:
+            #     dsanom = proc.xrdetrend_nd(dsanom,order,verbose=verbose)
+            # else:
+            #     dsanom = proc.xrdetrend(dsanom,verbose=verbose)
+            dsanom = proc.xrdetrend_dim(dsanom,dim='time',deg=order)
         dsanoms.append(dsanom)
     return dsanoms
 
