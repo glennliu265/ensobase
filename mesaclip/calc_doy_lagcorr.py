@@ -42,7 +42,7 @@ st     = time.time()
 ncpath = "/home/niu4/gliu8/share/OISST/mergetest/anom_detrend2_19820101-20251231/"
 ncname = "oisst_day_1_sst_anom.nc"
 dsview = xr.open_dataset(ncpath+ncname).load()
-print("Loaded Data in %.2fs" % (time.time()))
+print("Loaded Data in %.2fs" % (time.time()-st))
 print(dsview)
 
 #%% Set Function
@@ -88,8 +88,8 @@ def lagcorr_day(timeseries,doy,doy_start,nlag,verbose=False):
         tsin = get_doy(timeseries,doy,days_sel)       # Get Data Indexing by Day of Year
         if verbose:
             print("Selecting Days %i to %i" % (doy_start,doy_end)) 
-            print("Total Selected Days: %i" % (len(days_sel)))
-    print("\n")
+            print("Total Selected Days: %i" % (len(days_sel))) 
+            print("\n")
     
     # Part 2, Concatenate and perform calculations
     if year_cross:
@@ -127,8 +127,6 @@ def lagcorr_day(timeseries,doy,doy_start,nlag,verbose=False):
     corrout = np.array(corrout)
     return corrout
 
-
-
 def calc_all_doy_lags(timeseries,doy,nlags=300):
     corr_bydoy = []
     for dd in np.arange(1,366):
@@ -136,29 +134,63 @@ def calc_all_doy_lags(timeseries,doy,nlags=300):
         corr_bydoy.append(corrout)
     corr_bydoy = np.array(corr_bydoy) # [doy,lag]
     return corr_bydoy
-        
 
-    
+#%%
 
-st = time.time()
+st            = time.time()
 doy_start     = 1   # Day of Year to Start
 nlags         = 300 # # of days to include
 timeseries    = dsview#.data # Input Timeseries
 doy           = dsview.time.dt.dayofyear
+xrname        = '__xarray_dataarray_variable__'
+timeseries    = timeseries[xrname].squeeze()
+use_xrfunc    = False
 
-ds_doy= xr.apply_ufunc(
-    calc_all_doy_lags,
-    timeseries,
-    doy,
-    input_core_dims=[['time'],['time']],
-    output_core_dims=[['doy','lags',]],
-    vectorize=True,
-    )
-
-
-ds_doy.to_netcdf("doy_test_calc.nc")
-
+# This is the Loop Version
+if not use_xrfunc:
+    doy               = doy.squeeze()
+    timeseries        = timeseries.transpose('time','lat','lon',)
+    ntime,nlat,nlon   = timeseries.shape
+    
+    nday              = 365
+    nlags             = nlags+1
+    decorr_timescales = np.zeros((nday,nlags,nlat,nlon)) * np.nan # 57 GB for 300 Lags...
+    
+    for a in tqdm(range(nlat)):
+        for o in range(nlon):
+            tspt     = timeseries.isel(lat=a,lon=o).data
+            if np.any(np.isnan(tspt)):
+                continue
+            decorrpt = calc_all_doy_lags(tspt,doy,nlags=nlags)
+            decorr_timescales[:,:,a,o] = decorrpt.copy()
+            
+    dictout = dict(
+        day_of_year = np.arange(1,366,1),
+        lag = np.arange(1,nlags+1,1),
+        lat = timeseries.lat.data,
+        lon = timeseries.lon.data,
+        )
+    
+    ds_doy = xr.DataArray(decorr_timescales,dims=dictout,coords=dictout,name='decorrelation_timescales')
+    
+    ds_doy.to_netcdf("doy_test_calc_pointwise.nc")
+    print("Completed Calculation in %.2fs" % (time.time()-st))  
+    
+else:
+    
+    # This is the xrfunc Version
+    ds_doy= xr.apply_ufunc(
+        calc_all_doy_lags,
+        timeseries,
+        doy,
+        input_core_dims=[['time'],['time']],
+        output_core_dims=[['doy','lags',]],
+        vectorize=True,
+        )
+    
+    ds_doy.to_netcdf("doy_test_calc.nc")
+    
 print("Completed Calculation in %.2fs" % (time.time()-st))
-
-
+    
+    
 
