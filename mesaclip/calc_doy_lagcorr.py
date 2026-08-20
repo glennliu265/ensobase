@@ -194,8 +194,13 @@ def lagcorrdaily_nowindow_np(timeseries,years,doys,nlags,verbose=False):
                 dslag      = dslag[ (lagyears>=lag_years[0])    & (lagyears<=lag_years[1]) ]
 
                 shift_counter += 1
-                
-            corrout = np.corrcoef(dsbase,dslag)[0,1]
+            try:
+                corrout = np.corrcoef(dsbase,dslag)[0,1]
+            except:
+                print("Failure, sizes are:")
+                print(dsbase.shape)
+                print(dslag.shape)
+                corrout = np.nan
             lagcorr_byday[dd,ll] = corrout.copy() 
     return lagcorr_byday
 
@@ -226,20 +231,20 @@ if not use_xrfunc:
     decorr_timescales = np.zeros((nday,nlags,nlat,nlon)) * np.nan # 57 GB for 300 Lags...
     
     if winsize == 0:
+        print("Window Size is Zero")
         for a in tqdm(range(nlat)):
             for o in range(nlon):
                 tspt     = timeseries.isel(lat=a,lon=o).data
                 if np.any(np.isnan(tspt)):
                     continue
-                decorrpt = lagcorrdaily_nowindow_np(timeseries,years,doys,nlags,verbose=False)
+                decorrpt = lagcorrdaily_nowindow_np(tspt,years,doys,nlags,verbose=False)
                 decorr_timescales[:,:,a,o] = decorrpt.copy()
-                
-                
-                
+        
     else: # Old Version
+        print("Calc using old func")
         for a in tqdm(range(nlat)):
             for o in range(nlon):
-                tspt     = timeseries.isel(lat=a,lon=o).data
+                tspt     = timeseries.isel(lat=a,lon=o).data.squeeze()
                 if np.any(np.isnan(tspt)):
                     continue
                 decorrpt = calc_all_doy_lags(tspt,doy,nlags=nlags)
@@ -258,7 +263,7 @@ if not use_xrfunc:
     print("Completed Calculation in %.2fs" % (time.time()-st))  
     
 else:
-    
+    print("Use xrfunc")
     # This is the xrfunc Version
     ds_doy= xr.apply_ufunc(
         calc_all_doy_lags,
