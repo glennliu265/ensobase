@@ -135,6 +135,71 @@ def calc_all_doy_lags(timeseries,doy,nlags=300):
     corr_bydoy = np.array(corr_bydoy) # [doy,lag]
     return corr_bydoy
 
+
+# Use Above as Numpy -- It is much faster (~2 min instead of 20 min...)
+def seldoy_np(timeseries,doys,doysel):
+    idsel = np.where(np.isin(doys,doysel))[0]
+    return timeseries[idsel]
+
+
+# NOTE THIS IS THE WORKING VERSION RN for NO WINDOW
+def lagcorrdaily_nowindow_np(timeseries,years,doys,nlags,verbose=False):
+    
+    # Get Year Start and Year End
+    year_start,year_end = years[0],years[-1]
+    
+    # Set Up Lags and Start Days
+    lags          = np.arange(1,nlags+1,1)
+    nlagloop      = len(lags)
+    doy_all       = np.arange(1,366,1)
+    
+    # Loop
+    lagcorr_byday = np.zeros((365,nlagloop))
+    for dd in tqdm(range(365)):
+        doy_start     = doy_all[dd]
+
+        
+        year_shift    = 0
+        shift_counter = 0
+        for ll in range(nlagloop):
+            lag       = lags[ll]
+            
+            # Determine Start and Lag Day
+            lag       = lags[ll]
+            doy_base  = doy_start
+            doy_lag   = doy_start + lag
+            if doy_lag > 365: # Move to Next Year
+                doy_lag = doy_lag % 365
+                # Add to Year Shift for First Crossing, or Nearing 1-year since last
+                if (shift_counter == 0) or (shift_counter == 364): 
+                    year_shift += 1   
+                    shift_counter = 0 # Reset to 0
+                    if verbose:
+                        print("Year shift detected at Lag %i" % lag)
+            # if verbose:
+            #     print("Lag Day: %i" % doy_lag)
+            
+            # Select Days
+            dsbase    = seldoy_np(timeseries,doys,doy_base)
+            dslag     = seldoy_np(timeseries,doys,doy_lag)
+            baseyears = seldoy_np(years,doys,doy_base)
+            lagyears  = seldoy_np(years,doys,doy_lag)
+            
+            # Select Years (if Year Crossing)
+            if year_shift > 0: # Apply Shift in Years for Lag
+                base_years = [year_start,year_end-year_shift]# np.arange(year_start,year_end-year_shift+1)
+                lag_years  = [year_start+year_shift,year_end]#np.arange(year_start+year_shift,year_end+1)
+    
+                dsbase     = dsbase[ (baseyears>=base_years[0]) & (baseyears<=base_years[1]) ]
+                dslag      = dslag[ (lagyears>=lag_years[0])    & (lagyears<=lag_years[1]) ]
+
+                shift_counter += 1
+                
+            corrout = np.corrcoef(dsbase,dslag)[0,1]
+            lagcorr_byday[dd,ll] = corrout.copy() 
+    return lagcorr_byday
+
+
 #%%
 
 st            = time.time()
@@ -145,24 +210,40 @@ doy           = dsview.time.dt.dayofyear
 xrname        = '__xarray_dataarray_variable__'
 timeseries    = timeseries[xrname].squeeze()
 use_xrfunc    = False
+winsize       = 0
+
 
 # This is the Loop Version
 if not use_xrfunc:
     doy               = doy.squeeze()
     timeseries        = timeseries.transpose('time','lat','lon',)
     ntime,nlat,nlon   = timeseries.shape
+    years             = timeseries.time.dt.year.data
+    doys              = timeseries.time.dt.dayofyear.data
     
     nday              = 365
     nlags             = nlags+1
     decorr_timescales = np.zeros((nday,nlags,nlat,nlon)) * np.nan # 57 GB for 300 Lags...
     
-    for a in tqdm(range(nlat)):
-        for o in range(nlon):
-            tspt     = timeseries.isel(lat=a,lon=o).data
-            if np.any(np.isnan(tspt)):
-                continue
-            decorrpt = calc_all_doy_lags(tspt,doy,nlags=nlags)
-            decorr_timescales[:,:,a,o] = decorrpt.copy()
+    if winsize == 0:
+        for a in tqdm(range(nlat)):
+            for o in range(nlon):
+                tspt     = timeseries.isel(lat=a,lon=o).data
+                if np.any(np.isnan(tspt)):
+                    continue
+                decorrpt = lagcorrdaily_nowindow_np(timeseries,years,doys,nlags,verbose=False)
+                decorr_timescales[:,:,a,o] = decorrpt.copy()
+                
+                
+                
+    else: # Old Version
+        for a in tqdm(range(nlat)):
+            for o in range(nlon):
+                tspt     = timeseries.isel(lat=a,lon=o).data
+                if np.any(np.isnan(tspt)):
+                    continue
+                decorrpt = calc_all_doy_lags(tspt,doy,nlags=nlags)
+                decorr_timescales[:,:,a,o] = decorrpt.copy()
             
     dictout = dict(
         day_of_year = np.arange(1,366,1),
@@ -173,7 +254,7 @@ if not use_xrfunc:
     
     ds_doy = xr.DataArray(decorr_timescales,dims=dictout,coords=dictout,name='decorrelation_timescales')
     
-    ds_doy.to_netcdf("doy_test_calc_pointwise.nc")
+    ds_doy.to_netcdf("doy_test_calc_pointwise_winsize%i.nc" % winsize)
     print("Completed Calculation in %.2fs" % (time.time()-st))  
     
 else:
