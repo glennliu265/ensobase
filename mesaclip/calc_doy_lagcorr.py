@@ -144,6 +144,12 @@ def seldoy_np(timeseries,doys,doysel):
 
 # NOTE THIS IS THE WORKING VERSION RN for NO WINDOW
 def lagcorrdaily_nowindow_np(timeseries,years,doys,nlags,verbose=False):
+    if np.any(np.isnan(timeseries)):
+        lags          = np.arange(1,nlags+1,1)
+        nlagloop      = len(lags)
+        lagcorr_byday = np.zeros((365,nlagloop)) * np.nan
+        
+        return lagcorr_byday
     
     # Get Year Start and Year End
     year_start,year_end = years[0],years[-1]
@@ -212,9 +218,10 @@ doy_start     = 1   # Day of Year to Start
 nlags         = 300 # # of days to include
 timeseries    = dsview#.data # Input Timeseries
 doy           = dsview.time.dt.dayofyear
+years         = dsview.time.dt.year
 xrname        = '__xarray_dataarray_variable__'
 timeseries    = timeseries[xrname].squeeze()
-use_xrfunc    = False
+use_xrfunc    = True
 winsize       = 0
 
 
@@ -223,8 +230,8 @@ if not use_xrfunc:
     doy               = doy.squeeze()
     timeseries        = timeseries.transpose('time','lat','lon',)
     ntime,nlat,nlon   = timeseries.shape
-    years             = timeseries.time.dt.year.data
-    doys              = timeseries.time.dt.dayofyear.data
+    years             = years.data
+    doys              = doy.data
     
     nday              = 365
     nlags             = nlags+1
@@ -264,17 +271,37 @@ if not use_xrfunc:
     
 else:
     print("Use xrfunc")
-    # This is the xrfunc Version
-    ds_doy= xr.apply_ufunc(
-        calc_all_doy_lags,
-        timeseries,
-        doy,
-        input_core_dims=[['time'],['time']],
-        output_core_dims=[['doy','lags',]],
-        vectorize=True,
-        )
     
-    ds_doy.to_netcdf("doy_test_calc.nc")
+    if winsize == 0:
+        
+        print("\tUsing Winsize = 0")
+        
+        ds_doy= xr.apply_ufunc(
+            lagcorrdaily_nowindow_np,
+            timeseries,
+            doy,
+            input_core_dims=[['time'],['time']],
+            output_core_dims=[['doy','lags',]],
+            vectorize=True,
+            )
+        
+        
+    else:
+        print("\tUsing Winsize = 300")
+        
+        # This is the xrfunc Version (took 5 days to run for OISST :(...)
+        ds_doy= xr.apply_ufunc(
+            calc_all_doy_lags,
+            timeseries,
+            years,
+            doy,
+            nlags,
+            input_core_dims=[['time'],['time'],['time'],[]],
+            output_core_dims=[['doy','lags',]],
+            vectorize=True,
+            )
+    
+    ds_doy.to_netcdf("doy_test_calc_pointwise_winsize%i.nc" % winsize)
     
 print("Completed Calculation in %.2fs" % (time.time()-st))
     
