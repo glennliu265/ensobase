@@ -279,8 +279,10 @@ else:
         ds_doy= xr.apply_ufunc(
             lagcorrdaily_nowindow_np,
             timeseries,
+            years,
             doy,
-            input_core_dims=[['time'],['time']],
+            nlags,
+            input_core_dims=[['time'],['time'],['time'],[]],
             output_core_dims=[['doy','lags',]],
             vectorize=True,
             )
@@ -293,10 +295,8 @@ else:
         ds_doy= xr.apply_ufunc(
             calc_all_doy_lags,
             timeseries,
-            years,
             doy,
-            nlags,
-            input_core_dims=[['time'],['time'],['time'],[]],
+            input_core_dims=[['time'],['time']],
             output_core_dims=[['doy','lags',]],
             vectorize=True,
             )
