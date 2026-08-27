@@ -69,7 +69,7 @@ yend    = years[-1].data.item()
 
 
 lagcorr_alldoys = []
-for doybase in tqdm(np.arange(365)):
+for doybase in tqdm(np.arange(1,366)):
     
     base_var    = ds.sel(time=ds.time.dt.dayofyear.isin(doybase))
     lagcorr_day = []
