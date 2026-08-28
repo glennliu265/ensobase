@@ -75,8 +75,8 @@ def fix_mesaclip_lr_date(ds):
     ds_dummy         = xr.zeros_like(ds.isel(time=0))
     ds_dummy['time'] = cftime.DatetimeNoLeap(2006, 1, 2, 0, 0, 0, 0, has_year_zero=True)
     ds_dummy         = xr.where(np.isnan(ds.isel(time=1)),np.nan,0)
-    return xr.combine_by_coords([ds,ds_dummy])
-    #return xr.concat([dsens,ds_dummy],dim='time').sortby('time')
+    #return xr.combine_by_coords([ds,ds_dummy])
+    return xr.concat([dsens,ds_dummy],dim='time').sortby('time')
         
     
 # def convert_size(size_bytes):
@@ -188,6 +188,7 @@ for xx in tqdm(range(nx-1)):
         
         # Looping for each doy
         if winsize == 0:
+            
             for doybase in doys_sel:
                 
                 base_var    = ds.sel(time=ds.time.dt.dayofyear.isin(doybase))
