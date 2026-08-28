@@ -223,6 +223,8 @@ for xx in tqdm(range(nx-1)):
                 lagcorr_day = xr.concat(lagcorr_day,dim='lag')
                 
                 outname = "%sdaily_acf_lagmax%i_winsize%02i_block%04i_doy%03i.nc" % (outdir_temp,nlags,winsize,nb,doybase)
+                lagcorr_day.to_netcdf(outname)
+                
         else:
             print("Other Winsize Not Supported")
         
