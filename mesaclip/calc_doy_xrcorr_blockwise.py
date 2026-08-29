@@ -125,12 +125,10 @@ print(dsall)
 
 if expname == "mesaclip_hires":
     # Reset the values for hr
-    rst = time.time()
+    rst   = time.time()
     dsall = fix_latlon_hires(dsall)
     print("Reformat hires in %.2fs" % (time.time()-rst))
     
-    
-
 print("View opened in %.2fs" % (time.time()-st))
 
 
@@ -190,13 +188,16 @@ for xx in tqdm(range(nx-1)):
         
             # Load and restrict to Region
             ds = xr.open_dataset(nclist[e])
+            if expname == "mesaclip_hires":
+                ds = fix_latlon_hires(ds)
             ds = preproc(ds)    
             dsens.append(ds.load())
         dsens = xr.concat(dsens,dim='ens')
         
         
         # Do Preprocessing
-        dsens = fix_mesaclip_lr_date(dsens) # Fill missing date for lr (2006-01-02)
+        if expname == "mesaclip_lores":
+            dsens = fix_mesaclip_lr_date(dsens) # Fill missing date for lr (2006-01-02)
         dsens = flatten_ens_time(dsens)     # Concatenate each ens member along time
         
         # Do calculations
