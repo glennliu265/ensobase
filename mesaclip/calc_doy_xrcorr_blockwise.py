@@ -176,7 +176,7 @@ dsblocs = []
 for xx in tqdm(range(nx-1)):
     for yy in range(ny-1):
         
-        if np.isin(nb,block_subset):
+        if ~np.isin(nb,block_subset):
             print("Skipping block %i" % nb)
             nb += 1
             continue
