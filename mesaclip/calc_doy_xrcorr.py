@@ -54,7 +54,7 @@ print(dsview)
 
 outdir  = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/"
 
-winsize = 5
+winsize = 15
 
 #%%
 
