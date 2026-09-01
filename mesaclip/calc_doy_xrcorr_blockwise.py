@@ -105,7 +105,7 @@ doy_monmid    = doy_istart + 14
 doys_sel      = np.sort(np.hstack([doy_istart,doy_monmid]))
 winsize       = 0
 
-block_subset  = np.arange(18,29)
+block_subset  = None#np.arange(18,29)
 
 ndoys         = len(doys_sel)
 #%% Load View of Dataset
@@ -176,11 +176,12 @@ dsblocs = []
 for xx in tqdm(range(nx-1)):
     for yy in range(ny-1):
         
-        if ~np.isin(nb,block_subset):
-            print("Skipping block %i" % nb)
-            nb += 1
-            continue
-        
+        if block_subset is not None:
+            if ~np.isin(nb,block_subset):
+                print("Skipping block %i" % nb)
+                nb += 1
+                continue
+            
         # Set Up Functions
         bbsel     = [lonblocks[xx],lonblocks[xx+1],latblocks[yy],latblocks[yy+1]] 
         def preproc(ds):
