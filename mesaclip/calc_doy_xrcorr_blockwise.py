@@ -99,7 +99,7 @@ def fix_latlon_hires(ds):
 
 #%% Calculation Settings
 
-nlags         = 180
+nlags         = 365
 doy_istart    = np.array(proc.get_doy_monstart())
 doy_monmid    = doy_istart + 14
 doys_sel      = np.sort(np.hstack([doy_istart,doy_monmid]))
@@ -154,7 +154,7 @@ latblocks = np.arange(-90,90+latsize,latsize).astype(int)
 
 nx        = len(lonblocks)
 ny        = len(latblocks)
-ntotal    = nx*ny
+ntotal    = (nx-1)*(ny-1) # nx*ny#
 
 ii        = -2
 bbsel     = [lonblocks[ii],lonblocks[ii+1],latblocks[ii],latblocks[ii+1]]
@@ -166,7 +166,7 @@ print("Sample Arr: %s" % (dsreg))
 #%% Set Output Files
 
 #bsz          = 20
-outdir_temp  = "%stemp_blocksize%02i_nblocks%i/" % (outdir_base,bsz,ntotal)
+outdir_temp  = "%stemp_blocksize%02i_nblocks%i_lagmax%03i/" % (outdir_base,bsz,ntotal,lagmax)
 proc.makedir(outdir_temp)
 
 #%% Now Start the loop
