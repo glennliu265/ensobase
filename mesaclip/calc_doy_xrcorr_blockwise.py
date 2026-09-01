@@ -166,7 +166,7 @@ print("Sample Arr: %s" % (dsreg))
 #%% Set Output Files
 
 #bsz          = 20
-outdir_temp  = "%stemp_blocksize%02i_nblocks%i_lagmax%03i/" % (outdir_base,bsz,ntotal,lagmax)
+outdir_temp  = "%stemp_blocksize%02i_nblocks%i_lagmax%03i/" % (outdir_base,bsz,ntotal,nlags)
 proc.makedir(outdir_temp)
 
 #%% Now Start the loop
