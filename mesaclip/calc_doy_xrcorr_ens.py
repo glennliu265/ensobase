@@ -54,6 +54,8 @@ expname       = "mesaclip_lores" #"mesaclip_hires"
 vname         = "SST"
 ens_restrict  = np.arange(1,11,1)#None
 
+fill_val      = None
+
 # Output Information
 outpath       = "/home/niu4/gliu8/projects/mesaclip/memory/anom_detrend2_19820101-20251231/"
 
@@ -88,8 +90,6 @@ else:
         
 nens = len(ensnum)
 print("Looping for %i members!" % nens)
-
-
 
 #%%
 
@@ -137,6 +137,62 @@ for e in range(nens):
                 else:
                     year_cross = False
                 lag_var  = ds.sel(time=ds.time.dt.dayofyear.isin(doylag))
+                
+                # Check if # of years is the same ------------------------
+                # If not, either skip (for missing year in doy_base) or fill with fill_val (for missing_year in doy_lag)
+                # Note that for mesaclip_lr, 2006-01-02 is missing?
+                byr = base_var.time.dt.year
+                lyr = lag_var.time.dt.year
+                nb = len(byr)
+                nl = len(lyr)
+                if nb != nl:
+                    print("Warning! Uneven year lengths (base: %i, lag: %i)" % (nb,nl))
+                    if nb < nl:
+                        iyrs             = np.where(~np.isin(lyr,byr))[0]
+                        print("Filling %i Missing Times in [base_var] with mean (or [fill_val)..." % (len(iyrs)))
+                        fill_val         = base_var.mean('time') 
+                        if fill_val is not None:
+                            fill_val         = xr.ones_like(fill_val) * fill_val
+                        
+                        missing_concat   = []
+                        for iyr in iyrs:
+                            
+                            missingyr               = lyr[iyr]
+                            byr_day_average         = fill_val.copy()
+                            # Get Missing Date (taking mon and day from first element of byr)
+                            time_missing            = "%04i-%02i-%02i" % (missingyr,byr.time[0].data.item().month,byr.time[0].data.item().day)
+                            # Use xr.date_range to create cftime object
+                            tmiss                   = xr.date_range(start=time_missing,periods=1,calendar='noleap',use_cftime=True)[0]
+                            # Assign to mean Array
+                            byr_day_average['time'] = tmiss
+                            missing_concat.append(byr_day_average.copy())
+                        base_var_new = xr.concat([base_var,] + missing_concat,dim='time').sortby('time')
+                        base_var     = base_var_new.copy()
+                        del base_var_new
+                    else:
+                        iyrs             = np.where(~np.isin(byr,lyr))[0]
+                        print("Filling %i Missing Times in [lag_var] with mean (or [fill_val)..." % (len(iyrs)))
+                        fill_val         = lag_var.mean('time') 
+                        if fill_val is not None:
+                            fill_val         = xr.ones_like(fill_val) * fill_val
+                        
+                        missing_concat   = []
+                        for iyr in iyrs:
+                            
+                            missingyr               = byr[iyr]
+                            lyr_day_average         = fill_val.copy()
+                            # Get Missing Date (taking mon and day from first element of lyr)
+                            time_missing            = "%04i-%02i-%02i" % (missingyr,lyr.time[0].data.item().month,lyr.time[0].data.item().day)
+                            # Use xr.date_range to create cftime object
+                            tmiss                   = xr.date_range(start=time_missing,periods=1,calendar='noleap',use_cftime=True)[0]
+                            # Assign to mean Array
+                            lyr_day_average['time'] = tmiss
+                            missing_concat.append(lyr_day_average.copy())
+                        lag_var_new = xr.concat([lag_var,] + missing_concat,dim='time').sortby('time')
+                        lag_var     = lag_var_new.copy()
+                        del lag_var_new
+                    # End Condition for mismatched base/lag year lengths
+                # ------------------------
                 
                 if year_cross:
                     base_slice  = ["%04i-01-01" % (ystart), "%04i-12-31" % (yend-1)] 
