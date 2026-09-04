@@ -100,7 +100,7 @@ for e in range(nens):
     # Load NetCDF
     # ex: mesaclip_lores_day_1_SST_anom_ens001.nc
     ncname = "%s%s_day_1_%s_anom_ens%03i.nc" % (ncpath,expname,vname,ens)
-    dsview = xr.open_dataset(ncpath+ncname).load()
+    dsview = xr.open_dataset(ncname).load()
     ds     = dsview.squeeze()[xrname]
     print("Loaded Data in %.2fs" % (time.time()-st))
     
