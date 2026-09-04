@@ -50,9 +50,9 @@ st_all = time.time()
 # Experiment Information
 ncpath        = "/home/niu4/gliu8/share/CESM1/MESACLIP/processed/anom_detrend2_19820101-20251231/"
 xrname        = '__xarray_dataarray_variable__'
-expname       = "mesaclip_hires"
+expname       = "mesaclip_lores" #"mesaclip_hires"
 vname         = "SST"
-ens_restrict  = None
+ens_restrict  = np.arange(1,11,1)#None
 
 # Output Information
 outpath       = "/home/niu4/gliu8/projects/mesaclip/memory/anom_detrend2_19820101-20251231/"
