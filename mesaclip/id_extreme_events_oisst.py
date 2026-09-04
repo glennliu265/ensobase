@@ -255,30 +255,34 @@ def addstrtoext(name,addstr,adjust=0):
 
 #%% User Edits
 
-tstart  = "1982-01-01"
-tend    = "2025-12-31" #"2025-12-31"
-outpath = "/home/niu4/gliu8/share/OISST/mergetest/"
-expname = "oisst"
-vname   = "sst"
-freq    = "day_1"
-
-deg          = 2
+tstart       = "1982-01-01"
+tend         = "2025-12-31" #"2025-12-31"
+expname      = "oisst"
+vname        = "sst"
+freq         = "month_1"#"month_1"
+deg          = 2 # Detrend Degree
 
 rawpath      = "/home/niu4/gliu8/share/OISST/mergetest/" #% (scenario)
+outpath      = "/home/niu4/gliu8/share/OISST/mergetest/"
 
+# Make Output Directory
 tstart       = tstart.replace('-','')#npdatetime_to_str(dsanom.time[0]).replace('-','')
 tend         = tend.replace('-','')  #npdatetime_to_str(dsanom.time[-1]).replace('-','')
-outpath_proc = "%s/anom_detrend%i_%s-%s/" % (outpath,deg,tstart,tend,)
+if freq == "month_1":
+    outpath_proc = "%s/monthly/anom_detrend%i_%s-%s/" % (outpath,deg,tstart,tend,)
+else:
+    outpath_proc = "%s/anom_detrend%i_%s-%s/" % (outpath,deg,tstart,tend,)
+
+
 
 # Calculation Options
 monthly    = True
-tol        = 2
+tol        = 1
 verbose    = False
 
 # Make Output Directory
-outdir_metrics = "%sMetrics_monthlybaseline%i_tol%02i_10to90Pct/" % (outpath,monthly,tol)
+outdir_metrics = "%sMetrics_monthlybaseline%i_tol%02i_10to90Pct/" % (outpath_proc,monthly,tol)
 makedir(outdir_metrics)
-
 
 if expname == "lores":
     enslist = np.arange(1,41,1)
@@ -298,18 +302,18 @@ dsload       = xr.open_dataset(outname)
 dsload       = dsload.load()['__xarray_dataarray_variable__']
 print("Loaded in %.2fs" % (time.time()-st))
 
-
 # Calculate Rolling Threshold (~40 sec), 134.29s on Niu
 st           = time.time()
 thresholds_global = get_rolling_threshold(dsload,quantiles=[0.10,0.90],monthly=True)
 print("\tThreshold Calculated in %.2fs" % (time.time()-st))
 
+# Make Function to include combine tolerance
+func_in     = lambda ds,thres,sign : id_extremes_arr(ds,thres,sign,tol=tol)
 
 # First, calculate for positive ===========================================
 st         = time.time()
 thresin    = thresholds_global.isel(quantile=1)
 positive   = True
-func_in     = lambda ds,thres,sign : id_extremes_arr(ds,thres,sign,tol=tol)
 events_pos = xr.apply_ufunc(
     func_in,
     dsload,
