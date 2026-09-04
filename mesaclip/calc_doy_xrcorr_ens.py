@@ -121,7 +121,7 @@ for e in range(nens):
     if winsize == 0:
         print("Not using any window")
         #lagcorr_alldoys = []
-        for dd in tqdm(ndoy):
+        for dd in tqdm(range(ndoy)):
             doybase    = days[dd]
             
             base_var    = ds.sel(time=ds.time.dt.dayofyear.isin(doybase))
@@ -164,7 +164,7 @@ for e in range(nens):
         
         print("Running script with window size")
         
-        for dd in tqdm(ndoy):
+        for dd in tqdm(range(ndoy)):
             
             doybase = days[dd]
             
