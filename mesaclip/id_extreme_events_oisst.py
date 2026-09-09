@@ -295,12 +295,13 @@ freq           = "day_1"#"month_1"
 deg            = 2 # Detrend Degree
 
 # Amplitude Thresholds
+# See `calc_rolling_threshold_oisst.py`
 thresnc        = "/home/niu4/gliu8/projects/mesaclip/thresholds/anom_detrend2_19820101-20251231/oisst_day_1_rolling_threshold_winsize15_pct010-090.nc" # None
 thresname      = "rolling15"
 
 # Duration Thresholds
 combine_tol    = 1 # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
-efolding_tol   = True
+efolding_tol   = False
 winsize        = 15
 if winsize == 0:
     efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_nowindow.nc"
@@ -376,20 +377,17 @@ print("Loaded in %.2fs" % (time.time()-st))
 dsload       = dsload.convert_calendar('noleap')
 
 # Calculate Rolling Threshold (~40 sec), 134.29s on Niu
+# ~73 seconds for pre-loaded threshold
 st                = time.time()
 if thresnc is None:
     print("Calculating thresholds...")
     thresholds_global = get_rolling_threshold(dsload,quantiles=[0.10,0.90],monthly=True)
 else:
     print("Tiling existing thresholds")
-    
+    # Rename doy to dayofyear for groupby operation
     renamedict = dict(doy='dayofyear')
     dsthres    = dsthres.rename(renamedict)
-    
-    
-    st = time.time()
     thresholds_global = xr.ones_like(dsload.squeeze()).groupby('time.dayofyear') * dsthres
-    print("\tThreshold Calculated in %.2fs" % (time.time()-st))
 print("\tThreshold Calculated in %.2fs" % (time.time()-st))
 
 # Make Function to include combine tolerance
