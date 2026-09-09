@@ -21,6 +21,30 @@ import os
 #%% Helper Functions
     
 def combine_consecutive_events(timeseries,event_indices,tol=1,verbose=True):
+    # Make some adjustments based on the tolerance
+    # Note: Asssumes timeseries has an even number of years or is evenly divisible...
+    if type(tol) != int: # Tolerance is NOT just 1 value
+        if len(tol) == 12: # Monthly E-Folding Tolerance
+            # Tolerance Applied by Month
+            nyrs     = int(len(timeseries)/12)
+            tolcheck = np.tile(np.arange(1,13,1),nyrs)
+            if len(timeseries)%12 != 0:
+                print("Warning, Timeseries is not evenly divisible by 12, indexing errors may result.")
+                print(tolcheck.shape)
+                print(timeseries.shape)
+        elif len(tol) == 365: # Daily E-folding Tolerance
+            # Tolerance Applied by Day of Year
+            nyrs     = int(len(timeseries)/365)
+            tolcheck = np.tile(np.arange(1,366,1),nyrs)
+            if len(timeseries)%365 != 0:
+                print("Warning, Timeseries is not evenly divisible by 365, indexing errors may result.")
+                print(tolcheck.shape)
+                print(timeseries.shape)
+        else:
+            print("Invalid size for Tol... must be either a constant or array of 12 (monthly) or 365 (doy)")
+    else:
+        tolcheck = None
+    
     # Given a tolerance level, merge consecutive events
     # Separate into discrete events
     # Copied from combine_events from enso event id
@@ -46,8 +70,15 @@ def combine_consecutive_events(timeseries,event_indices,tol=1,verbose=True):
             prev_id     = ievent
             event_merge = [ievent,]
             continue
+
+        if tolcheck is None: # Tolerance is just a single value
+            tol_in = tol
+        else: # Tolerance is an Array (day of year, or month)
+            event_category = tolcheck[ievent] # Check day or month of event
+            tol_in         = tol[event_category-1]    # -1 for Python Indexing
+            
         
-        if (ievent - prev_id) <= tol: # Consecutive Event
+        if (ievent - prev_id) <= tol_in: # Consecutive Event
             event_merge.append(ievent)
             # if verbose:
             #     print("%i is consecutive to previous events (%s)" % (ievent,event_merge))
@@ -56,6 +87,7 @@ def combine_consecutive_events(timeseries,event_indices,tol=1,verbose=True):
             event_merge = [ievent,] # Make a new one
             # if verbose:
             #     print("Making new event sequence at %i" % (ievent))
+        
         prev_id = ievent
     nevents_combined = len(event_combine)
     if verbose:
@@ -255,13 +287,30 @@ def addstrtoext(name,addstr,adjust=0):
 
 #%% User Edits
 
-tstart       = "1982-01-01"
-tend         = "2025-12-31" #"2025-12-31"
-expname      = "oisst"
-vname        = "sst"
-freq         = "month_1"#"month_1"
-deg          = 2 # Detrend Degree
+tstart         = "1982-01-01"
+tend           = "2025-12-31" #"2025-12-31"
+expname        = "oisst"
+vname          = "sst"
+freq           = "day_1"#"month_1"
+deg            = 2 # Detrend Degree
 
+# Amplitude Thresholds
+thresnc        = "/home/niu4/gliu8/projects/mesaclip/thresholds/anom_detrend2_19820101-20251231/oisst_day_1_rolling_threshold_winsize15_pct010-090.nc" # None
+thresname      = "rolling15"
+
+# Duration Thresholds
+combine_tol    = 1 # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
+efolding_tol   = True
+winsize        = 15
+if winsize == 0:
+    efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_nowindow.nc"
+else:
+    efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_winsize15.nc"
+efolding_vname = "efolding_timescale"
+
+# see `visualize_efolding_timescales
+
+# Paths
 rawpath      = "/home/niu4/gliu8/share/OISST/mergetest/" #% (scenario)
 outpath      = "/home/niu4/gliu8/share/OISST/mergetest/"
 
@@ -275,54 +324,106 @@ else:
 
 
 
+
 # Calculation Options
-monthly    = True
-tol        = 1
+monthly    = True # Group Quantiles using Monthly Baseline
 verbose    = False
+if efolding_tol:
+    print("Loading and using e-folding timescale tolerance")
+    tolname="efolding_winsize%i" % winsize
+    dstol = xr.open_dataset(efolding_nc)[efolding_vname].load()
+    tol   = None
+else:
+    print("Using fixed tolerance: %i (%s)" % (combine_tol,freq))
+    tol = combine_tol
+    tolname="tol%02i" % combine_tol
+    
+if thresnc is not None:
+    print("Loading custom threshold: %s" % thresname)
+    dsthres = xr.open_dataset(thresnc).load()
+    xrname  ='__xarray_dataarray_variable__'
+    dsthres = dsthres[xrname].squeeze()
+else:
+    print("Regular Monthly Threshold will be used")
+    
 
 # Make Output Directory
-outdir_metrics = "%sMetrics_monthlybaseline%i_tol%02i_10to90Pct/" % (outpath_proc,monthly,tol)
+outpath_event = "/home/niu4/gliu8/projects/mesaclip/events/anom_detrend%i_%s-%s/" % (deg,tstart,tend,)
+outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct/" % (outpath_event,monthly,thresname,tolname)
 makedir(outdir_metrics)
 
+# Set Number of Ensembles (only Relevant for MESACLIP)
 if expname == "lores":
     enslist = np.arange(1,41,1)
 else:
     enslist = np.arange(1,11,1)
 nens = len(enslist)
 
-
 #%% Ensemble Loop
 
 start_all    = time.time()
-outname      = "%s%s_%s_%s_anom.nc" % (outpath_proc,expname,freq,vname)
+loadname     = "%s%s_%s_%s_anom.nc" % (outpath_proc,expname,freq,vname)
+
+outname      = "%s%s_%s_%s_anom_%s.nc" % (outdir_metrics,expname,freq,vname,tolname)
 
 # Load the Variable
 st           = time.time()
-dsload       = xr.open_dataset(outname)
+dsload       = xr.open_dataset(loadname)
 dsload       = dsload.load()['__xarray_dataarray_variable__']
 print("Loaded in %.2fs" % (time.time()-st))
 
+# Convert to No Leap
+dsload       = dsload.convert_calendar('noleap')
+
 # Calculate Rolling Threshold (~40 sec), 134.29s on Niu
-st           = time.time()
-thresholds_global = get_rolling_threshold(dsload,quantiles=[0.10,0.90],monthly=True)
+st                = time.time()
+if thresnc is None:
+    print("Calculating thresholds...")
+    thresholds_global = get_rolling_threshold(dsload,quantiles=[0.10,0.90],monthly=True)
+else:
+    print("Tiling existing thresholds")
+    
+    renamedict = dict(doy='dayofyear')
+    dsthres    = dsthres.rename(renamedict)
+    
+    
+    st = time.time()
+    thresholds_global = xr.ones_like(dsload.squeeze()).groupby('time.dayofyear') * dsthres
+    print("\tThreshold Calculated in %.2fs" % (time.time()-st))
 print("\tThreshold Calculated in %.2fs" % (time.time()-st))
 
 # Make Function to include combine tolerance
-func_in     = lambda ds,thres,sign : id_extremes_arr(ds,thres,sign,tol=tol)
+if not efolding_tol:
+    func_in       = lambda ds,thres,sign : id_extremes_arr(ds,thres,sign,tol=tol)
+else:
+    func_in       = lambda ds,thres,sign,tolsel : id_extremes_arr(ds,thres,sign,tol=tolsel)
 
 # First, calculate for positive ===========================================
 st         = time.time()
 thresin    = thresholds_global.isel(quantile=1)
 positive   = True
-events_pos = xr.apply_ufunc(
-    func_in,
-    dsload,
-    thresin,
-    positive,
-    input_core_dims=[["time"],["time"],[]],
-    output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[]],
-    vectorize=True,
-)
+if efolding_tol:
+    # Apply E-folding Threshold
+    events_pos = xr.apply_ufunc(
+        func_in,
+        dsload,
+        thresin,
+        positive,
+        dstol,
+        input_core_dims=[["time"],["time"],[],['doy']],
+        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[]],
+        vectorize=True,
+    )
+else:
+    events_pos = xr.apply_ufunc(
+        func_in,
+        dsload,
+        thresin,
+        positive,
+        input_core_dims=[["time"],["time"],[]],
+        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[]],
+        vectorize=True,
+    )
 print("\t(+) Events Found in %.2fs" % (time.time()-st))
 
 # Postprocess Output
@@ -349,15 +450,27 @@ del events_pos,dsout
 st         = time.time()
 thresin    = thresholds_global.isel(quantile=0)
 positive   = False
-events_neg = xr.apply_ufunc(
-    func_in,
-    dsload,
-    thresin,
-    positive,
-    input_core_dims=[["time"],["time"],[]],
-    output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[]],
-    vectorize=True,
-)
+if efolding_tol:
+    events_neg = xr.apply_ufunc(
+        func_in,
+        dsload,
+        thresin,
+        positive,
+        dstol,
+        input_core_dims=[["time"],["time"],[],['doy']],
+        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[]],
+        vectorize=True,
+    )
+else:
+    events_neg = xr.apply_ufunc(
+        func_in,
+        dsload,
+        thresin,
+        positive,
+        input_core_dims=[["time"],["time"],[]],
+        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[]],
+        vectorize=True,
+    )
 print("\t(-) Events Found in %.2fs" % (time.time()-st))
 
 # Postprocess Output
@@ -379,11 +492,5 @@ print("\tSaved (-) Events in %.2f" % (time.time()-st))
 print("Completed n %.2fs" % (time.time()-start_all))
 del events_neg,dsout,dsload,thresholds_global
 # = addstrtoext(outname,"_")
-    
 
-    
-
-    
-    
-    
     
