@@ -300,7 +300,7 @@ thresnc        = "/home/niu4/gliu8/projects/mesaclip/thresholds/anom_detrend2_19
 thresname      = "rolling15"
 
 # Duration Thresholds
-combine_tol    = 1 # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
+combine_tol    = 2 # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
 efolding_tol   = False
 winsize        = 15
 if winsize == 0:
