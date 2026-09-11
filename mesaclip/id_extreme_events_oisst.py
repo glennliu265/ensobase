@@ -252,7 +252,7 @@ def id_extremes_arr(timeseries,thres,positive,eventid_max=None,tol=1,verbose=Fal
 
     
 
-    return id_out,values_out,duration,event_mean,nevents,event_cumu
+    return id_out,values_out,duration,event_mean,event_cumu,nevents
 
 
 def makedir(expdir):
@@ -390,11 +390,16 @@ else:
     thresholds_global = xr.ones_like(dsload.squeeze()).groupby('time.dayofyear') * dsthres
 print("\tThreshold Calculated in %.2fs" % (time.time()-st))
 
+
 # Make Function to include combine tolerance
 if not efolding_tol:
     func_in       = lambda ds,thres,sign : id_extremes_arr(ds,thres,sign,tol=tol)
 else:
     func_in       = lambda ds,thres,sign,tolsel : id_extremes_arr(ds,thres,sign,tol=tolsel)
+
+
+outdims_xrfunc = [["eventid"],["eventid"],["eventid"],["eventid"],['eventid'],[],]
+outnames       = ['id_max','event_max','duration','event_mean','cumulative_intensity','nevents']
 
 # First, calculate for positive ===========================================
 st         = time.time()
@@ -409,7 +414,7 @@ if efolding_tol:
         positive,
         dstol,
         input_core_dims=[["time"],["time"],[],['doy']],
-        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[],['eventid']],
+        output_core_dims=outdims_xrfunc,
         vectorize=True,
     )
 else:
@@ -419,13 +424,12 @@ else:
         thresin,
         positive,
         input_core_dims=[["time"],["time"],[]],
-        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[],['eventid']],
+        output_core_dims=outdims_xrfunc,
         vectorize=True,
     )
 print("\t(+) Events Found in %.2fs" % (time.time()-st))
 
 # Postprocess Output
-outnames = ['id_max','event_max','duration','event_mean','nevents']
 dsout    = xr.merge([events_pos[ii].rename(outnames[ii]) for ii in range(len(events_pos))])
 
 # Reduce NaN
@@ -456,7 +460,7 @@ if efolding_tol:
         positive,
         dstol,
         input_core_dims=[["time"],["time"],[],['doy']],
-        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[]],
+        output_core_dims=outdims_xrfunc,
         vectorize=True,
     )
 else:
@@ -466,7 +470,7 @@ else:
         thresin,
         positive,
         input_core_dims=[["time"],["time"],[]],
-        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[]],
+        output_core_dims=outdims_xrfunc,
         vectorize=True,
     )
 print("\t(-) Events Found in %.2fs" % (time.time()-st))
