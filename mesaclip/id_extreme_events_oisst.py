@@ -250,9 +250,9 @@ def id_extremes_arr(timeseries,thres,positive,eventid_max=None,tol=1,verbose=Fal
     metrics_out     = [pad_nan(arr,eventid_max) for arr in metrics_out]
     id_out,values_out,duration,event_mean,event_std,event_cumu = metrics_out
 
+    
 
-
-    return id_out,values_out,duration,event_mean,nevents
+    return id_out,values_out,duration,event_mean,nevents,event_cumu
 
 
 def makedir(expdir):
@@ -409,7 +409,7 @@ if efolding_tol:
         positive,
         dstol,
         input_core_dims=[["time"],["time"],[],['doy']],
-        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[]],
+        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[],['eventid']],
         vectorize=True,
     )
 else:
@@ -419,7 +419,7 @@ else:
         thresin,
         positive,
         input_core_dims=[["time"],["time"],[]],
-        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[]],
+        output_core_dims=[["eventid"],["eventid"],["eventid"],["eventid"],[],['eventid']],
         vectorize=True,
     )
 print("\t(+) Events Found in %.2fs" % (time.time()-st))
