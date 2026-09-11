@@ -301,7 +301,7 @@ thresname      = "rolling15"
 
 # Duration Thresholds
 combine_tol    = 2 # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
-efolding_tol   = True #False
+efolding_tol   = False #False
 winsize        = 15
 if winsize == 0:
     efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_nowindow.nc"
