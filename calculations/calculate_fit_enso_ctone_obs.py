@@ -2,15 +2,13 @@
 # -*- coding: utf-8 -*-
 """
 
-Calculate the Seasonal Fits to Nino3.4 * cos(wt*phi) for a selected variable
-for Early/Late SSP.585 Periods
+Fit ENSO Combination Mode to Flux Anomalies
 
-Copied from `compare_sst_cre_ssp585_awi.ipynb`
+Copied wholeperiod script
 
-Created on Fri Aug 21 15:17:43 2026
+Created on Mon Sep 14 11:27:15 2026
 
 @author: gliu
-
 """
 
 import sys
@@ -178,64 +176,53 @@ stall             = time.time()
 
 #%% 1.1 Set Variable and Experiment Loops (User Edits here)
 
-lpf               = 6 #Set to None to Not Low_pass Filter
-
+lpf               = 6 # None to not LPF, otherwise cutoff month of LPF
 vnames            = ["cre","tscre","ttcre","sst"]
 compute_ids       = np.arange(0,3) #  Compute for all but sst
 
 # Note: Important to Keep in this order, where 1-2 are full funs, 3-5 are 2055-2100 only...
-expnames  = ["TCo319-DART-ssp585d-gibbs-charn",
-             "TCo319_ssp585",
-             "TCo319_ssp585_ens01",
-             "TCo319_ssp585_ens02",
-             "TCo319_ssp585_ens03",]
+expname           = "CERES_EBAF"
 
 # Count Experients
-nexps             = len(expnames)
 nvars             = len(vnames)
 
 # Output Path
 outpath = "/home/niu4/gliu8/projects/ccfs/enso_ctone_fits/"
 
-#%% 1.2 Load Variables and Merge into Dataset
+#%% 1.2 Load Variables
 
 st        = time.time()
-varsbyexp = []
-for ex in tqdm(range(nexps)):
-    expname = expnames[ex]
+nvars     = len(vnames)
+varsobs = []
+for vv in range(nvars):
+    vname = vnames[vv]
+    if vname == "sst":
+        expin = "ERA5"
+    else:
+        expin = "CERES_EBAF"
+    ds    = ut.loadregrid(expin,vname,reformat=True)
+    varsobs.append(ds)
 
-    vbv = []
-    for vv in range(nvars):
-        vname = vnames[vv]
-        ds    = ut.loadregrid(expname,vname,reformat=True)
-        vbv.append(ds)
-    varsbyexp.append(vbv)
-varsawi  = [xr.merge(ds) for ds in varsbyexp]
+varsobs = xr.merge(varsobs)
 print("Loaded variables in %.2fs" % (time.time()-st))
+
 
 #%% 1.3 Anomalize Each Separately
 
-st = time.time()
-varsawi_anom = [preproc_dataset(ds,vnames) for ds in varsawi]
+st           = time.time()
+varsobs_anom = preproc_dataset(varsobs,vnames)
 print("Preprocessed variables in %.2fs" % (time.time()-st))
 
-#%% 1.3.5 (Optionally Apply LowPassFilter)
-
+#%% Optinally Apply Low PAss Filter
 if lpf is not None:
-    st = time.time()
-    varsawi_anom = [pointwise_lp(dd,lpf) for dd in varsawi_anom]
+    st           = time.time()
+    varsobs_anom = pointwise_lp(varsobs_anom,lpf)
     print("Low-Pass Filtered in %.2fs" % (time.time()-st))
 
-#%% 1.4 Concatenate experiments by time
-
-st             = time.time()
-varsawi_concat = concat_exp(varsawi_anom)
-print("Concatenated Variables by time in %.2fs" % (time.time()-st))
-
-#%% 1.5 Calculate Nino3.4
+#%% 1.4 Calculate Nino3.4
 
 bbox_nino34    = [-170+360,-120+360,-5,5]     # Nino3.4 Box
-nino34         = proc.aavg(varsawi_concat['sst'],bbox_nino34)
+nino34         = proc.aavg(varsobs_anom['sst'],bbox_nino34)
 
 # =============================================================================
 #%% Part 2. Calculation of Regression Coefficients
@@ -250,14 +237,14 @@ for ii in tqdm(range(len(compute_ids))):
     print("Starting calculations for %s..." % vname)
     
     # Get Variables
-    anom_in = varsawi_concat[vname]
+    anom_in = varsobs_anom[vname]
     ninoin  = nino34
     
     # Perform Fit
     fitout  = pointwise_fit_enso_ctone_phi(anom_in,ninoin,save_model=True)
     
     # Save Variable
-    outname = "%sENSO_CTONE_PHI_Fits_ConcatExp_TCo319_ssp585_WholePeriod_%s.nc" % (outpath,vname)
+    outname = "%sENSO_CTONE_PHI_Fits_ConcatExp_Obs_WholePeriod_%s.nc" % (outpath,vname)
     if lpf is not None:
         outname = proc.addstrtoext(outname,'lpf%0i' % lpf)
     fitout.to_netcdf(outname)
@@ -266,3 +253,4 @@ for ii in tqdm(range(len(compute_ids))):
     print("\tCompleted calculations for %s in %.2fs." % (vname,time.time()-stl))
 
 print("Script ran to completion in %.2fs." % (time.time()-stall))
+
