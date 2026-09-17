@@ -106,6 +106,7 @@ def rolling_quantile_threshold(timeseries,doy,ibefore,iafter,
 # Input Information
 expname = "mesaclip_hires"
 ncpath  = "/home/niu4/gliu8/share/CESM1/MESACLIP/processed/anom_detrend2_19820101-20251231/"
+enssel  = np.arange(2,11,1)
 
 # Output Information
 outdir     = "/home/niu4/gliu8/projects/mesaclip/thresholds/anom_detrend2_19820101-20251231/"
@@ -119,10 +120,15 @@ thresname  = "winsize%0i_pct%03i-%03i" % (winsize,quantiles[0]*100,quantiles[1]*
 # ------
 
 # Determine Number of Ensemble Members
-if "hires" in expname:
-    enslist = np.arange(1,11,1)
+if enssel is not None:
+    print("Performing calculation for selected ensemble members: %s" % enssel)
+    enlist = enssel
 else:
-    enslist  = np.arange(1,41,1)
+    print("Performing calculation for all ensemble members")
+    if "hires" in expname:
+        enslist = np.arange(1,11,1)
+    else:
+        enslist  = np.arange(1,41,1)
 
 nens = len(enslist)
 
@@ -137,103 +143,45 @@ get_thres = lambda XX,YY: rolling_quantile_threshold(XX,YY,winsize,winsize,
 
 ens    = enslist[0]
 
-#for ens in enslist: -----
+for ens in tqdm(enslist): # 2600 sec per ens member-----
+    
+    #% Open view of CESM Ens Member (8GB for global)
+    # mesaclip_hires_day_1_SST_anom_ens010.nc
+    st     = time.time()
+    ncname = "%s%s_day_1_SST_anom_ens%03i.nc" % (ncpath,expname,ens)
+    dsview = xr.open_dataset(ncname).load()
+    xrname = '__xarray_dataarray_variable__'
+    dsview = dsview.convert_calendar('noleap') # Remove Leap Year
+    print("Loaded Data in %.2fs" % (time.time()-st))   
+    print(dsview)
+    
+    # Set Output Name
+    outname    = "%s%s_day_1_rolling_threshold_%s_ens%03i.nc" % (outdir,expname,thresname,ens) 
+    
+    
+    # Perform Calculation
+    
+    doy=dsview.time.dt.dayofyear
+    st = time.time()
+    
+    ds_thresholds   = xr.apply_ufunc(
+        get_thres,
+        dsview[xrname],
+        doy,
+        input_core_dims=[['time'],['time']],
+        output_core_dims=[['doy','quantile']],
+        vectorize=True,
+        )
+    print("Computed threshold in %.2fs" % (time.time()-st))
+    
+    # Add extra names
+    ds_thresholds['doy'] = np.arange(1,366,1)
+    ds_thresholds['quantile'] = quantiles
+    ds_thresholds = ds_thresholds.squeeze()
+    
+    
+    #% Save Output
+    ds_thresholds.to_netcdf(outname)
+    print("Calculated Threshold in %.2fs" % (time.time()-st_all))
+    
 
-
-#% Open view of CESM Ens Member (8GB for global)
-# mesaclip_hires_day_1_SST_anom_ens010.nc
-st     = time.time()
-ncname = "%s%s_day_1_SST_anom_ens%03i.nc" % (ncpath,expname,ens)
-dsview = xr.open_dataset(ncname).load()
-xrname = '__xarray_dataarray_variable__'
-dsview = dsview.convert_calendar('noleap') # Remove Leap Year
-print("Loaded Data in %.2fs" % (time.time()-st))   
-print(dsview)
-
-# Set Output Name
-outname    = "%s%s_day_1_rolling_threshold_%s_ens%03i.nc" % (outdir,expname,thresname,ens) 
-
-#%%
-
-#%% Set Up the Function
-
-doy=dsview.time.dt.dayofyear
-st = time.time()
-
-ds_thresholds   = xr.apply_ufunc(
-    get_thres,
-    dsview[xrname],
-    doy,
-    input_core_dims=[['time'],['time']],
-    output_core_dims=[['doy','quantile']],
-    vectorize=True,
-    )
-print("Computed threshold in %.2fs" % (time.time()-st))
-
-# Add extra names
-ds_thresholds['doy'] = np.arange(1,366,1)
-ds_thresholds['quantile'] = quantiles
-ds_thresholds = ds_thresholds.squeeze()
-
-
-#% Save Output
-ds_thresholds.to_netcdf(outname)
-print("Calculated Threshold in %.2fs" % (time.time()-st_all))
-
-
-
-
-
-# #%%
-
-# #%% Open view of OISST (8GB for global)
-
-# st     = time.time()
-# ncpath = "/home/niu4/gliu8/share/OISST/mergetest/anom_detrend2_19820101-20251231/"
-# ncname = "oisst_day_1_sst_anom.nc"
-# dsview = xr.open_dataset(ncpath+ncname).load()
-# xrname = '__xarray_dataarray_variable__'
-# dsview = dsview.convert_calendar('noleap') # Remove Leap Year
-# print("Loaded Data in %.2fs" % (time.time()-st))
-# print(dsview)
-
-
-# outdir     = "/home/niu4/gliu8/projects/mesaclip/thresholds/anom_detrend2_19820101-20251231/"
-# proc.makedir(outdir)
-
-# # Threshold Selections
-# winsize    = 15
-# quantiles  = [0.10,0.90]
-# thresname  = "winsize%0i_pct%03i-%03i" % (winsize,quantiles[0]*100,quantiles[1]*100)
-
-# # NOTE NEED TO MANUALLY CHANGE OUTNAME
-# outname    = "%soisst_day_1_rolling_threshold_%s.nc" % (outdir,thresname) 
-
-
-
-# ds_thresholds   = xr.apply_ufunc(
-#     get_thres,
-#     dsview[xrname],
-#     doy,
-#     input_core_dims=[['time'],['time']],
-#     output_core_dims=[['doy','quantile']],
-#     vectorize=True,
-#     )
-# print("Computed threshold in %.2fs" % (time.time()-st))
-
-
-
-# ds_thresholds['doy'] = np.arange(1,366,1)
-# ds_thresholds['quantile'] = quantiles
-# ds_thresholds = ds_thresholds.squeeze()
-
-# #%% Save Output
-# ds_thresholds.to_netcdf(outname)
-# print("Calculated Threshold in %.2fs" % (time.time()-st_all))
-
-# #%%
-
-
-# # hey =  rolling_quantile_threshold(xx[xrname],doy,winsize,winsize,
-# #                                                   return_count=False,
-# #                                                   noleap=True)
