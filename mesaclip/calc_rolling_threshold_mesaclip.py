@@ -122,7 +122,7 @@ thresname  = "winsize%0i_pct%03i-%03i" % (winsize,quantiles[0]*100,quantiles[1]*
 # Determine Number of Ensemble Members
 if enssel is not None:
     print("Performing calculation for selected ensemble members: %s" % enssel)
-    enlist = enssel
+    enslist = enssel
 else:
     print("Performing calculation for all ensemble members")
     if "hires" in expname:
