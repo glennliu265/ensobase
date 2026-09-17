@@ -104,9 +104,9 @@ def rolling_quantile_threshold(timeseries,doy,ibefore,iafter,
 # User Edits
 
 # Input Information
-expname = "mesaclip_hires"
+expname = "mesaclip_lores"
 ncpath  = "/home/niu4/gliu8/share/CESM1/MESACLIP/processed/anom_detrend2_19820101-20251231/"
-enssel  = np.arange(2,11,1)
+enssel  = None #np.arange(2,11,1)
 
 # Output Information
 outdir     = "/home/niu4/gliu8/projects/mesaclip/thresholds/anom_detrend2_19820101-20251231/"
@@ -149,7 +149,7 @@ for ens in tqdm(enslist): # 2600 sec per ens member-----
     # mesaclip_hires_day_1_SST_anom_ens010.nc
     st     = time.time()
     ncname = "%s%s_day_1_SST_anom_ens%03i.nc" % (ncpath,expname,ens)
-    dsview = xr.open_dataset(ncname).load()
+    dsview = xr.open_dataset(ncname)#.load()
     xrname = '__xarray_dataarray_variable__'
     dsview = dsview.convert_calendar('noleap') # Remove Leap Year
     print("Loaded Data in %.2fs" % (time.time()-st))   
@@ -171,6 +171,7 @@ for ens in tqdm(enslist): # 2600 sec per ens member-----
         input_core_dims=[['time'],['time']],
         output_core_dims=[['doy','quantile']],
         vectorize=True,
+        dask='parallelized',
         )
     print("Computed threshold in %.2fs" % (time.time()-st))
     
