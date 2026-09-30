@@ -53,14 +53,13 @@ import utils as ut
 #%% User Edits
 
 # Expeirment Selections
-expname      = "TCo319_ssp585"
+expname      = "TCo319-DART-ssp585d-gibbs-charn" #"TCo319_ssp585"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
 tstart       = '2015-01-01'
 tend         = '2100-12-31' #'2114-12-31'
 seasonal     = False
 
-rawpath      = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/TCo319_ssp585/raw/"
-
+rawpath      = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/raw/" % expname
 
 # Analysis Options
 bbox_sep     = [-90+360,-75+360,-40,-15] # Southeast Tropical Pacific Box from Kang et al. 2026
