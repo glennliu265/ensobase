@@ -82,12 +82,13 @@ for expname in tqdm(expnames):
         ncname             = "%s_%s.nc" % (expname,flxname)
     dsflx_raw_awi      = xr.open_dataset(rawpath + ncname)[flxname].load()
     dsflx_raw_awi      = dsflx_raw_awi.squeeze()    
-    if trange is not None:
-        print("Restricting to period: %s" % trange)
-        dsflx_raw_awi = dsflx_raw_awi.sel(time=slice(*trange))
+
     
     # Do some preprocessing, get dimension sizes
     dsflx_raw_awi      = ut.standardize_names(dsflx_raw_awi)        # Standardize Dimension Names
+    if trange is not None: # Slice time if option is set
+        print("Restricting to period: %s" % trange)
+        dsflx_raw_awi = dsflx_raw_awi.sel(time=slice(*trange))
     dsflx_raw_awi      = dsflx_raw_awi.transpose('time','lat','lon')# Transepose
     dsflx_raw_awi      = ut.varcheck(dsflx_raw_awi,flxname,expname) # Correct for accumulation period
     ntime,nlat,nlon    = dsflx_raw_awi.shape
