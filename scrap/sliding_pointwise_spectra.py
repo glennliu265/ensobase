@@ -56,19 +56,20 @@ mons3   = proc.get_monstr()
 stall = time.time()
 
 # Indicate Experiment and Flux Name
-expname                = "TCo319_ssp585_ens01" #  "TCo319-DART-ssp585d-gibbs-charn"#
+#expname                = "TCo319_ssp585_ens01" #  "TCo319-DART-ssp585d-gibbs-charn"#
 
-expnames               = ["TCo319_ssp585_ens01","TCo319_ssp585_ens02","TCo319_ssp585_ens03"]
-flxname                = "tscre" #"w700" #"eis"
-
+expnames               = ["TCo319_ctl1950d",]#"TCo319_ssp585_ens01","TCo319_ssp585_ens02","TCo319_ssp585_ens03"]
+flxname                = "cre" #"tscre" #"w700" #"eis"
 regrid                 = True 
+
+trange = ['1950-01-01','2099-12-31']
+#tend   = ''
 
 # Indicate Sliding Window Options
 nsmooth                = 5  # Smoothing over Adjacent Bands
-nyr_window             = 24 # Length of Sliding Window
+nyr_window             = 40 # Length of Sliding Window
 
 for expname in tqdm(expnames):
-    
     
     #%%
     
@@ -81,6 +82,9 @@ for expname in tqdm(expnames):
         ncname             = "%s_%s.nc" % (expname,flxname)
     dsflx_raw_awi      = xr.open_dataset(rawpath + ncname)[flxname].load()
     dsflx_raw_awi      = dsflx_raw_awi.squeeze()    
+    if trange is not None:
+        print("Restricting to period: %s" % trange)
+        dsflx_raw_awi = dsflx_raw_awi.sel(time=slice(*trange))
     
     # Do some preprocessing, get dimension sizes
     dsflx_raw_awi      = ut.standardize_names(dsflx_raw_awi)        # Standardize Dimension Names
