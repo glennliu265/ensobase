@@ -56,8 +56,8 @@ import utils as ut
 expname      = "TCo319_ssp585"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
 tstart       = '2015-01-01'
-tend         = '2100-12-31'
-seasonal     = True
+tend         = '2100-12-31' #'2114-12-31'
+seasonal     = False
 
 rawpath      = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/TCo319_ssp585/raw/"
 
@@ -68,9 +68,8 @@ bbsel        = bbox_sep
 bbname       = "SEP"
 load_global  = True
 
-nyr_sliding  = 30 # Select Sliding Window Length
+nyr_sliding  = 40 # Select Sliding Window Length
 flxname      = "cre"
-
 
 # Seasonal calculations
 selmons_loop    = [[12,1,2],[3,4,5],[6,7,8],[9,10,11]]  
@@ -83,8 +82,8 @@ if seasonal:
     outname = "%sSlidingKernels_%s_%s_Seasonal_%02iyrwindow.nc" % (outpath,expname,flxname,nyr_sliding,)
 
 # Set to True to Subset to Region and Do calculations
-debug    = False
-debugreg = [-90+360,-85+360,-40,-35]
+debug          = False
+debugreg       = [-90+360,-85+360,-40,-35]
 
 # ============================================
 #%% Part 1. Load (raw) CCFs for an experiment
@@ -221,13 +220,6 @@ for nw in tqdm(range(nperiods)):
         # Concatenate by season
         mlrout_byseason = xr.concat(mlrout_byseason,dim='season')
         mlrout_byperiod.append(mlrout_byseason) # Append to Periodwise Calculation
-            
-            
-
-            
-            
-        
-        
 
 #%% Before Appending, Need to fix the time dimension
 # Assign shared "Time Index" and store actual time ranges in another Window
