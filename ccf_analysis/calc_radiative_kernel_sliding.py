@@ -53,10 +53,10 @@ import utils as ut
 #%% User Edits
 
 # Expeirment Selections
-expname      = "TCo319-DART-ssp585d-gibbs-charn" #"TCo319_ssp585"
+expname      = "TCo319_ctl1950d"#"TCo319-DART-ssp585d-gibbs-charn" #"TCo319_ssp585"
 ccf_vars     = ["sst","eis","Tadv","r700","w700","ws10"]
-tstart       = '2015-01-01'
-tend         = '2100-12-31' #'2114-12-31'
+tstart       = '1950-01-01' #'2015-01-01'
+tend         = '2099-12-31' #'2100-12-31' #'2114-12-31'
 seasonal     = False
 
 rawpath      = "/home/niu4/gliu8/projects/ccfs/input_data/regrid_1x1/%s/raw/" % expname
