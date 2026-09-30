@@ -246,7 +246,7 @@ expname   = 'TCo319-DART-ssp585d-gibbs-charn'
 mergefile = False
 infile    = '/home/niu4/gliu8/projects/scrap/regrid_1x1/TCo319-DART-ssp585d-gibbs-charn_sst_regrid1x1.nc'
 outpath   = '/home/niu4/gliu8/projects/ccfs/enso_eof/'
-winlen    = 30
+winlen    = 40
 savename  = "%s%s_ENSO_EOF_slidingwinlen%02i.nc" % (outpath,expname,winlen)
 
 # Dataset Information
