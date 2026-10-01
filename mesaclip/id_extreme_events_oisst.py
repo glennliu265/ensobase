@@ -102,6 +102,121 @@ def ds_dropvars(ds,keepvars):
     ds = ds.drop_vars(remvar)
     return ds
 
+# def retrieve_event_metrics_arr(event_combine,timeseries,tname='max'):
+#     """
+#     Processes merged events and calculates basic statistics (max, min, mean, stdev, duration, cumulative sum)
+    
+#     Inputs
+#         event_combine : list of lists, where each element is an event and each inner list contains the indices corresponding to the event
+#         timeseries    : xr.DataArray , timeseries containing values
+
+#     Returns
+#         xr.DataSet Containing Time, Indices, and Summary Stats for each event, numbered by eventid.
+    
+#     See `develop_MHW_id_code.ipynb` for debgging script
+    
+#     UPDATE [2026.09.10] : Output Cumulative Intensity, swap position with number of events...
+    
+#     """
+#     # Given a list of lists containing indices of combined events 
+#     nevents_combined = len(event_combine)
+    
+#     # Part (1): Perform A Loop through Events =================================
+#     # Event Timing
+#     duration      = np.zeros((nevents_combined)) * np.nan
+    
+#     # Indexing
+#     id_center     = duration.copy()
+#     id_first      = duration.copy()
+#     id_last       = duration.copy()
+#     id_max        = duration.copy()
+#     id_min        = duration.copy()
+    
+#     # Event Stats
+#     event_mean    = duration.copy()
+#     event_std     = duration.copy()
+#     event_cumu    = duration.copy()
+#     for ie in range(nevents_combined):
+        
+#         eventid_loop = event_combine[ie]
+        
+#         # Get Variables  ------------------------------------------------
+#         intensities    = timeseries[eventid_loop]
+#         nconsecutive   = len(eventid_loop)
+        
+#         # Record Some Metrics -------------------------------------------
+#         # Determine Some Indices for Metrics
+#         # Index within event chunk
+#         idmax            = np.argmax(np.abs(intensities))
+#         idmin            = np.argmin(np.abs(intensities))
+#         idfirst          = 0 #eventid_loop[0]
+#         idlast           = -1 #eventid_loop[-1]
+#         idcenter         = nconsecutive // 2 # Middle is just divided by 2
+#         if not nconsecutive & 0x1: # If Evenn, shift earlier
+#             idcenter     = idcenter - 1
+        
+#         # Index from full timeseries
+#         id_center[ie]    = eventid_loop[idcenter]
+#         id_first[ie]     = eventid_loop[idfirst]
+#         id_last[ie]      = eventid_loop[idlast]
+#         id_max[ie]       = eventid_loop[idmax]
+#         id_min[ie]       = eventid_loop[idmin]
+        
+#         # Timing (Note this saves to unreadable number...)
+#         duration[ie]     = nconsecutive            # Duration (Note assumes regular spacing...)
+        
+#         # Statistics
+#         event_mean[ie]   = np.nanstd(intensities) # Mean
+#         event_std[ie]    = np.nanstd(intensities) # Standard Deviation
+#         event_cumu[ie]   = np.nansum(intensities) # Cumulative Values
+
+#     if tname == "max":
+#         id_out = id_max
+#     elif tname == "min":
+#         id_out = id_min
+#     elif tname == "center":
+#         id_out = id_center
+#     elif tname == "start":
+#         id_out = id_first
+#     elif tname == "end":
+#         id_out = id_last
+#     values_out = [timeseries[dd.astype(int)] for dd in id_out]
+#     #group2           = [duration,event_mean,event_std,event_cumu]
+    
+#     return id_out,values_out,duration,event_mean,event_std,event_cumu
+
+def get_rolling_threshold(timeseries,quantiles=[0.10,0.90],monthly=True):
+    "Compute climatologically-varying percentile threshold and tile to original timeseries"
+    
+    if monthly: # Compute Quantiles Grouping by Month
+        thres_bymon = timeseries.groupby('time.month').quantile(quantiles,dim='time')
+    else:       # Compute Quantiles Grouping by Day of Year
+        thres_bymon = timeseries.groupby('time.dayofyear').quantile(quantiles,dim='time')
+    thresholds = []
+    nq         = len(quantiles)
+    for qq in range(nq):
+        thres_in = thres_bymon.isel(quantile=qq)
+        if monthly:
+            thres = xr.ones_like(timeseries).groupby('time.month') * thres_in
+        else:
+            thres = xr.ones_like(timeseries).groupby('time.dayofyear') * thres_in
+        thres = thres.drop_vars('quantile')
+        thresholds.append(thres)
+    
+    thresholds = xr.concat(thresholds,dim='quantile')
+    thresholds['quantile'] = quantiles
+    return thresholds
+
+    # # Combine into List and drop day of year
+    # times_and_values = event_times + event_values
+    # for dd in range(len(times_and_values)):
+    #     if 'dayofyear' in list(times_and_values[dd].coords.keys()):
+    #         times_and_values[dd] = times_and_values[dd].drop_vars('dayofyear')
+    
+def pad_nan(indata,nmax):
+    ndata = len(indata)
+    return np.pad(indata,(0,nmax-ndata),'constant',constant_values=np.nan)
+
 def retrieve_event_metrics_arr(event_combine,timeseries,tname='max'):
     """
     Processes merged events and calculates basic statistics (max, min, mean, stdev, duration, cumulative sum)
@@ -112,6 +227,9 @@ def retrieve_event_metrics_arr(event_combine,timeseries,tname='max'):
 
     Returns
         xr.DataSet Containing Time, Indices, and Summary Stats for each event, numbered by eventid.
+
+    Updates ---
+    [2026.09.23] - Updated to directly output id_first and id_last
     
     See `develop_MHW_id_code.ipynb` for debgging script
 
@@ -181,41 +299,11 @@ def retrieve_event_metrics_arr(event_combine,timeseries,tname='max'):
     values_out = [timeseries[dd.astype(int)] for dd in id_out]
     #group2           = [duration,event_mean,event_std,event_cumu]
     
-    return id_out,values_out,duration,event_mean,event_std,event_cumu
-
-def get_rolling_threshold(timeseries,quantiles=[0.10,0.90],monthly=True):
-    "Compute climatologically-varying percentile threshold and tile to original timeseries"
-    
-    if monthly: # Compute Quantiles Grouping by Month
-        thres_bymon = timeseries.groupby('time.month').quantile(quantiles,dim='time')
-    else:       # Compute Quantiles Grouping by Day of Year
-        thres_bymon = timeseries.groupby('time.dayofyear').quantile(quantiles,dim='time')
-    thresholds = []
-    nq         = len(quantiles)
-    for qq in range(nq):
-        thres_in = thres_bymon.isel(quantile=qq)
-        if monthly:
-            thres = xr.ones_like(timeseries).groupby('time.month') * thres_in
-        else:
-            thres = xr.ones_like(timeseries).groupby('time.dayofyear') * thres_in
-        thres = thres.drop_vars('quantile')
-        thresholds.append(thres)
-    
-    thresholds = xr.concat(thresholds,dim='quantile')
-    thresholds['quantile'] = quantiles
-    return thresholds
-
-    # # Combine into List and drop day of year
-    # times_and_values = event_times + event_values
-    # for dd in range(len(times_and_values)):
-    #     if 'dayofyear' in list(times_and_values[dd].coords.keys()):
-    #         times_and_values[dd] = times_and_values[dd].drop_vars('dayofyear')
-    
-def pad_nan(indata,nmax):
-    ndata = len(indata)
-    return np.pad(indata,(0,nmax-ndata),'constant',constant_values=np.nan)
+    return id_out,values_out,duration,event_mean,event_std,event_cumu,id_first,id_last
 
 def id_extremes_arr(timeseries,thres,positive,eventid_max=None,tol=1,verbose=False,tname='max'):
+    #   [2026.09.23] Updated output work with id_first and id_last
+    #   [2026.09.30] Change so that nevents is last, makes things easier..
     if eventid_max is None:
         eventid_max = int(len(timeseries) * 0.25)
     # If NaN, just Continue
@@ -223,13 +311,12 @@ def id_extremes_arr(timeseries,thres,positive,eventid_max=None,tol=1,verbose=Fal
         #print("Skipping NaN")
         dummy=np.zeros(eventid_max) * np.nan
         #output = *[dummy,]*5
-        return dummy,dummy,dummy,dummy,0
+        return dummy,dummy,dummy,dummy,dummy,dummy,dummy,0
     
     # Use Thresholds to find Events 
     if positive == True:
         below      = False
         event_indices = np.where(timeseries > thres)[0]
-    
     else:
         below      = True
         # if verbose:
@@ -242,19 +329,17 @@ def id_extremes_arr(timeseries,thres,positive,eventid_max=None,tol=1,verbose=Fal
     
     event_combine   = combine_consecutive_events(timeseries,event_indices,tol=tol,verbose=verbose)
     metrics_out     = retrieve_event_metrics_arr(event_combine,timeseries,tname=tname)
+    
     # #id_out,values_out,duration,event_mean,event_std,event_cumu = metrics_out
     
     # For Output Variables, Pad with NaN #Enter the Amount
     nevents         = len(metrics_out[0])
     #npad            = eventid_max-nevents
     metrics_out     = [pad_nan(arr,eventid_max) for arr in metrics_out]
-    id_out,values_out,duration,event_mean,event_std,event_cumu = metrics_out
-
+    #print(len(metrics_out))
+    id_out,values_out,duration,event_mean,event_std,event_cumu,id_first,id_last = metrics_out
+    return id_out,values_out,duration,event_mean,event_cumu,id_first,id_last,nevents
     
-
-    return id_out,values_out,duration,event_mean,event_cumu,nevents
-
-
 def makedir(expdir):
     """
     Check if "expdir" exists, and creates a directory if it doesn't
@@ -291,17 +376,23 @@ tstart         = "1982-01-01"
 tend           = "2025-12-31" #"2025-12-31"
 expname        = "oisst"
 vname          = "sst"
-freq           = "day_1"#"month_1"
+freq           = "month_1" # "day_1"#"month_1"
 deg            = 2 # Detrend Degree
+procname       = "anom_detrend1_19820101-20251231_climatology1985to2014"
+
 
 # Amplitude Thresholds
 # See `calc_rolling_threshold_oisst.py`
 thresnc        = "/home/niu4/gliu8/projects/mesaclip/thresholds/anom_detrend2_19820101-20251231/oisst_day_1_rolling_threshold_winsize15_pct010-090.nc" # None
 thresname      = "rolling15"
 
+if freq=="month_1":
+    thresnc   = None # No Rolling Threshold for Monthly Data
+    thresname = "monthlythres"
+
 # Duration Thresholds
-combine_tol    = 2 # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
-efolding_tol   = False #False
+combine_tol    = 1 # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
+efolding_tol   = False#False #False
 winsize        = 15
 if winsize == 0:
     efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_nowindow.nc"
@@ -323,9 +414,6 @@ if freq == "month_1":
 else:
     outpath_proc = "%s/anom_detrend%i_%s-%s/" % (outpath,deg,tstart,tend,)
 
-
-
-
 # Calculation Options
 monthly    = True # Group Quantiles using Monthly Baseline
 verbose    = False
@@ -346,25 +434,37 @@ if thresnc is not None:
     dsthres = dsthres[xrname].squeeze()
 else:
     print("Regular Monthly Threshold will be used")
-    
 
 # Make Output Directory
 outpath_event = "/home/niu4/gliu8/projects/mesaclip/events/anom_detrend%i_%s-%s/" % (deg,tstart,tend,)
 outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct/" % (outpath_event,monthly,thresname,tolname)
 makedir(outdir_metrics)
 
-# Set Number of Ensembles (only Relevant for MESACLIP)
-if expname == "lores":
-    enslist = np.arange(1,41,1)
-else:
-    enslist = np.arange(1,11,1)
-nens = len(enslist)
+# Set Output Options for xrfunc, based on id_extremes_arr output
+outdims_xrfunc = [["eventid"],
+                  ["eventid"],
+                  ["eventid"],
+                  ["eventid"],
+                  ['eventid'],
+                  ['eventid'],
+                  ['eventid'],
+                  [],
+                  ]
 
-#%% Ensemble Loop
+metric_names       = ['id_max',
+                  'event_max',
+                  'duration',
+                  'event_mean',
+                  'cumulative_intensity',
+                  'id_first',
+                  'id_last',
+                  'nevents',
+                  ]
+
+#%% Start Script
 
 start_all    = time.time()
-loadname     = "%s%s_%s_%s_anom.nc" % (outpath_proc,expname,freq,vname)
-
+loadname     = "%s%s_%s_%s_anom.nc"    % (outpath_proc,expname,freq,vname)
 outname      = "%s%s_%s_%s_anom_%s.nc" % (outdir_metrics,expname,freq,vname,tolname)
 
 # Load the Variable
@@ -397,9 +497,9 @@ if not efolding_tol:
 else:
     func_in       = lambda ds,thres,sign,tolsel : id_extremes_arr(ds,thres,sign,tol=tolsel)
 
-
-outdims_xrfunc = [["eventid"],["eventid"],["eventid"],["eventid"],['eventid'],[],]
-outnames       = ['id_max','event_max','duration','event_mean','cumulative_intensity','nevents']
+# Moved Above
+#outdims_xrfunc = [["eventid"],["eventid"],["eventid"],["eventid"] ,['eventid']           ,[]]
+#metric_names       = ['id_max'   ,'event_max','duration' ,'event_mean','cumulative_intensity','nevents']
 
 # First, calculate for positive ===========================================
 st         = time.time()
@@ -430,7 +530,7 @@ else:
 print("\t(+) Events Found in %.2fs" % (time.time()-st))
 
 # Postprocess Output
-dsout    = xr.merge([events_pos[ii].rename(outnames[ii]) for ii in range(len(events_pos))])
+dsout    = xr.merge([events_pos[ii].rename(metric_names[ii]) for ii in range(len(events_pos))])
 
 # Reduce NaN
 nmax = np.nanmax(dsout.nevents)
@@ -476,7 +576,7 @@ else:
 print("\t(-) Events Found in %.2fs" % (time.time()-st))
 
 # Postprocess Output
-dsout    = xr.merge([events_neg[ii].rename(outnames[ii]) for ii in range(len(events_neg))])
+dsout    = xr.merge([events_neg[ii].rename(metric_names[ii]) for ii in range(len(events_neg))])
 # Reduce NaN
 nmax     = np.nanmax(dsout.nevents)
 # Check to see that they are all NaN after the last event
