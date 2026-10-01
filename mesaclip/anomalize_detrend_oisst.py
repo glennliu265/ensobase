@@ -6,6 +6,9 @@ Anomalize and Detrend OISST Output
 
 Modeled after `merge_anom_detrend_mesaclip.py` and `merge_anomalized_regridded_MESACLIP.ipynb`
 
+Updates
+ - [2026.10.01] - Add Anom Detrend 1 (with selected climatology period)
+
 Created on Tue Aug  4 11:26:07 2026
 
 @author: gliu
@@ -35,8 +38,14 @@ def detrend_dim(da, dim="time", deg=1):
 def dailyclim(ds):
     return ds.groupby("time.dayofyear").mean("time")
 
-def deseason_daily(ds,clim=False):
-    dsclim       = dailyclim(ds)#ds.groupby("time.dayofyear").mean("time")
+def deseason_daily(ds,clim=False,period=None,verbose=True):
+    if period is not None:
+        if verbose:
+            print("Taking climatology over the provided period: %s" % period)
+        dsperiod = ds.sel(time=slice(*period))
+        dsclim   = dailyclim(dsperiod)
+    else:
+        dsclim   = dailyclim(ds)#ds.groupby("time.dayofyear").mean("time")
     dsanom       = ds.groupby("time.dayofyear") - dsclim
     dsanom       = dsanom.drop_vars('dayofyear')
     if clim:
@@ -61,25 +70,43 @@ def makedir(expdir):
         print(expdir+" was found!")
     return None
     
+
 #%% UserEdits
 
 tstart  = "1982-01-01"
 tend    = "2025-12-31" #"2025-12-31"
-outpath = "/home/niu4/gliu8/share/OISST/mergetest/"
+rawpath = "/home/niu4/gliu8/share/OISST/mergetest/" #% (scenario)
+
 expname = "oisst"
 vname   = "sst"
-freq    = "day_1"
-ncname  = "oisst_v2.1_daily_198109_20260630_regrid1x1.nc"
-deg = 2
+freq    = "day_1" #"day_1"
 
 
-rawpath = "/home/niu4/gliu8/share/OISST/mergetest/" #% (scenario)
+if freq == "month_1":
+    ncname  = "oisst_v2.1_monthly_198109_20260630_regrid1x1.nc"
+else:
+    ncname  = "oisst_v2.1_daily_198109_20260630_regrid1x1.nc"
+
+
+deg     = 1
+climperiod = ['1985-01-01','2014-12-31'] # Set Period to Calculate Climatology
+
+
 
 # Make Output Folder
 tstart       = tstart.replace('-','')#npdatetime_to_str(dsanom.time[0]).replace('-','')
 tend         = tend.replace('-','')  #npdatetime_to_str(dsanom.time[-1]).replace('-','')
-outpath_proc = "%s/anom_detrend%i_%s-%s/" % (outpath,deg,tstart,tend,)
+procstr = "anom_detrend%i_%s-%s" % (deg,tstart,tend,)
+if climperiod is not None:
+    climname     = "_climatology%sto%s" % (climperiod[0][:4],climperiod[1][:4])
+    procstr      = procstr+climname
+if freq == "month_1":
+    outpath = "/home/niu4/gliu8/share/OISST/mergetest/monthly/"
+else:
+    outpath = "/home/niu4/gliu8/share/OISST/mergetest/"
+outpath_proc = "%s/%s/" % (outpath,procstr)
 makedir(outpath_proc)
+
 
 #%% Open File (15.85 Sec)
 
@@ -91,7 +118,7 @@ print("Loaded file in %.2fs" % (time.time()-st))
 
 #%% Remove Mean Seasonal Cycle (~9sec)
 st    = time.time()
-dsanom = deseason_daily(dsraw)
+dsanom = deseason_daily(dsraw,period=climperiod)
 dsraw.close()
 del dsraw
 print("Deseasoned in %.2fs" % (time.time()-st))
