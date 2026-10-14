@@ -74,7 +74,7 @@ tend                = "2025-12-31" #"2025-12-31"
 expname             = "oisst"
 vname               = "sst"
 freq                = "day_1" # "day_1"#"month_1"
-procname            = "anom_detrend1_19820101-20251231_climatology1985to2014"
+procname            = "anom_detrend2_19820101-20251231"# "anom_detrend1_19820101-20251231_climatology1985to2014"
 integratedintensity = False # Set to True to apply Integrated Intensity threshold
 
 # Amplitude Thresholds
@@ -156,6 +156,7 @@ metric_names       = ['id_max',
                   'id_last',
                   'nevents',
                   ]
+
 
 #%% Start Script
 
@@ -281,7 +282,7 @@ if np.all(chk_all_nan):
     print("\tReducing to Last Event ID (i=%i)" % (nmax))
     dsout = dsout.isel(eventid=slice(0,nmax))
     
-# Save Netat9ve
+# Save Negative
 st          = time.time()
 outname_neg = addstrtoext(outname,"_negative_events")
 dsout.to_netcdf(outname_neg)
