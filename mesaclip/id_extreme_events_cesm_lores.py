@@ -308,6 +308,9 @@ monthly         = True # Use Monthly Thresholds (doesnt matter if load_thres=Tru
 
 # Tolerance Options
 combine_tol  = 2     # Obsolute if efolding_tol is True
+if freq == "month_1":
+    print("For Monthly Resolution, automatically setting combine tolerance to 1-month")
+    combine_tol = 1
 efolding_tol = False # 
 winsize      = 15
 if winsize == 0:
@@ -331,19 +334,25 @@ tstart       = tstart.replace('-','')#npdatetime_to_str(dsanom.time[0]).replace(
 tend         = tend.replace('-','')  #npdatetime_to_str(dsanom.time[-1]).replace('-','')
 outpath_event = "%s/events/" % outpath #"%s/anom_detrend%i_%s-%s/" % (outpath,deg,tstart,tend,)
 
-# Calculation Options
-
-verbose      = False
-
 # Make Output Directory
 outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct/" % (outpath_event,monthly,thresname,tolname)
 makedir(outdir_metrics)
 
+# Other Calculation Options
+verbose      = False
+
+
+
 # Set # of Ens. Members
-if expname == "lores":
-    enslist = np.arange(1,41,1)
+enslist_restrict =None # np.arange(2,11) # None
+if enslist_restrict is not None:
+    print("Setting Manual Ens List")
+    enslist = enslist_restrict
 else:
-    enslist = np.arange(1,11,1)
+    if expname == "lores":
+        enslist = np.arange(1,41,1)
+    else:
+        enslist = np.arange(1,11,1)
 nens = len(enslist)
 
 # Set Output Options for xrfunc, based on id_extremes_arr output
