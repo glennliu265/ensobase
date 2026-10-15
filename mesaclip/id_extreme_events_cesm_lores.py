@@ -22,82 +22,91 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import glob
 import os
+import sys
+
+#%% Indicate Paths
+
+
+mhwpath = "/home/niu4/gliu8/scripts/mhw_tools/"
+sys.path.append(mhwpath)
+import utils as mut
+
 
 #%% Helper Functions
     
-def combine_consecutive_events(timeseries,event_indices,tol=1,verbose=True):
-    # Make some adjustments based on the tolerance
-    # Note: Asssumes timeseries has an even number of years or is evenly divisible...
-    if type(tol) != int: # Tolerance is NOT just 1 value
-        if len(tol) == 12: # Monthly E-Folding Tolerance
-            # Tolerance Applied by Month
-            nyrs     = int(len(timeseries)/12)
-            tolcheck = np.tile(np.arange(1,13,1),nyrs)
-            if len(timeseries)%12 != 0:
-                print("Warning, Timeseries is not evenly divisible by 12, indexing errors may result.")
-                print(tolcheck.shape)
-                print(timeseries.shape)
-        elif len(tol) == 365: # Daily E-folding Tolerance
-            # Tolerance Applied by Day of Year
-            nyrs     = int(len(timeseries)/365)
-            tolcheck = np.tile(np.arange(1,366,1),nyrs)
-            if len(timeseries)%365 != 0:
-                print("Warning, Timeseries is not evenly divisible by 365, indexing errors may result.")
-                print(tolcheck.shape)
-                print(timeseries.shape)
-        else:
-            print("Invalid size for Tol... must be either a constant or array of 12 (monthly) or 365 (doy)")
-    else:
-        tolcheck = None
+# def combine_consecutive_events(timeseries,event_indices,tol=1,verbose=True):
+#     # Make some adjustments based on the tolerance
+#     # Note: Asssumes timeseries has an even number of years or is evenly divisible...
+#     if type(tol) != int: # Tolerance is NOT just 1 value
+#         if len(tol) == 12: # Monthly E-Folding Tolerance
+#             # Tolerance Applied by Month
+#             nyrs     = int(len(timeseries)/12)
+#             tolcheck = np.tile(np.arange(1,13,1),nyrs)
+#             if len(timeseries)%12 != 0:
+#                 print("Warning, Timeseries is not evenly divisible by 12, indexing errors may result.")
+#                 print(tolcheck.shape)
+#                 print(timeseries.shape)
+#         elif len(tol) == 365: # Daily E-folding Tolerance
+#             # Tolerance Applied by Day of Year
+#             nyrs     = int(len(timeseries)/365)
+#             tolcheck = np.tile(np.arange(1,366,1),nyrs)
+#             if len(timeseries)%365 != 0:
+#                 print("Warning, Timeseries is not evenly divisible by 365, indexing errors may result.")
+#                 print(tolcheck.shape)
+#                 print(timeseries.shape)
+#         else:
+#             print("Invalid size for Tol... must be either a constant or array of 12 (monthly) or 365 (doy)")
+#     else:
+#         tolcheck = None
     
-    # Given a tolerance level, merge consecutive events
-    # Separate into discrete events
-    # Copied from combine_events from enso event id
-    nevents        = len(event_indices)
-    if verbose:
-        print("Original Starting Count: %i Events" % nevents)
-        print("\tCombining Events <= [%i] timesteps apart" % tol)
+#     # Given a tolerance level, merge consecutive events
+#     # Separate into discrete events
+#     # Copied from combine_events from enso event id
+#     nevents        = len(event_indices)
+#     if verbose:
+#         print("Original Starting Count: %i Events" % nevents)
+#         print("\tCombining Events <= [%i] timesteps apart" % tol)
     
-    # Looping through events
-    event_combine = []
-    for ii in range(nevents+1): 
+#     # Looping through events
+#     event_combine = []
+#     for ii in range(nevents+1): 
         
-        if ii == (nevents): # Don't Perform Check for the last event
-            # if verbose:
-            #     print("Merging last event: %s" % event_merge)
-            event_combine.append(event_merge) # This is defined later
-            continue
+#         if ii == (nevents): # Don't Perform Check for the last event
+#             # if verbose:
+#             #     print("Merging last event: %s" % event_merge)
+#             event_combine.append(event_merge) # This is defined later
+#             continue
         
-        # Get the Index of the event
-        ievent = event_indices[ii].item()
+#         # Get the Index of the event
+#         ievent = event_indices[ii].item()
         
-        if ii == 0: # Start Array with event to calculate Distances
-            prev_id     = ievent
-            event_merge = [ievent,]
-            continue
+#         if ii == 0: # Start Array with event to calculate Distances
+#             prev_id     = ievent
+#             event_merge = [ievent,]
+#             continue
 
-        if tolcheck is None: # Tolerance is just a single value
-            tol_in = tol
-        else: # Tolerance is an Array (day of year, or month)
-            event_category = tolcheck[ievent] # Check day or month of event
-            tol_in         = tol[event_category-1]    # -1 for Python Indexing
+#         if tolcheck is None: # Tolerance is just a single value
+#             tol_in = tol
+#         else: # Tolerance is an Array (day of year, or month)
+#             event_category = tolcheck[ievent] # Check day or month of event
+#             tol_in         = tol[event_category-1]    # -1 for Python Indexing
             
         
-        if (ievent - prev_id) <= tol_in: # Consecutive Event
-            event_merge.append(ievent)
-            # if verbose:
-            #     print("%i is consecutive to previous events (%s)" % (ievent,event_merge))
-        else: # Otherwise, just add event and merge
-            event_combine.append(event_merge)
-            event_merge = [ievent,] # Make a new one
-            # if verbose:
-            #     print("Making new event sequence at %i" % (ievent))
+#         if (ievent - prev_id) <= tol_in: # Consecutive Event
+#             event_merge.append(ievent)
+#             # if verbose:
+#             #     print("%i is consecutive to previous events (%s)" % (ievent,event_merge))
+#         else: # Otherwise, just add event and merge
+#             event_combine.append(event_merge)
+#             event_merge = [ievent,] # Make a new one
+#             # if verbose:
+#             #     print("Making new event sequence at %i" % (ievent))
         
-        prev_id = ievent
-    nevents_combined = len(event_combine)
-    if verbose:
-        print("\tCulled to %i events!" % nevents_combined)
-    return event_combine
+#         prev_id = ievent
+#     nevents_combined = len(event_combine)
+#     if verbose:
+#         print("\tCulled to %i events!" % nevents_combined)
+#     return event_combine
 
 def ds_dropvars(ds,keepvars):
     '''Drop variables in ds whose name is not in the list [keepvars]'''
@@ -107,153 +116,153 @@ def ds_dropvars(ds,keepvars):
     ds = ds.drop_vars(remvar)
     return ds
 
-def retrieve_event_metrics_arr(event_combine,timeseries,tname='max'):
-    """
-    Processes merged events and calculates basic statistics (max, min, mean, stdev, duration, cumulative sum)
+# def retrieve_event_metrics_arr(event_combine,timeseries,tname='max'):
+#     """
+#     Processes merged events and calculates basic statistics (max, min, mean, stdev, duration, cumulative sum)
     
-    Inputs
-        event_combine : list of lists, where each element is an event and each inner list contains the indices corresponding to the event
-        timeseries    : xr.DataArray , timeseries containing values
+#     Inputs
+#         event_combine : list of lists, where each element is an event and each inner list contains the indices corresponding to the event
+#         timeseries    : xr.DataArray , timeseries containing values
 
-    Returns
-        xr.DataSet Containing Time, Indices, and Summary Stats for each event, numbered by eventid.
+#     Returns
+#         xr.DataSet Containing Time, Indices, and Summary Stats for each event, numbered by eventid.
 
-    Updates ---
-    [2026.09.23] - Updated to directly output id_first and id_last
+#     Updates ---
+#     [2026.09.23] - Updated to directly output id_first and id_last
     
-    See `develop_MHW_id_code.ipynb` for debgging script
+#     See `develop_MHW_id_code.ipynb` for debgging script
 
-    """
-    # Given a list of lists containing indices of combined events 
-    nevents_combined = len(event_combine)
+#     """
+#     # Given a list of lists containing indices of combined events 
+#     nevents_combined = len(event_combine)
     
-    # Part (1): Perform A Loop through Events =================================
-    # Event Timing
-    duration      = np.zeros((nevents_combined)) * np.nan
+#     # Part (1): Perform A Loop through Events =================================
+#     # Event Timing
+#     duration      = np.zeros((nevents_combined)) * np.nan
     
-    # Indexing
-    id_center     = duration.copy()
-    id_first      = duration.copy()
-    id_last       = duration.copy()
-    id_max        = duration.copy()
-    id_min        = duration.copy()
+#     # Indexing
+#     id_center     = duration.copy()
+#     id_first      = duration.copy()
+#     id_last       = duration.copy()
+#     id_max        = duration.copy()
+#     id_min        = duration.copy()
     
-    # Event Stats
-    event_mean    = duration.copy()
-    event_std     = duration.copy()
-    event_cumu    = duration.copy()
-    for ie in range(nevents_combined):
+#     # Event Stats
+#     event_mean    = duration.copy()
+#     event_std     = duration.copy()
+#     event_cumu    = duration.copy()
+#     for ie in range(nevents_combined):
         
-        eventid_loop = event_combine[ie]
+#         eventid_loop = event_combine[ie]
         
-        # Get Variables  ------------------------------------------------
-        intensities    = timeseries[eventid_loop]
-        nconsecutive   = len(eventid_loop)
+#         # Get Variables  ------------------------------------------------
+#         intensities    = timeseries[eventid_loop]
+#         nconsecutive   = len(eventid_loop)
         
-        # Record Some Metrics -------------------------------------------
-        # Determine Some Indices for Metrics
-        # Index within event chunk
-        idmax            = np.argmax(np.abs(intensities))
-        idmin            = np.argmin(np.abs(intensities))
-        idfirst          = 0 #eventid_loop[0]
-        idlast           = -1 #eventid_loop[-1]
-        idcenter         = nconsecutive // 2 # Middle is just divided by 2
-        if not nconsecutive & 0x1: # If Evenn, shift earlier
-            idcenter     = idcenter - 1
+#         # Record Some Metrics -------------------------------------------
+#         # Determine Some Indices for Metrics
+#         # Index within event chunk
+#         idmax            = np.argmax(np.abs(intensities))
+#         idmin            = np.argmin(np.abs(intensities))
+#         idfirst          = 0 #eventid_loop[0]
+#         idlast           = -1 #eventid_loop[-1]
+#         idcenter         = nconsecutive // 2 # Middle is just divided by 2
+#         if not nconsecutive & 0x1: # If Evenn, shift earlier
+#             idcenter     = idcenter - 1
         
-        # Index from full timeseries
-        id_center[ie]    = eventid_loop[idcenter]
-        id_first[ie]     = eventid_loop[idfirst]
-        id_last[ie]      = eventid_loop[idlast]
-        id_max[ie]       = eventid_loop[idmax]
-        id_min[ie]       = eventid_loop[idmin]
+#         # Index from full timeseries
+#         id_center[ie]    = eventid_loop[idcenter]
+#         id_first[ie]     = eventid_loop[idfirst]
+#         id_last[ie]      = eventid_loop[idlast]
+#         id_max[ie]       = eventid_loop[idmax]
+#         id_min[ie]       = eventid_loop[idmin]
         
-        # Timing (Note this saves to unreadable number...)
-        duration[ie]     = nconsecutive            # Duration (Note assumes regular spacing...)
+#         # Timing (Note this saves to unreadable number...)
+#         duration[ie]     = nconsecutive            # Duration (Note assumes regular spacing...)
         
-        # Statistics
-        event_mean[ie]   = np.nanstd(intensities) # Mean
-        event_std[ie]    = np.nanstd(intensities) # Standard Deviation
-        event_cumu[ie]   = np.nansum(intensities) # Cumulative Values
+#         # Statistics
+#         event_mean[ie]   = np.nanstd(intensities) # Mean
+#         event_std[ie]    = np.nanstd(intensities) # Standard Deviation
+#         event_cumu[ie]   = np.nansum(intensities) # Cumulative Values
 
-    if tname == "max":
-        id_out = id_max
-    elif tname == "min":
-        id_out = id_min
-    elif tname == "center":
-        id_out = id_center
-    elif tname == "start":
-        id_out = id_first
-    elif tname == "end":
-        id_out = id_last
-    values_out = [timeseries[dd.astype(int)] for dd in id_out]
-    #group2           = [duration,event_mean,event_std,event_cumu]
-    return id_out,values_out,duration,event_mean,event_std,event_cumu,id_first,id_last
+#     if tname == "max":
+#         id_out = id_max
+#     elif tname == "min":
+#         id_out = id_min
+#     elif tname == "center":
+#         id_out = id_center
+#     elif tname == "start":
+#         id_out = id_first
+#     elif tname == "end":
+#         id_out = id_last
+#     values_out = [timeseries[dd.astype(int)] for dd in id_out]
+#     #group2           = [duration,event_mean,event_std,event_cumu]
+#     return id_out,values_out,duration,event_mean,event_std,event_cumu,id_first,id_last
 
-def get_rolling_threshold(timeseries,quantiles=[0.10,0.90],monthly=True):
-    "Compute climatologically-varying percentile threshold and tile to original timeseries"
+# def get_rolling_threshold(timeseries,quantiles=[0.10,0.90],monthly=True):
+#     "Compute climatologically-varying percentile threshold and tile to original timeseries"
     
-    if monthly: # Compute Quantiles Grouping by Month
-        thres_bymon = timeseries.groupby('time.month').quantile(quantiles,dim='time')
-    else:       # Compute Quantiles Grouping by Day of Year
-        thres_bymon = timeseries.groupby('time.dayofyear').quantile(quantiles,dim='time')
-    thresholds = []
-    nq         = len(quantiles)
-    for qq in range(nq):
-        thres_in = thres_bymon.isel(quantile=qq)
-        if monthly:
-            thres = xr.ones_like(timeseries).groupby('time.month') * thres_in
-        else:
-            thres = xr.ones_like(timeseries).groupby('time.dayofyear') * thres_in
-        thres = thres.drop_vars('quantile')
-        thresholds.append(thres)
+#     if monthly: # Compute Quantiles Grouping by Month
+#         thres_bymon = timeseries.groupby('time.month').quantile(quantiles,dim='time')
+#     else:       # Compute Quantiles Grouping by Day of Year
+#         thres_bymon = timeseries.groupby('time.dayofyear').quantile(quantiles,dim='time')
+#     thresholds = []
+#     nq         = len(quantiles)
+#     for qq in range(nq):
+#         thres_in = thres_bymon.isel(quantile=qq)
+#         if monthly:
+#             thres = xr.ones_like(timeseries).groupby('time.month') * thres_in
+#         else:
+#             thres = xr.ones_like(timeseries).groupby('time.dayofyear') * thres_in
+#         thres = thres.drop_vars('quantile')
+#         thresholds.append(thres)
     
-    thresholds = xr.concat(thresholds,dim='quantile')
-    thresholds['quantile'] = quantiles
-    return thresholds
+#     thresholds = xr.concat(thresholds,dim='quantile')
+#     thresholds['quantile'] = quantiles
+#     return thresholds
   
-def pad_nan(indata,nmax):
-    ndata = len(indata)
-    return np.pad(indata,(0,nmax-ndata),'constant',constant_values=np.nan)
+# def pad_nan(indata,nmax):
+#     ndata = len(indata)
+#     return np.pad(indata,(0,nmax-ndata),'constant',constant_values=np.nan)
 
-def id_extremes_arr(timeseries,thres,positive,eventid_max=None,tol=1,verbose=False,tname='max'):
-    #   [2026.09.23] Updated output work with id_first and id_last
-    #   [2026.09.30] Change so that nevents is last, makes things easier..
-    if eventid_max is None:
-        eventid_max = int(len(timeseries) * 0.25)
-    # If NaN, just Continue
-    if np.any(np.isnan(timeseries)):
-        #print("Skipping NaN")
-        dummy=np.zeros(eventid_max) * np.nan
-        #output = *[dummy,]*5
-        return dummy,dummy,dummy,dummy,dummy,dummy,dummy,0
+# def id_extremes_arr(timeseries,thres,positive,eventid_max=None,tol=1,verbose=False,tname='max'):
+#     #   [2026.09.23] Updated output work with id_first and id_last
+#     #   [2026.09.30] Change so that nevents is last, makes things easier..
+#     if eventid_max is None:
+#         eventid_max = int(len(timeseries) * 0.25)
+#     # If NaN, just Continue
+#     if np.any(np.isnan(timeseries)):
+#         #print("Skipping NaN")
+#         dummy=np.zeros(eventid_max) * np.nan
+#         #output = *[dummy,]*5
+#         return dummy,dummy,dummy,dummy,dummy,dummy,dummy,0
     
-    # Use Thresholds to find Events 
-    if positive == True:
-        below      = False
-        event_indices = np.where(timeseries > thres)[0]
-    else:
-        below      = True
-        # if verbose:
-        #     print("Looking for events below threshold")
-        event_indices = np.where(timeseries < thres)[0]
+#     # Use Thresholds to find Events 
+#     if positive == True:
+#         below      = False
+#         event_indices = np.where(timeseries > thres)[0]
+#     else:
+#         below      = True
+#         # if verbose:
+#         #     print("Looking for events below threshold")
+#         event_indices = np.where(timeseries < thres)[0]
     
-    nevents         = len(event_indices)
-    # if verbose:
-    #     print("Identified %i Events" % nevents)
+#     nevents         = len(event_indices)
+#     # if verbose:
+#     #     print("Identified %i Events" % nevents)
     
-    event_combine   = combine_consecutive_events(timeseries,event_indices,tol=tol,verbose=verbose)
-    metrics_out     = retrieve_event_metrics_arr(event_combine,timeseries,tname=tname)
+#     event_combine   = combine_consecutive_events(timeseries,event_indices,tol=tol,verbose=verbose)
+#     metrics_out     = retrieve_event_metrics_arr(event_combine,timeseries,tname=tname)
     
-    # #id_out,values_out,duration,event_mean,event_std,event_cumu = metrics_out
+#     # #id_out,values_out,duration,event_mean,event_std,event_cumu = metrics_out
     
-    # For Output Variables, Pad with NaN #Enter the Amount
-    nevents         = len(metrics_out[0])
-    #npad            = eventid_max-nevents
-    metrics_out     = [pad_nan(arr,eventid_max) for arr in metrics_out]
-    #print(len(metrics_out))
-    id_out,values_out,duration,event_mean,event_std,event_cumu,id_first,id_last = metrics_out
-    return id_out,values_out,duration,event_mean,event_cumu,id_first,id_last,nevents
+#     # For Output Variables, Pad with NaN #Enter the Amount
+#     nevents         = len(metrics_out[0])
+#     #npad            = eventid_max-nevents
+#     metrics_out     = [pad_nan(arr,eventid_max) for arr in metrics_out]
+#     #print(len(metrics_out))
+#     id_out,values_out,duration,event_mean,event_std,event_cumu,id_first,id_last = metrics_out
+#     return id_out,values_out,duration,event_mean,event_cumu,id_first,id_last,nevents
 
 def makedir(expdir):
     """
@@ -294,7 +303,7 @@ outpath      = "/glade/derecho/scratch/glennliu/MESACLIP/processed/"
 expname      = "hires"
 vname        = "SST"
 freq         = "day_1"
-
+integratedintensity=False
 
 # Set Path to the Data
 procname     = "anom_detrend1_19820101-20251231_climatology1985to2014"
@@ -328,6 +337,9 @@ else:
     print("Using fixed tolerance: %i (%s)" % (combine_tol,freq))
     tol = combine_tol
     tolname="tol%02i" % combine_tol
+    
+if integratedintensity:
+    print("Additionally applying the integrated intensity threshold...")
 
 # Set Output Path
 tstart       = tstart.replace('-','')#npdatetime_to_str(dsanom.time[0]).replace('-','')
@@ -335,13 +347,11 @@ tend         = tend.replace('-','')  #npdatetime_to_str(dsanom.time[-1]).replace
 outpath_event = "%s/events/" % outpath #"%s/anom_detrend%i_%s-%s/" % (outpath,deg,tstart,tend,)
 
 # Make Output Directory
-outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct/" % (outpath_event,monthly,thresname,tolname)
+outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_integratedintensity%i/" % (outpath_event,monthly,thresname,tolname,integratedintensity)
 makedir(outdir_metrics)
 
 # Other Calculation Options
 verbose      = False
-
-
 
 # Set # of Ens. Members
 enslist_restrict =None # np.arange(2,11) # None
@@ -394,7 +404,7 @@ for e in np.arange(0,nens):
     st                = time.time()
     if load_thres is False:
         print("Calculating thresholds...")
-        thresholds_global = get_rolling_threshold(dsload,quantiles=[0.10,0.90],monthly=True)
+        thresholds_global = mut.get_rolling_threshold(dsload,quantiles=[0.10,0.90],monthly=True)
         print("Regular Monthly Threshold will be used")
     else:
         # Loading Threshold for Ens Member
@@ -414,7 +424,7 @@ for e in np.arange(0,nens):
     print("\tThreshold Calculated in %.2fs" % (time.time()-st))
     
     # Make Function to include combine tolerance
-    func_in     = lambda ds,thres,sign : id_extremes_arr(ds,thres,sign,tol=tol)
+    func_in     = lambda ds,thres,sign : mut.id_extremes_arr(ds,thres,sign,tol=tol,integrated_threshold=integratedintensity)
     
     # First, calculate for positive ===========================================
     st         = time.time()
