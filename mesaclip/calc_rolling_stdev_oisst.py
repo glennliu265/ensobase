@@ -99,7 +99,7 @@ def rolling_stdev_threshold(timeseries,doy,ibefore,iafter,
 #%% Open view of OISST (8GB for global)
 
 st         = time.time()
-procname   = "anom_detrend2_19820101-20251231" # "anom_detrend1_19820101-20251231_climatology1985to2014"  # 
+procname   = "anom_detrend2_19820101-20251231" #anom_detrend1_19820101-20251231_climatology1985to2014"  # "
 ncpath     = "/home/niu4/gliu8/share/OISST/mergetest/%s/" % procname
 ncname     = "oisst_day_1_sst_anom.nc"
 dsview     = xr.open_dataset(ncpath+ncname).load()
