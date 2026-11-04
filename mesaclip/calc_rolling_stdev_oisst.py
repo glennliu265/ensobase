@@ -50,7 +50,7 @@ def rolling_stdev_threshold(timeseries,doy,ibefore,iafter,
                                sigma=1,return_count=False,noleap=False):
     
     if np.any(np.isnan(timeseries)):
-        nanout = np.nan * np.ones((365,2))
+        nanout = np.nan * np.ones((365))
         if return_count:
             return nanout,0
         return nanout
@@ -108,6 +108,7 @@ dsview     = dsview.convert_calendar('noleap') # Remove Leap Year
 print("Loaded Data in %.2fs" % (time.time()-st))
 print(dsview)
 
+sigma      = 1 # number of standard deviations
 
 outdir     = "/home/niu4/gliu8/projects/mesaclip/thresholds/%s/" % procname
 proc.makedir(outdir)
@@ -115,7 +116,7 @@ proc.makedir(outdir)
 # Threshold Selections
 winsize    = 15
 quantiles  = [0.10,0.90]
-thresname  = "winsize%0i_pct%03i-%03i" % (winsize,quantiles[0]*100,quantiles[1]*100)
+thresname  = "winsize%0i_std%i" % (winsize,sigma)
 
 # NOTE NEED TO MANUALLY CHANGE OUTNAME
 outname    = "%soisst_day_1_rolling_threshold_%s.nc" % (outdir,thresname) 
@@ -125,8 +126,8 @@ outname    = "%soisst_day_1_rolling_threshold_%s.nc" % (outdir,thresname)
 doy=dsview.time.dt.dayofyear
 st = time.time()
 
-get_thres = lambda XX,YY: rolling_quantile_threshold(XX,YY,winsize,winsize,
-                                                  quantiles=quantiles,
+get_thres = lambda XX,YY: rolling_stdev_threshold(XX,YY,winsize,winsize,
+                                                  sigma=sigma,
                                                   return_count=False,
                                                   noleap=True)
 
@@ -135,16 +136,16 @@ ds_thresholds   = xr.apply_ufunc(
     dsview[xrname],
     doy,
     input_core_dims=[['time'],['time']],
-    output_core_dims=[['doy','quantile']],
+    output_core_dims=[['doy']],
     vectorize=True,
     )
 print("Computed threshold in %.2fs" % (time.time()-st))
 
 
 
-ds_thresholds['doy'] = np.arange(1,366,1)
-ds_thresholds['quantile'] = quantiles
-ds_thresholds = ds_thresholds.squeeze()
+ds_thresholds['doy']   = np.arange(1,366,1)
+ds_thresholds['stdev'] = sigma
+ds_thresholds          = ds_thresholds.squeeze()
 
 #%% Save Output
 ds_thresholds.to_netcdf(outname)
