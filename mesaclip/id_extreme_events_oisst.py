@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import glob
 import os
-
 import sys
 
 #%% Indicate Paths
@@ -75,12 +74,20 @@ expname             = "oisst"
 vname               = "sst"
 freq                = "day_1" # "day_1"#"month_1"
 procname            = "anom_detrend2_19820101-20251231"# "anom_detrend1_19820101-20251231_climatology1985to2014"
-integratedintensity = False # Set to True to apply Integrated Intensity threshold
+#integratedintensity  = True # Set to True to apply Integrated Intensity threshold
 
 # Amplitude Thresholds
 # See `calc_rolling_threshold_oisst.py
 thresnc        = "/home/niu4/gliu8/projects/mesaclip/thresholds/%s/oisst_day_1_rolling_threshold_winsize15_pct010-090.nc" % procname# None
 thresname      = "rolling15"
+stdnc          = "/home/niu4/gliu8/projects/mesaclip/thresholds/%s/oisst_day_1_rolling_threshold_winsize15_std1.nc" % procname
+
+# Applying a Cumulative Intensity Criteria
+# 0 : Not applied
+# 1 : Cumulative intensity relative to percentile threshold (via thresnc)
+# 2 : Cumulative intensity relative to 1 standard deviation (via stdnc)
+# 3 : Cumulative intensity relative to zero
+cumulative_intensity_criteria = 1 # See Above for the different options...
 
 if freq=="month_1":
     thresnc   = None # No Rolling Threshold for Monthly Data
@@ -88,7 +95,7 @@ if freq=="month_1":
 
 # Duration Thresholds
 combine_tol    = 2    # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
-efolding_tol   = False #False #False
+efolding_tol   = True #False #False
 winsize        = 15
 if winsize == 0:
     efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_nowindow.nc"
@@ -131,9 +138,16 @@ if thresnc is not None:
 else:
     print("Regular Monthly Threshold will be used")
 
+if cumulative_intensity_criteria == 2:
+    print("Loading DOY Standard Deviation")
+    dsstd  = xr.open_dataset(stdnc).load()
+    xrname ='__xarray_dataarray_variable__'
+    dsstd  = dsstd[xrname].squeeze()
+
 # Make Output Directory
 outpath_event  = "/home/niu4/gliu8/projects/mesaclip/events/%s/" % (procname)
-outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_integratedintensity%i/" % (outpath_event,monthly,thresname,tolname,integratedintensity)
+outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_cumulativeintensity%i/" % (outpath_event,monthly,thresname,tolname,
+                                                                                         cumulative_intensity_criteria)
 makedir(outdir_metrics)
 
 # Set Output Options for xrfunc, based on id_extremes_arr output
@@ -156,7 +170,6 @@ metric_names       = ['id_max',
                   'id_last',
                   'nevents',
                   ]
-
 
 #%% Start Script
 
@@ -187,12 +200,38 @@ else:
     thresholds_global = xr.ones_like(dsload.squeeze()).groupby('time.dayofyear') * dsthres
 print("\tThreshold Calculated in %.2fs" % (time.time()-st))
 
-
+# Prepare Cumulative Intensity Baseline
+# 
+if cumulative_intensity_criteria == 0:
+    print("Cumulative Intensity Criteria not applied...")
+    cumulative_intensity_baseline = None
+    
+elif cumulative_intensity_criteria == 1:
+    print("Cumulative Intensity will by computed relative to percentile threshold (Option 1)")
+    cumulative_intensity_baseline = thresholds_global
+    
+elif cumulative_intensity_criteria == 2:
+    print("Cumulative Intensity will by computed relative to 1 standard deviation (Option 2)")
+    print("Loading Standard Deviation for Day of Year")
+    
+    # Tile Standard Deviation
+    print("Tiling DOY Standard Deviation")
+    renamedict = dict(doy='dayofyear')
+    dsstd      = dsstd.rename(renamedict)
+    cumulative_intensity_baseline = xr.ones_like(dsload.squeeze()).groupby('time.dayofyear') * dsstd
+    
+elif cumulative_intensity_criteria == 3:
+    print("Cumulative Intensity will by computed relative to zero (Option 3)")
+    cumulative_intensity_baseline = xr.zeros_like(dsload.squeeze())
+    
 # Make Function to include combine tolerance
 if not efolding_tol:
-    func_in       = lambda ds,thres,sign : mut.id_extremes_arr(ds,thres,sign,tol=tol,integrated_threshold=integratedintensity)
+    func_in       = lambda ds,thres,sign        : mut.id_extremes_arr(ds,thres,sign,tol=tol,
+                                                                      cumulative_intensity_criterion=cumulative_intensity_baseline)
 else:
-    func_in       = lambda ds,thres,sign,tolsel : mut.id_extremes_arr(ds,thres,sign,tol=tolsel,integrated_threshold=integratedintensity)
+    func_in       = lambda ds,thres,sign,tolsel : mut.id_extremes_arr(ds,thres,sign,tol=tolsel,
+                                                                      cumulative_intensity_criterion=cumulative_intensity_baseline)
+    
 
 # Moved Above
 #outdims_xrfunc = [["eventid"],["eventid"],["eventid"],["eventid"] ,['eventid']           ,[]]
