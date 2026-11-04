@@ -87,7 +87,7 @@ stdnc          = "/home/niu4/gliu8/projects/mesaclip/thresholds/%s/oisst_day_1_r
 # 1 : Cumulative intensity relative to percentile threshold (via thresnc)
 # 2 : Cumulative intensity relative to 1 standard deviation (via stdnc)
 # 3 : Cumulative intensity relative to zero
-cumulative_intensity_criteria = 2 # See Above for the different options...
+cumulative_intensity_criterion = 2 # See Above for the different options...
 
 if freq=="month_1":
     thresnc   = None # No Rolling Threshold for Monthly Data
@@ -138,7 +138,7 @@ if thresnc is not None:
 else:
     print("Regular Monthly Threshold will be used")
 
-if cumulative_intensity_criteria == 2:
+if cumulative_intensity_criterion == 2:
     print("Loading DOY Standard Deviation")
     dsstd  = xr.open_dataset(stdnc).load()
     xrname ='__xarray_dataarray_variable__'
@@ -147,7 +147,7 @@ if cumulative_intensity_criteria == 2:
 # Make Output Directory
 outpath_event  = "/home/niu4/gliu8/projects/mesaclip/events/%s/" % (procname)
 outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_cumulativeintensity%i/" % (outpath_event,monthly,thresname,tolname,
-                                                                                         cumulative_intensity_criteria)
+                                                                                         cumulative_intensity_criterion)
 makedir(outdir_metrics)
 
 # Set Output Options for xrfunc, based on id_extremes_arr output
@@ -202,15 +202,15 @@ print("\tThreshold Calculated in %.2fs" % (time.time()-st))
 
 # Prepare Cumulative Intensity Baseline
 # 
-if cumulative_intensity_criteria == 0:
+if cumulative_intensity_criterion == 0:
     print("Cumulative Intensity Criteria not applied...")
     cumulative_intensity_baseline = None
     
-elif cumulative_intensity_criteria == 1:
+elif cumulative_intensity_criterion == 1:
     print("Cumulative Intensity will by computed relative to percentile threshold (Option 1)")
     cumulative_intensity_baseline = thresholds_global
     
-elif cumulative_intensity_criteria == 2:
+elif cumulative_intensity_criterion == 2:
     print("Cumulative Intensity will by computed relative to 1 standard deviation (Option 2)")
     print("Loading Standard Deviation for Day of Year")
     
@@ -220,22 +220,27 @@ elif cumulative_intensity_criteria == 2:
     dsstd      = dsstd.rename(renamedict)
     cumulative_intensity_baseline = xr.ones_like(dsload.squeeze()).groupby('time.dayofyear') * dsstd
     
-elif cumulative_intensity_criteria == 3:
+elif cumulative_intensity_criterion == 3:
     print("Cumulative Intensity will by computed relative to zero (Option 3)")
     cumulative_intensity_baseline = xr.zeros_like(dsload.squeeze())
     
 # Make Function to include combine tolerance
 if not efolding_tol:
-    func_in       = lambda ds,thres,sign        : mut.id_extremes_arr(ds,thres,sign,tol=tol,
-                                                                      cumulative_intensity_criterion=cumulative_intensity_baseline)
+    func_in       = lambda ds,thres,sign        : mut.id_extremes_arr(ds,thres,sign,tol=tol,)
+                                                                      #cumulative_intensity_criterion=cumulative_intensity_baseline)
 else:
-    func_in       = lambda ds,thres,sign,tolsel : mut.id_extremes_arr(ds,thres,sign,tol=tolsel,
-                                                                      cumulative_intensity_criterion=cumulative_intensity_baseline)
+    func_in       = lambda ds,thres,sign,tolsel,cumu_in : mut.id_extremes_arr(ds,thres,sign,tol=tolsel,
+                                                                      cumulative_intensity_criterion=cumu_in)
     
 
 # Moved Above
 #outdims_xrfunc = [["eventid"],["eventid"],["eventid"],["eventid"] ,['eventid']           ,[]]
 #metric_names       = ['id_max'   ,'event_max','duration' ,'event_mean','cumulative_intensity','nevents']
+
+if cumulative_intensity_criterion == 0:
+    cumu_dims = []
+else:
+    cumu_dims = ['time']
 
 # First, calculate for positive ===========================================
 st         = time.time()
@@ -249,7 +254,8 @@ if efolding_tol:
         thresin,
         positive,
         dstol,
-        input_core_dims=[["time"],["time"],[],['doy']],
+        cumulative_intensity_baseline,
+        input_core_dims=[["time"],["time"],[],['doy'],cumu_dims,],
         output_core_dims=outdims_xrfunc,
         vectorize=True,
     )
@@ -295,7 +301,8 @@ if efolding_tol:
         thresin,
         positive,
         dstol,
-        input_core_dims=[["time"],["time"],[],['doy']],
+        cumulative_intensity_baseline,
+        input_core_dims=[["time"],["time"],[],['doy'],cumu_dims],
         output_core_dims=outdims_xrfunc,
         vectorize=True,
     )
