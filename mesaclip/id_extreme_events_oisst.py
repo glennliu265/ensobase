@@ -87,7 +87,7 @@ stdnc          = "/home/niu4/gliu8/projects/mesaclip/thresholds/%s/oisst_day_1_r
 # 1 : Cumulative intensity relative to percentile threshold (via thresnc)
 # 2 : Cumulative intensity relative to 1 standard deviation (via stdnc)
 # 3 : Cumulative intensity relative to zero
-cumulative_intensity_criterion = 2 # See Above for the different options...
+cumulative_intensity_criterion = 3 # See Above for the different options...
 
 if freq=="month_1":
     thresnc   = None # No Rolling Threshold for Monthly Data
@@ -334,7 +334,7 @@ outname_neg = addstrtoext(outname,"_negative_events")
 dsout.to_netcdf(outname_neg)
 print("\tSaved (-) Events in %.2f" % (time.time()-st))
 
-print("Completed n %.2fs" % (time.time()-start_all))
+print("Completed in %.2fs" % (time.time()-start_all))
 del events_neg,dsout,dsload,thresholds_global
 # = addstrtoext(outname,"_")
 
