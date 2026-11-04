@@ -87,7 +87,7 @@ stdnc          = "/home/niu4/gliu8/projects/mesaclip/thresholds/%s/oisst_day_1_r
 # 1 : Cumulative intensity relative to percentile threshold (via thresnc)
 # 2 : Cumulative intensity relative to 1 standard deviation (via stdnc)
 # 3 : Cumulative intensity relative to zero
-cumulative_intensity_criteria = 1 # See Above for the different options...
+cumulative_intensity_criteria = 2 # See Above for the different options...
 
 if freq=="month_1":
     thresnc   = None # No Rolling Threshold for Monthly Data
