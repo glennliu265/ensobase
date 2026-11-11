@@ -21,7 +21,6 @@ import sys
 
 #%% Indicate Paths
 
-
 mhwpath = "/home/niu4/gliu8/scripts/mhw_tools/"
 sys.path.append(mhwpath)
 import utils as mut
@@ -146,7 +145,7 @@ if cumulative_intensity_criterion == 2:
 
 # Make Output Directory
 outpath_event  = "/home/niu4/gliu8/projects/mesaclip/events/%s/" % (procname)
-outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_cumulativeintensity%i/" % (outpath_event,monthly,thresname,tolname,
+outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_cumulativeintensity%i_BaselineOnly/" % (outpath_event,monthly,thresname,tolname,
                                                                                          cumulative_intensity_criterion)
 makedir(outdir_metrics)
 
@@ -230,9 +229,8 @@ if not efolding_tol:
                                                                       #cumulative_intensity_criterion=cumulative_intensity_baseline)
 else:
     func_in       = lambda ds,thres,sign,tolsel,cumu_in : mut.id_extremes_arr(ds,thres,sign,tol=tolsel,
-                                                                      cumulative_intensity_criterion=cumu_in)
+                                                                      cumulative_intensity_criterion=thres,integration_baseline=cumu_in)
     
-
 # Moved Above
 #outdims_xrfunc = [["eventid"],["eventid"],["eventid"],["eventid"] ,['eventid']           ,[]]
 #metric_names       = ['id_max'   ,'event_max','duration' ,'event_mean','cumulative_intensity','nevents']
@@ -241,11 +239,21 @@ if cumulative_intensity_criterion == 0:
     cumu_dims = []
 else:
     cumu_dims = ['time']
+    
+
+    
 
 # First, calculate for positive ===========================================
 st         = time.time()
 thresin    = thresholds_global.isel(quantile=1)
 positive   = True
+
+# Additional Correction for Positive/Negative
+if cumulative_intensity_criterion == 1: # Need to Select Correction Quantile
+    baseline_in = cumulative_intensity_baseline.isel(quantile=1)
+else:
+    baseline_in = cumulative_intensity_baseline
+
 if efolding_tol:
     # Apply E-folding Threshold
     events_pos = xr.apply_ufunc(
@@ -254,7 +262,7 @@ if efolding_tol:
         thresin,
         positive,
         dstol,
-        cumulative_intensity_baseline,
+        baseline_in,
         input_core_dims=[["time"],["time"],[],['doy'],cumu_dims,],
         output_core_dims=outdims_xrfunc,
         vectorize=True,
@@ -294,6 +302,13 @@ del events_pos,dsout
 st         = time.time()
 thresin    = thresholds_global.isel(quantile=0)
 positive   = False
+
+# Additional Correction for Positive/Negative
+if cumulative_intensity_criterion == 1: # Need to Select Correction Quantile
+    baseline_in = cumulative_intensity_baseline.isel(quantile=0) # Select Lower Baseline
+else:
+    baseline_in = cumulative_intensity_baseline
+    
 if efolding_tol:
     events_neg = xr.apply_ufunc(
         func_in,
@@ -301,7 +316,7 @@ if efolding_tol:
         thresin,
         positive,
         dstol,
-        cumulative_intensity_baseline,
+        baseline_in,
         input_core_dims=[["time"],["time"],[],['doy'],cumu_dims],
         output_core_dims=outdims_xrfunc,
         vectorize=True,
