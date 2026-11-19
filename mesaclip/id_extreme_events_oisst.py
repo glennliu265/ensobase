@@ -74,6 +74,8 @@ vname               = "sst"
 freq                = "day_1" # "day_1"#"month_1"
 procname            = "anom_detrend2_19820101-20251231"# "anom_detrend1_19820101-20251231_climatology1985to2014"
 #integratedintensity  = True # Set to True to apply Integrated Intensity threshold
+cull_first          = True # Set to True to cull events below minimu, duration before merging
+min_duration        = 5
 
 # Amplitude Thresholds
 # See `calc_rolling_threshold_oisst.py
@@ -86,7 +88,7 @@ stdnc          = "/home/niu4/gliu8/projects/mesaclip/thresholds/%s/oisst_day_1_r
 # 1 : Cumulative intensity relative to percentile threshold (via thresnc)
 # 2 : Cumulative intensity relative to 1 standard deviation (via stdnc)
 # 3 : Cumulative intensity relative to zero
-cumulative_intensity_criterion = 1 # See Above for the different options...
+cumulative_intensity_criterion = 0 # See Above for the different options...
 
 if freq=="month_1":
     thresnc   = None # No Rolling Threshold for Monthly Data
@@ -145,8 +147,8 @@ if cumulative_intensity_criterion == 2:
 
 # Make Output Directory
 outpath_event  = "/home/niu4/gliu8/projects/mesaclip/events/%s/" % (procname)
-outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_cumulativeintensity%i_BaselineOnly/" % (outpath_event,monthly,thresname,tolname,
-                                                                                         cumulative_intensity_criterion)
+outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_cumulativeintensity%i_BaselineOnly_cullfirst%i/" % (outpath_event,monthly,thresname,tolname,
+                                                                                         cumulative_intensity_criterion,cull_first)
 makedir(outdir_metrics)
 
 # Set Output Options for xrfunc, based on id_extremes_arr output
@@ -225,11 +227,12 @@ elif cumulative_intensity_criterion == 3:
     
 # Make Function to include combine tolerance
 if not efolding_tol:
-    func_in       = lambda ds,thres,sign        : mut.id_extremes_arr(ds,thres,sign,tol=tol,)
+    func_in       = lambda ds,thres,sign        : mut.id_extremes_arr(ds,thres,sign,tol=tol,cull_first=cull_first,min_duration=min_duration)
                                                                       #cumulative_intensity_criterion=cumulative_intensity_baseline)
 else:
     func_in       = lambda ds,thres,sign,tolsel,cumu_in : mut.id_extremes_arr(ds,thres,sign,tol=tolsel,
-                                                                      cumulative_intensity_criterion=thres,integration_baseline=cumu_in)
+                                                                      cumulative_intensity_criterion=thres,integration_baseline=cumu_in,
+                                                                      cull_first=cull_first,min_duration=min_duration)
     
 # Moved Above
 #outdims_xrfunc = [["eventid"],["eventid"],["eventid"],["eventid"] ,['eventid']           ,[]]
