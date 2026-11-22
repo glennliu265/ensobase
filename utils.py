@@ -1028,7 +1028,7 @@ def fit_ctone_cp_ep_pointwise(ds,cp_index,ep_index,return_ds=True,
                 values_out = [np.nan,]*5 + [t*np.nan]
         else:
             
-            fitout     = fit_ctone_cpep(target,cp_index,ep_index,debug=False,linear_enso=linear_enso)
+            fitout     = fit_ctone_cp_ep(target,cp_index,ep_index,debug=False,linear_enso=linear_enso)
             values_out = [fitout[key] for key in varlist] # List of values to output
         
         #print(values_out)
