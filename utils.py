@@ -25,6 +25,8 @@ Function                Description
 awi_mean_loader             : (l) load mean/monvar/scycle calculations from calc_mean_patterns_TP 
 band_avg_spectra            : (g) Take Band-average around ENSO and Combination Mode Frequencies
 calc_enso_index             : (g) Calculate ENSO Index
+calc_enso_eof               : (g) Calculate ENSO Index (EOF-Based)
+calc_cp_ep_index            : (g) Calculate CP/EP ENSO Indices
 calc_grad_centered          : (g) Calculate centered-difference for spatial gradients
 calc_lag_regression_1d      : (g) Compute lead lag regression for 1d timeseries
 calc_leadlagreg_pointwise   : (g) Compute pointwise lead lag regression using ufunc
@@ -34,6 +36,9 @@ center_events_ninodict      : (c) Center Identified Events around a particular m
 convolve_kernel_ccf         : (c) Convolve radiative kernel with ccf variable 
 combine_events              : (g) Given identified events, combine similar events and get other traits (duration, etc)
 fit_ctone_enso              : (g) Fit Combination Tone Model
+fit_ctone_cp_ep             : (g) Fit C-mode Model with EP and CP Indices, Fixed Frequency + Offset
+fit_ctone_cp_ep_pointwise   : (g) Pointwise Application of fit_ctone_enso
+fit_cpep_pointwise          : (g) Pointwise Application of fit_ctone_cpep
 generate_periods            : (c) Generate Periods for a sliding window of a selected length
 get_early_late_periods      : (c) Get N earliest/latest periods for a DataArray
 get_moving_segments         : (g) Subset timeseries into segments with a sliding window
@@ -84,7 +89,7 @@ from sklearn.linear_model import LinearRegression
 import sklearn
 import scipy as sp
 
-#%%
+#%%fit
 
 amvpath = "/home/niu4/gliu8/scripts/commons"
 sys.path.append(amvpath)
@@ -222,6 +227,210 @@ def calc_enso_index(sstanom,ninoid_name='nino34',apply_movmean=False):
         coords  = {'time':sstanom.time}
         ensoid  = xr.DataArray(ensoid,coords=coords,dims=coords,name=ensoid.name)
     return ensoid
+
+def calc_enso_eof(invar,lon,lat,pcrem,bbox=None,sep_mon=True):
+    
+    """
+    Calculate ENSO for input SST (use longitude 0-360)!
+    
+    Parameters
+    ----------
+    invar : ARRAY [time x lat x lon360]
+        monthly SST variable longitude is 0-360, lat -90 to 90
+    lon : [lon]
+        Longitude values
+    lat : [lat]
+        Latitude values
+    pcrem : Int
+        Number of PCs to alculate
+    bbox : List [lonW,lonE,latS,latN], optional
+        Bounding box for calculation.
+        Default is [120, 290, -20, 20]. The default is None.
+
+    Returns
+    -------
+    eofall : ARRAY [lat x lon x month x pc]
+        EOF Patterns.
+    pcall : ARRAY [time x month x pc]
+        Principle components.
+    varexpall : [month x pc]
+        Variance Explained.
+        
+    Custom dependencies: check_enso_sign, proc.eof_simple
+    """
+    if bbox is None:
+        bbox = [120, 290, -10, 10]
+    
+    #  Apply Area Weight
+    _,Y = np.meshgrid(lon,lat)
+    wgt = np.sqrt(np.cos(np.radians(Y))) # [lat x lon]
+    ts = invar * wgt[None,:,:]
+    
+    # Reshape for ENSO calculations
+    ntime,nlat,nlon = ts.shape 
+    ts = ts.reshape(ntime,nlat*nlon) # [time x space]
+    ts = ts.T #[space x time]
+    
+    # Remove NaN points
+    okdata,knan,okpts = proc.find_nan(ts,1) # Find Non-Nan Points
+    oksize = okdata.shape[0]
+    
+    # Calcuate monthly anomalies
+    if sep_mon:
+        okdata = okdata.reshape(oksize,int(ntime/12),12) # [space x yr x mon]
+        manom  = okdata.mean(1)
+        tsanom = okdata - manom[:,None,:]
+        nyr    = tsanom.shape[1]
+        
+        # Preallocate
+        eofall = np.zeros((nlat*nlon,12,pcrem)) *np.nan# [space x month x pc]
+        pcall  = np.zeros((nyr,12,pcrem)) *np.nan# [year x month x pc]
+        varexpall  = np.zeros((12,pcrem)) * np.nan #[month x pc]
+        
+        # Compute EOF!!
+        for m in range(12):
+            
+            # Perform EOF
+            st = time.time()
+            eofsok,pcs,varexp= proc.eof_simple(tsanom[:,:,m],pcrem,1)
+            #print("Performed EOF in %.2fs"%(time.time()-st))
+        
+            # Place back into full array
+            eofs = np.zeros((nlat*nlon,pcrem)) * np.nan
+            eofs[okpts,:] = eofsok   
+        
+            # Correct ENSO Signs
+            eofs,pcs = check_ENSO_sign(eofs,pcs,lon,lat,verbose=True)
+            
+            
+            # Save variables
+            eofall[:,m,:] = eofs.copy()
+            pcall[:,m,:] = pcs.copy()
+            varexpall[m,:] = varexp.copy()
+            
+            print("Completed month %i in %.2fs"%(m+1,time.time()-st))
+    
+    
+        # Reshape Data
+        eofall = eofall.reshape(nlat,nlon,12,pcrem) # [lat x lon x month x pc]
+    else: # Just do all months together
+        manom  = okdata.mean(1)
+        tsanom = okdata - manom[:,None] # Remove Mean
+        
+        # Perform EOF
+        st = time.time()
+        eofsok,pcs,varexpall= proc.eof_simple(tsanom,pcrem,1)
+        
+        # Place back into full array
+        eofall = np.zeros((nlat*nlon,pcrem)) * np.nan
+        eofall[okpts,:] = eofsok   
+        
+        # Correct ENSO Signs
+        eofall,pcall = check_ENSO_sign(eofall,pcs,lon,lat,verbose=True)
+        
+        # Reshape Data
+        eofall = eofall.reshape(nlat,nlon,pcrem) # [lat x lon x month x pc]
+        print("Completed ENSO calculation in %.2fs"%(time.time()-st))
+    
+    return eofall,pcall,varexpall
+
+def check_ENSO_sign(eofs,pcs,lon,lat,verbose=True):
+    """
+    Checks sign of EOF for ENSO and flips sign by check the sum over
+    conventional ENSO boxes (see below for more information)
+    
+    checks to see if the sum within the region and flips if sum < 0
+    
+    inputs:
+        1) eofs [space (latxlon), PC] EOF spatial pattern from eof_simple
+        2) pcs  [time, PC] PC timeseries calculated from eof_simple
+        3) lat  [lat] Latitude values
+        4) lon  [lon] Longitude values
+    
+    outputs:
+        1) eofs [space, PC]
+        2) pcs  [time, PC]
+    
+    """   
+    # Set EOF boxes to check over (west,east,south,north)
+    eofbox1  = [190,240,-5,5] #EOF1 sign check Lat/Lon Box (Currently using nino3.4)
+    eofbox2  = [190,240,-5,5] #EOF2 (Frankignoul et al. 2011; extend of positive contours offshore S. Am > 0.1)
+    eofbox3  = [200,260,5,5]  #EOF3 (Frankignoul et al. 2011; narrow band of positive value around equator)
+    chkboxes = [eofbox1,eofbox2,eofbox3]
+    
+    # Find dimensions and separate out space
+    nlon = lon.shape[0]
+    nlat = lat.shape[0]
+    npcs = eofs.shape[1] 
+    eofs = eofs.reshape(nlat,nlon,npcs)
+    eofs = eofs.transpose(1,0,2) # [lon x lat x npcs]
+        
+    for n in range(npcs):
+        if n >= len(chkboxes):
+            print("Not checking EOF %i" %(n+1))
+            continue
+        chk = proc.sel_region(eofs,lon,lat,chkboxes[n],reg_sum=1)[n]
+        
+        if chk < 0:
+            if verbose:
+                print("Flipping EOF %i because sum is %.2f"%(n,chk))
+    
+            eofs[:,:,n] *= -1
+            pcs[:,n]    *= -1
+    
+    eofs = eofs.transpose(1,0,2).reshape(nlat*nlon,npcs) # Switch back to lat x lon x pcs
+    
+    return eofs,pcs
+
+def calc_cp_ep_index(sst_anom,bbox_takahashi = [120,360-70,-10,10],sep_mon=False,pcrem=3):
+    # Calculate CP/EP ENSO Indices based on Takahashi et al. 2011
+    # By doing EOF Analysis on Tropical Pacific SSTs, then Rotating PC1 and PC2
+    # -----------------
+    # Obtain EOF modes from Tropical Pacific SST Anomalies
+    # Also Flip Sign to Correct
+    sst_anom      = sst_anom.transpose('time','lat','lon')
+    sst_anom      = proc.sel_region_xr(sst_anom,bbox_takahashi)
+    invar         = sst_anom.sst.data
+    lat           = sst_anom.lat.data
+    lon           = sst_anom.lon.data
+    ensoout       = calc_enso_eof(invar,lon,lat,pcrem,bbox=bbox_takahashi,sep_mon=sep_mon)
+    eofall,pcall,varexpall = ensoout
+
+    # Calculate Rotated EOFs
+    pc1           = pcall[:,0] # [Time x Mode]
+    pc2           = pcall[:,1] 
+    cp_index      = (pc1 + pc2) / np.sqrt(2)
+    ep_index      = (pc1 - pc2) / np.sqrt(2)
+    
+    # Make into Data Arrays
+    coords = dict(time=sst_anom.time)
+    da_ep  = xr.DataArray(ep_index,coords=coords,dims=coords,name='ep_index')
+    da_cp  = xr.DataArray(cp_index,coords=coords,dims=coords,name='cp_index')
+    
+    # Regress back to SST Anomalies
+    ep_pattern = proc.xr_linfit(sst_anom.sst,da_ep).coeffs.isel(degree=0).rename("ep_pattern")
+    cp_pattern = proc.xr_linfit(sst_anom.sst,da_cp).coeffs.isel(degree=0).rename("cp_pattern")
+
+
+    # Get Necessary Indices
+    pcnums    = np.arange(1,pcrem+1)
+    times     = sst_anom.time
+    
+    # Make Coords
+    coords_eofs   = dict(lat=lat,lon=lon,pc=pcnums) # 
+    coords_pcs    = dict(time=times,pc=pcnums)
+    coords_varexp = dict(pc=pcnums)
+    
+    # Original Variables
+    da_eofs       = xr.DataArray(eofall,coords=coords_eofs,dims=coords_eofs,name='eofs')
+    da_pcs        = xr.DataArray(pcall,coords=coords_pcs,dims=coords_pcs,name='pcs')
+    da_varexp     = xr.DataArray(varexpall,coords=coords_varexp,dims=coords_varexp,name='varexp')
+
+    # Merge the Output
+    ds_out = xr.merge([da_eofs,da_pcs,da_varexp,
+                       da_ep,da_cp,
+                       ep_pattern,cp_pattern])
+    return ds_out
 
 def calc_grad_centered(ds,latname='lat',lonname='lon'): # Copied from structure in calc_ekman_advection_htr
     
@@ -468,10 +677,10 @@ def fit_ctone_enso(anomalies,ensoid,tmax=None,initial_guess=None,debug=True,
         if use_sine:
             if linear_enso:
                 def sine_func_ctone(t,amplitude,phase,beta):
-                    return beta * ensoin + ensoin * amplitude * ( (np.cos(phase) * np.sin(fix_frequency*t)) + (np.sin(phase) * np.cos(dix_frequency*t)) ) + fix_offset
+                    return beta * ensoin + ensoin * amplitude * ( (np.cos(phase) * np.sin(fix_frequency*t)) + (np.sin(phase) * np.cos(fix_frequency*t)) ) + fix_offset
             else:
                 def sine_func_ctone(t,amplitude,phase):
-                    return ensoin * amplitude * ( (np.cos(phase) * np.sin(fix_frequency*t)) + (np.sin(phase) * np.cos(dix_frequency*t)) ) + fix_offset
+                    return ensoin * amplitude * ( (np.cos(phase) * np.sin(fix_frequency*t)) + (np.sin(phase) * np.cos(fix_frequency*t)) ) + fix_offset
         else:
             if linear_enso:
                 def sine_func_ctone(t,amplitude,phase,beta): # Misnomer should be cos
@@ -625,6 +834,248 @@ def fit_ctone_pointwise(ds,ensoid,return_ds=True,
             dsout['beta'] = beta.rename('beta')
     return dsout
 
+def fit_ctone_cp_ep(anomalies,cp_index,ep_index,tmax=None,initial_guess=None,debug=True,
+                   linear_enso=False,verbose=False,):
+    # Fit Idealized Combination Tone Model to Anomalie Timeserise [anomalies]
+    # Main difference from [proc.fit_sinfunc] above is that we multiple sine function
+    # By ENSO Timeseries [ensoid] and allow for flexibility in the period
+    # Inputs:
+    # [anomalies] (xr.DataArray)    : 1-d anomaly timeseries to fit
+    # [ensoid] (xr.DataArray)       : 1-d ENSO Timeseries
+    # [tmax]  (int)                 : max index of timeseries to subset...
+    # [Initial Guess] (array)       : Guess of initial parameter values. None to use default guess.
+    # [debug] (bool)                : True to Make Timeseries Plot
+    # [linear_enso] (bool)          : True to add linear ENSO term (beta) Nino3.4
+    # [use_sine] (bool)             : True to assume sin(a+b), False to use cos(a+b) (yields same answer...)
+    # [fix_frequency_offset] (bool) : Use fixed annual cycle freq (2*pi/12) and fixed offset (0)
+    #
+    # Outputs: Dict Containing:
+    # [Parameter Estimates] (int), (amplitude,frequency,phase,offset)
+    # [prediction] (xr.DataArray) : Modeled 1-D anomaly timeseries
+    # [fitfunc] (function)        : Function with parameters input
+    # [period] (numeric)          : 1/frequency, multiply by 2*np.pi to convert
+    # [corr] (numeric)            : Correlation between modeled + actual y
+    # [r2] (numeric)              : r2between modeled + actual y
+    # 
+    # For Debugging Script, see `simple_mode_ctone.ipynb`
+
+    # ==== 
+    
+    # Get Length of Time
+    if tmax is not None:
+        y      = anomalies[:tmax]
+        #ensoin = ensoid[:tmax]
+        cp_in = cp_index[:tmax]
+        ep_in = ep_index[:tmax]
+    else:
+        y      = anomalies.copy()
+        #ensoin = ensoid.copy()
+        cp_in = cp_index.copy()
+        ep_in = ep_index.copy()
+    ntime = len(y)
+    x     = np.arange(ntime)
+    
+    # Assume Offset and Frequency are Fixed
+    fix_offset    = 0            # Assume centered around 0
+    fix_frequency = 2*np.pi / 12 # Seasonal Cycle
+    
+    # Make the function (based on angle sum identities)
+    # Note: In this Case, Frequency and Offset are Fixed
+    if linear_enso:
+        def sine_func_ctone(t,
+                            beta_cp1,beta_cp2,phase_cp,
+                            beta_ep1,beta_ep2,phase_ep,
+                            ):
+            linear_cp_term = beta_cp1 * cp_in
+            ctone_cp_term  = beta_cp2 * cp_in * ( (np.cos(phase_cp) * np.cos(fix_frequency*t)) - (np.sin(phase_cp) * np.sin(fix_frequency*t)) ) + fix_offset
+            linear_ep_term = beta_ep1 * ep_in
+            ctone_ep_term  = beta_ep2 * ep_in * ( (np.cos(phase_ep) * np.cos(fix_frequency*t)) - (np.sin(phase_ep) * np.sin(fix_frequency*t)) ) + fix_offset
+            return linear_cp_term + ctone_cp_term + linear_ep_term + ctone_ep_term
+    else:
+        def sine_func_ctone(t,
+                            beta_cp2,phase_cp,
+                            beta_ep2,phase_ep,
+                            ):
+            ctone_cp_term  = beta_cp2 * cp_in * ( (np.cos(phase_cp) * np.cos(fix_frequency*t)) - (np.sin(phase_cp) * np.sin(fix_frequency*t)) ) + fix_offset
+            ctone_ep_term  = beta_ep2 * ep_in * ( (np.cos(phase_ep) * np.cos(fix_frequency*t)) - (np.sin(phase_ep) * np.sin(fix_frequency*t)) ) + fix_offset
+            return ctone_cp_term +  ctone_ep_term
+    
+    # Make initial Guess
+    if initial_guess is None:
+        guess_amplitude = 2 * np.nanstd(y) # Amplitude ~ 2*Standard Deviation
+        guess_phase     = 0                # Assume no phase shift
+        
+    
+        if linear_enso:            
+            initial_guess = [guess_amplitude,
+                             guess_amplitude,
+                             guess_phase,
+                             guess_amplitude,
+                             guess_amplitude,
+                             guess_phase,
+                            ]
+        else:
+            initial_guess = [guess_amplitude,
+                             guess_phase,
+                             guess_amplitude,
+                             guess_phase,
+                            ]
+    
+    # Make the Fit
+    params, covariance = sp.optimize.curve_fit(sine_func_ctone, x, y, p0=initial_guess)
+    
+    # Extract Parameters
+    if linear_enso:
+        beta_cp1,beta_cp2,phase_cp,beta_ep1,beta_ep2,phase_ep = params
+    else:
+        beta_cp2,phase_cp,beta_ep2,phase_ep = params
+    
+    if linear_enso:
+        model = lambda t: sine_func_ctone(t,
+                            beta_cp1,beta_cp2,phase_cp,
+                            beta_ep1,beta_ep2,phase_ep,
+                            )
+    else:
+        model = lambda t: sine_func_ctone(t,
+                            beta_cp2,phase_cp,
+                            beta_ep2,phase_ep,
+                            )
+    
+    y_fit  = model(x)
+    r2     = np.corrcoef(y,y_fit)[0,1]**2
+
+    # Plot If Debug Mode is One
+    if debug:
+
+        fig,ax = plt.subplots(1,1,constrained_layout=True,figsize=(12.5,4))
+
+        # Plot Target Timeseries and Fit
+        if type(y) == xr.core.dataarray.DataArray:
+            plotx  = y.time
+        else:
+            plotx  = np.arange(y.shape[0])
+        l1 = ax.plot(plotx,y,alpha=0.8,c='k',marker="o",markersize=1.5,linewidth=0.55,label="Target Anomaly Timeseries",ls='dashed',zorder=8)
+        l2 = ax.plot(plotx,y_fit,c='magenta',lw=2.5,label="Combination Tone Fit, $r^2$=%.2f%%" % (r2*100),alpha=0.6,zorder=9)
+        
+        # Plot EP/CP Indices
+        ax2 = ax.twinx()
+        l3  = ax2.plot(plotx,cp_index,c='cornflowerblue',lw=0.5,label="CP Index")
+        l4  = ax2.plot(plotx,ep_index,c='coral',lw=0.5,label="EP Index")
+        ax2 = viz.change_axcol('right',c='gray',ax=ax2)
+        ax2.set_ylabel(r"CP/EP Index ($\degree C)$")
+        
+        # Create Legend
+        lns  = l1+l2+l3+l4
+        labs = [l.get_label() for l in lns]
+        ax.legend(lns,labs,ncol=4)
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Anomaly")
+
+        
+    
+    # Prepare Output Dictionary
+    outdict = dict(
+        beta_cp2=beta_cp2,
+        beta_ep2=beta_ep2,
+        phase_cp=phase_cp,
+        phase_ep=phase_ep,
+        offset=fix_offset,
+        frequency=fix_frequency,
+        prediction = y_fit,
+        fitfunc=model,
+        period= 1/fix_frequency,
+        corr=np.corrcoef(y,y_fit),
+        r2=r2,
+        )
+    if linear_enso:
+        outdict['beta_cp1'] = beta_cp1
+        outdict['beta_ep1'] = beta_ep1
+    return outdict
+
+def fit_ctone_cp_ep_pointwise(ds,cp_index,ep_index,return_ds=True,
+                        linear_enso=False):
+    
+    # Pointwise application of fit_sinfunc
+    def unpack_sinfit(target,cp_index,ep_index,debug=False,linear_enso=linear_enso):
+        t      = np.arange(len(target))
+
+        # Determine List of Variables
+        if linear_enso:
+            varlist = ['beta_cp1','beta_cp2',
+                       'beta_ep1','beta_ep2',
+                       'phase_cp','phase_ep',
+                       'r2','prediction',]
+        else:
+            varlist = ['beta_cp2',
+                       'beta_ep2',
+                       'phase_cp','phase_ep',
+                       'r2','prediction',
+                       ]     
+        # try:
+        #     fitout     = fit_ctone_cpep(target,cp_index,ep_index,debug=False,linear_enso=linear_enso)
+        #     values_out = [fitout[key] for key in varlist] # List of values to output
+            
+        # except:
+        #     print("Failed Try Statement")
+        #     if linear_enso: # Np.NaN for each parameter, and same length as time for prediction
+        #         values_out = [np.nan,]*7 + [t*np.nan]
+        #     else:
+        #         values_out = [np.nan,]*5 + [t*np.nan]
+        if np.any(np.isnan(target)):
+            if linear_enso: # Np.NaN for each parameter, and same length as time for prediction
+                values_out = [np.nan,]*7 + [t*np.nan]
+            else:
+                values_out = [np.nan,]*5 + [t*np.nan]
+        else:
+            
+            fitout     = fit_ctone_cpep(target,cp_index,ep_index,debug=False,linear_enso=linear_enso)
+            values_out = [fitout[key] for key in varlist] # List of values to output
+        
+        #print(values_out)
+        #return values_out # Apparently it doesnt take a list... has to be output items explicitly
+        if linear_enso:
+            beta_cp1,beta_cp2,beta_ep1,beta_ep2,phase_cp,phase_ep,r2,prediction = values_out
+            return beta_cp1,beta_cp2,beta_ep1,beta_ep2,phase_cp,phase_ep,r2,prediction
+        else:
+            beta_cp2,beta_ep2,phase_cp,phase_ep,r2,prediction = values_out
+            return beta_cp2,beta_ep2,phase_cp,phase_ep,r2,prediction
+    
+    stxr = time.time()
+    if linear_enso:
+        output_core_dims = [[],]*7 + [['time',]]
+        varlist = ['beta_cp1','beta_cp2',
+                       'beta_ep1','beta_ep2',
+                       'phase_cp','phase_ep',
+                       'r2','prediction',]
+        
+    else:
+        output_core_dims = [[],]*5 + [['time',]]
+        varlist = ['beta_cp2',
+                       'beta_ep2',
+                       'phase_cp','phase_ep',
+                       'r2','prediction',
+                       ]   
+    
+    #print(output_core_dims)
+    #print(len(output_core_dims))
+    dsout = xr.apply_ufunc(
+        unpack_sinfit,
+        ds,
+        cp_index,
+        ep_index,
+        linear_enso,
+        input_core_dims=[['time'],['time'],['time'],[]],
+        output_core_dims=output_core_dims,
+        vectorize=True,
+        )
+    print("Completed fit in %.2fs" % (time.time()-stxr))
+    
+    # Place in DataSet
+    if return_ds:
+        dsout = [dsout[ii].rename(varlist[ii]) for ii in range(len(varlist))]
+        dsout = xr.merge(dsout)
+        dsout = dsout.rename(dict(prediction='ypred'))
+    return dsout
 
 def calc_leadlag_regression_2d(ensoid,dsvar,leadlags,sep_mon=False):
     # Based on routine in enso_lag_regression and global_mean_nino_regressions
@@ -1574,13 +2025,14 @@ def load_land_mask_awi(expname,regrid=False,outpath=None):
         return np.nan
     return xr.open_dataset(outpath+dsmask).land_mask.load()
 
-def loadregrid(expname,vname,reformat=False,bbox=None,check_var=True):
+def loadregrid(expname,vname,reformat=False,bbox=None,check_var=True,datpath=None):
     
     # load regridded 1x1 product on niu (convenience function)
     # Check CERES First
     not_in_ceres_flag = True # True if variable has not been found in ceres
     if "CERES" in expname:
-        datpath = "/home/niu4/gliu8/share/CERES/processed/"
+        if datpath is None:
+            datpath = "/home/niu4/gliu8/share/CERES/processed/"
         if "EBAF" in expname and np.isin(vname,['allsky','clearsky','cre','tscre','ttcre','tsr','tsrc','ttr','ttrc']): # EBAF (Fluxes Only)
             ncname = "%sCERES_EBAF_%s_2000-03_to_2025-08.nc" % (datpath,vname)
             not_in_ceres_flag = False
@@ -1589,10 +2041,12 @@ def loadregrid(expname,vname,reformat=False,bbox=None,check_var=True):
             not_in_ceres_flag = False
         
     if "ERA5" in expname and not_in_ceres_flag:
-        datpath = "/home/niu4/gliu8/projects/common_data/ERA5/regrid_1x1/"
+        if datpath is None:
+            datpath = "/home/niu4/gliu8/projects/common_data/ERA5/regrid_1x1/"
         ncname  = "%s%s_1979_2024.nc" % (datpath,vname)
     elif not_in_ceres_flag:
-        datpath = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
+        if datpath is None:
+            datpath = "/home/niu4/gliu8/projects/scrap/regrid_1x1/"
         ncname  = "%s%s_%s_regrid1x1.nc" % (datpath,expname,vname)
     
     # Open view of dataset
