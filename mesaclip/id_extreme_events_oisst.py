@@ -71,7 +71,7 @@ tstart              = "1982-01-01"
 tend                = "2025-12-31" #"2025-12-31"
 expname             = "oisst"
 vname               = "sst"
-freq                = "month_1" #"day_1" # "day_1"#"month_1"
+freq                = "day_1" ##"day_1" # "day_1"#"month_1"
 procname            = "anom_detrend2_19820101-20251231"# "anom_detrend1_19820101-20251231_climatology1985to2014"
 #integratedintensity  = True # Set to True to apply Integrated Intensity threshold
 cull_first          = False #True # Set to True to cull events below minimu, duration before merging
@@ -96,12 +96,17 @@ if freq=="month_1":
 
 # Duration Thresholds
 combine_tol    = 1    # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
-efolding_tol   = False #False #False
+efolding_tol   = True #False #False
 winsize        = 15
-if winsize == 0:
-    efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_nowindow.nc"
+tolname        = "ACFFitLag15" # "efolding_winsize%i" % winsize
+
+if tolname == "daily_efolding_timescale_lagmax365_winsize15_ACFFitLag15.nc":
+    efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_winsize15_ACFFitLag15.nc"
 else:
-    efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_winsize15.nc"
+    if winsize == 0:
+        efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_nowindow.nc"
+    else:
+        efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_winsize15.nc"
 efolding_vname = "efolding_timescale"
 
 # see `visualize_efolding_timescales
@@ -119,11 +124,11 @@ outpath_proc = "%s/%s/" % (outpath,procname)
 makedir(outpath_proc)
 
 # Calculation Options
-monthly    = True # Group Quantiles using Monthly Baseline
+monthly    = False # Group Quantiles using Monthly Baseline
 verbose    = False
 if efolding_tol:
     print("Loading and using e-folding timescale tolerance")
-    tolname="efolding_winsize%i" % winsize
+    #tolname="efolding_winsize%i" % winsize
     dstol = xr.open_dataset(efolding_nc)[efolding_vname].load()
     tol   = None
 else:
@@ -162,7 +167,7 @@ outdims_xrfunc = [["eventid"],
                   [],
                   ]
 
-metric_names       = ['id_max',
+metric_names  = ['id_max',
                   'event_max',
                   'duration',
                   'event_mean',
