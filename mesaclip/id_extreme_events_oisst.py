@@ -89,7 +89,7 @@ stdnc          = "/home/niu4/gliu8/projects/mesaclip/thresholds/%s/oisst_day_1_r
 # 1 : Cumulative intensity relative to percentile threshold (via thresnc)
 # 2 : Cumulative intensity relative to 1 standard deviation (via stdnc)
 # 3 : Cumulative intensity relative to zero
-cumulative_intensity_criterion = 0 # See Above for the different options...
+cumulative_intensity_criterion = 1 # See Above for the different options...
 
 if freq=="month_1":
     thresnc   = None # No Rolling Threshold for Monthly Data
@@ -153,9 +153,11 @@ if cumulative_intensity_criterion == 2:
 
 # Make Output Directory
 outpath_event  = "/home/niu4/gliu8/projects/mesaclip/events/%s/" % (procname)
-outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_cumulativeintensity%i_BaselineOnly_cullfirst%i_signonly%i/" % (outpath_event,monthly,thresname,tolname,
-                                                                                         cumulative_intensity_criterion,cull_first,integrate_sign_only)
-
+outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_cumulativeintensity%i_BaselineOnly_cullfirst%i/" % (outpath_event,monthly,thresname,tolname,
+                                                                                         cumulative_intensity_criterion,cull_first)
+if integrate_sign_only is False:
+    outdir_metrics = outdir_metrics[:-1] + "_signonly%i" % (integrate_sign_only) + "/"
+    
 makedir(outdir_metrics)
 
 # Set Output Options for xrfunc, based on id_extremes_arr output
