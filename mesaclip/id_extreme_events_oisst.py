@@ -71,11 +71,11 @@ tstart              = "1982-01-01"
 tend                = "2025-12-31" #"2025-12-31"
 expname             = "oisst"
 vname               = "sst"
-freq                = "day_1" # "day_1"#"month_1"
+freq                = "month_1" #"day_1" # "day_1"#"month_1"
 procname            = "anom_detrend2_19820101-20251231"# "anom_detrend1_19820101-20251231_climatology1985to2014"
 #integratedintensity  = True # Set to True to apply Integrated Intensity threshold
-cull_first          = True # Set to True to cull events below minimu, duration before merging
-min_duration        = 5
+cull_first          = False #True # Set to True to cull events below minimu, duration before merging
+min_duration        = 1 #5
 
 # Amplitude Thresholds
 # See `calc_rolling_threshold_oisst.py
@@ -95,7 +95,7 @@ if freq=="month_1":
     thresname = "monthlythres"
 
 # Duration Thresholds
-combine_tol    = 2    # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
+combine_tol    = 1    # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
 efolding_tol   = True #False #False
 winsize        = 15
 if winsize == 0:
@@ -355,5 +355,7 @@ print("\tSaved (-) Events in %.2f" % (time.time()-st))
 print("Completed in %.2fs" % (time.time()-start_all))
 del events_neg,dsout,dsload,thresholds_global
 # = addstrtoext(outname,"_")
+
+
 
     
