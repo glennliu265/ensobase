@@ -76,6 +76,7 @@ procname            = "anom_detrend2_19820101-20251231"# "anom_detrend1_19820101
 #integratedintensity  = True # Set to True to apply Integrated Intensity threshold
 cull_first          = False #True # Set to True to cull events below minimu, duration before merging
 min_duration        = 1 #5
+integrate_sign_only = False
 
 # Amplitude Thresholds
 # See `calc_rolling_threshold_oisst.py
@@ -98,7 +99,7 @@ if freq=="month_1":
 combine_tol    = 1    # Set Fixed Tolerance (doesn't matter if efolding_tol is True)
 efolding_tol   = True #False #False
 winsize        = 15
-tolname        = "ACFFitLag15" # "efolding_winsize%i" % winsize
+tolname        = "efolding_winsize%i" % winsize #"ACFFitLag15" # "efolding_winsize%i" % winsize
 
 if tolname == "daily_efolding_timescale_lagmax365_winsize15_ACFFitLag15.nc":
     efolding_nc    = "/home/niu4/gliu8/projects/mesaclip/memory/oisst_byday/daily_efolding_timescale_lagmax365_winsize15_ACFFitLag15.nc"
@@ -152,8 +153,9 @@ if cumulative_intensity_criterion == 2:
 
 # Make Output Directory
 outpath_event  = "/home/niu4/gliu8/projects/mesaclip/events/%s/" % (procname)
-outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_cumulativeintensity%i_BaselineOnly_cullfirst%i/" % (outpath_event,monthly,thresname,tolname,
-                                                                                         cumulative_intensity_criterion,cull_first)
+outdir_metrics = "%sMetrics_monthlybaseline%i_%s_%s_10to90Pct_cumulativeintensity%i_BaselineOnly_cullfirst%i_signonly%i/" % (outpath_event,monthly,thresname,tolname,
+                                                                                         cumulative_intensity_criterion,cull_first,integrate_sign_only)
+
 makedir(outdir_metrics)
 
 # Set Output Options for xrfunc, based on id_extremes_arr output
@@ -237,7 +239,7 @@ if not efolding_tol:
 else:
     func_in       = lambda ds,thres,sign,tolsel,cumu_in : mut.id_extremes_arr(ds,thres,sign,tol=tolsel,
                                                                       cumulative_intensity_criterion=thres,integration_baseline=cumu_in,
-                                                                      cull_first=cull_first,min_duration=min_duration)
+                                                                      cull_first=cull_first,min_duration=min_duration,integrate_sign_only=integrate_sign_only)
     
 # Moved Above
 #outdims_xrfunc = [["eventid"],["eventid"],["eventid"],["eventid"] ,['eventid']           ,[]]
